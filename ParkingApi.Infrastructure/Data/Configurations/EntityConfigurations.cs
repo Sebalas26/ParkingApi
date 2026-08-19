@@ -23,9 +23,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("Users");
         builder.HasKey(u => u.UserId);
         builder.Property(u => u.Username).IsRequired().HasMaxLength(50);
+        builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(255);
         builder.Property(u => u.FullName).IsRequired().HasMaxLength(150);
         builder.Property(u => u.Email).HasMaxLength(150);
-        builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(255);
         builder.HasIndex(u => u.Username).IsUnique();
 
         builder.HasOne(u => u.Role)
@@ -42,8 +42,8 @@ public class UserSessionConfiguration : IEntityTypeConfiguration<UserSession>
         builder.ToTable("UserSessions");
         builder.HasKey(s => s.SessionId);
         builder.Property(s => s.SessionToken).IsRequired().HasMaxLength(500);
-        builder.Property(s => s.DeviceIdentifier).HasMaxLength(150);
-        builder.Property(s => s.IpAddress).HasMaxLength(50);
+        builder.Property(s => s.DeviceIdentifier).HasMaxLength(150).IsRequired(false);
+        builder.Property(s => s.IpAddress).HasMaxLength(50).IsRequired(false);
 
         builder.HasOne(s => s.User)
             .WithMany(u => u.Sessions)
@@ -62,7 +62,7 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
         builder.HasIndex(t => t.Token).IsUnique();
 
         builder.HasOne(t => t.User)
-            .WithMany(u => u.PasswordResetTokens)
+            .WithMany()
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
@@ -106,12 +106,12 @@ public class VehicleRateConfiguration : IEntityTypeConfiguration<VehicleRate>
     public void Configure(EntityTypeBuilder<VehicleRate> builder)
     {
         builder.ToTable("VehicleRates");
-        builder.HasKey(r => r.RateId);
-        builder.Property(r => r.DisplayName).IsRequired().HasMaxLength(50);
-        builder.Property(r => r.HourRate).HasPrecision(18, 2);
-        builder.Property(r => r.MinuteRate).HasPrecision(18, 2);
-        builder.Property(r => r.FullDayRate).HasPrecision(18, 2);
-        builder.Property(r => r.IconKey).HasMaxLength(50);
+        builder.HasKey(vr => vr.RateId);
+        builder.Property(vr => vr.DisplayName).IsRequired().HasMaxLength(50);
+        builder.Property(vr => vr.IconKey).HasMaxLength(50);
+        builder.Property(vr => vr.HourRate).HasPrecision(18, 2);
+        builder.Property(vr => vr.MinuteRate).HasPrecision(18, 2);
+        builder.Property(vr => vr.FullDayRate).HasPrecision(18, 2);
     }
 }
 
@@ -133,15 +133,15 @@ public class CommercialAgreementConfiguration : IEntityTypeConfiguration<Commerc
     public void Configure(EntityTypeBuilder<CommercialAgreement> builder)
     {
         builder.ToTable("CommercialAgreements");
-        builder.HasKey(a => a.AgreementId);
-        builder.Property(a => a.Name).IsRequired().HasMaxLength(100);
-        builder.Property(a => a.MinPurchaseAmount).HasPrecision(18, 2);
-        builder.Property(a => a.DiscountPercentage).HasPrecision(5, 2);
-        builder.Property(a => a.DiscountFixedAmount).HasPrecision(18, 2);
+        builder.HasKey(ca => ca.AgreementId);
+        builder.Property(ca => ca.Name).IsRequired().HasMaxLength(100);
+        builder.Property(ca => ca.MinPurchaseAmount).HasPrecision(18, 2);
+        builder.Property(ca => ca.DiscountPercentage).HasPrecision(5, 2);
+        builder.Property(ca => ca.DiscountFixedAmount).HasPrecision(18, 2);
 
-        builder.HasOne(a => a.Store)
+        builder.HasOne(ca => ca.Store)
             .WithMany(s => s.Agreements)
-            .HasForeignKey(a => a.StoreId)
+            .HasForeignKey(ca => ca.StoreId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
@@ -151,21 +151,21 @@ public class ParkingTicketConfiguration : IEntityTypeConfiguration<ParkingTicket
     public void Configure(EntityTypeBuilder<ParkingTicket> builder)
     {
         builder.ToTable("ParkingTickets");
-        builder.HasKey(t => t.TicketId);
-        builder.Property(t => t.TicketNumber).IsRequired().HasMaxLength(50);
-        builder.Property(t => t.PlateNumber).IsRequired().HasMaxLength(20);
-        builder.Property(t => t.CustomerPhone).HasMaxLength(30);
-        builder.Property(t => t.Notes).HasMaxLength(500);
-        builder.Property(t => t.OperatorName).HasMaxLength(100);
-        builder.Property(t => t.HourlyRate).HasPrecision(18, 2);
-        builder.Property(t => t.GrossAmount).HasPrecision(18, 2);
-        builder.Property(t => t.DiscountAmount).HasPrecision(18, 2);
-        builder.Property(t => t.NetAmount).HasPrecision(18, 2);
-        builder.Property(t => t.AmountPaid).HasPrecision(18, 2);
-        builder.Property(t => t.ChangeGiven).HasPrecision(18, 2);
+        builder.HasKey(pt => pt.TicketId);
+        builder.Property(pt => pt.TicketNumber).IsRequired().HasMaxLength(50);
+        builder.Property(pt => pt.PlateNumber).IsRequired().HasMaxLength(20);
+        builder.Property(pt => pt.CustomerPhone).HasMaxLength(30);
+        builder.Property(pt => pt.Notes).HasMaxLength(500);
+        builder.Property(pt => pt.OperatorName).IsRequired().HasMaxLength(100);
+        builder.Property(pt => pt.HourlyRate).HasPrecision(18, 2);
+        builder.Property(pt => pt.GrossAmount).HasPrecision(18, 2);
+        builder.Property(pt => pt.DiscountAmount).HasPrecision(18, 2);
+        builder.Property(pt => pt.NetAmount).HasPrecision(18, 2);
+        builder.Property(pt => pt.AmountPaid).HasPrecision(18, 2);
+        builder.Property(pt => pt.ChangeGiven).HasPrecision(18, 2);
 
-        builder.HasIndex(t => t.PlateNumber);
-        builder.HasIndex(t => t.TicketNumber).IsUnique();
+        builder.HasIndex(pt => pt.TicketNumber).IsUnique();
+        builder.HasIndex(pt => pt.PlateNumber);
     }
 }
 
@@ -174,24 +174,24 @@ public class TicketDiscountConfiguration : IEntityTypeConfiguration<TicketDiscou
     public void Configure(EntityTypeBuilder<TicketDiscount> builder)
     {
         builder.ToTable("TicketDiscounts");
-        builder.HasKey(d => d.TicketDiscountId);
-        builder.Property(d => d.InvoiceNumber).IsRequired().HasMaxLength(50);
-        builder.Property(d => d.PurchaseAmount).HasPrecision(18, 2);
-        builder.Property(d => d.AppliedDiscountAmount).HasPrecision(18, 2);
+        builder.HasKey(td => td.TicketDiscountId);
+        builder.Property(td => td.InvoiceNumber).IsRequired().HasMaxLength(50);
+        builder.Property(td => td.PurchaseAmount).HasPrecision(18, 2);
+        builder.Property(td => td.AppliedDiscountAmount).HasPrecision(18, 2);
 
-        builder.HasOne(d => d.Ticket)
+        builder.HasOne(td => td.Ticket)
             .WithMany(t => t.Discounts)
-            .HasForeignKey(d => d.TicketId)
+            .HasForeignKey(td => td.TicketId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(d => d.Store)
-            .WithMany(s => s.TicketDiscounts)
-            .HasForeignKey(d => d.StoreId)
+        builder.HasOne(td => td.Store)
+            .WithMany()
+            .HasForeignKey(td => td.StoreId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(d => d.Agreement)
-            .WithMany(a => a.TicketDiscounts)
-            .HasForeignKey(d => d.AgreementId)
+        builder.HasOne(td => td.Agreement)
+            .WithMany()
+            .HasForeignKey(td => td.AgreementId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

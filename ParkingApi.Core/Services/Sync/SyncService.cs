@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Sync;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
 using ParkingApi.Domain.Interfaces.Repositories.Rates;
@@ -19,39 +20,50 @@ public class SyncService : ISyncService
     private readonly IStoreRepository _storeRepository;
     private readonly IAgreementRepository _agreementRepository;
     private readonly IParkingTicketRepository _ticketRepository;
+    private readonly ILogger<SyncService> _logger;
 
     public SyncService(
         IUserRepository userRepository,
         IVehicleRateRepository rateRepository,
         IStoreRepository storeRepository,
         IAgreementRepository agreementRepository,
-        IParkingTicketRepository ticketRepository)
+        IParkingTicketRepository ticketRepository,
+        ILogger<SyncService> logger)
     {
         _userRepository = userRepository;
         _rateRepository = rateRepository;
         _storeRepository = storeRepository;
         _agreementRepository = agreementRepository;
         _ticketRepository = ticketRepository;
+        _logger = logger;
     }
 
     public async Task<BootstrapSyncDto> GetBootstrapDataAsync(CancellationToken cancellationToken = default)
     {
-        var users = await _userRepository.GetAllAsync(cancellationToken);
-        var rates = await _rateRepository.GetAllAsync(cancellationToken);
-        var stores = await _storeRepository.GetAllAsync(cancellationToken);
-        var agreements = await _agreementRepository.GetAllAsync(cancellationToken);
-        var activeTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
-
-        return new BootstrapSyncDto
+        try
         {
-            ServerTimeUtc = DateTime.UtcNow,
-            TotalCapacity = 120,
-            Users = users.Where(u => u.IsActive).ToList(),
-            Rates = rates.Where(r => r.IsActive).ToList(),
-            Stores = stores.Where(s => s.IsActive).ToList(),
-            Agreements = agreements.Where(a => a.IsActive).ToList(),
-            ActiveTickets = activeTickets.ToList()
-        };
+            var users = await _userRepository.GetAllAsync(cancellationToken);
+            var rates = await _rateRepository.GetAllAsync(cancellationToken);
+            var stores = await _storeRepository.GetAllAsync(cancellationToken);
+            var agreements = await _agreementRepository.GetAllAsync(cancellationToken);
+            var activeTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
+
+            return new BootstrapSyncDto
+            {
+                ServerTimeUtc = DateTime.UtcNow,
+                TotalCapacity = 120,
+                Users = users.Where(u => u.IsActive).ToList(),
+                Rates = rates.Where(r => r.IsActive).ToList(),
+                Stores = stores.Where(s => s.IsActive).ToList(),
+                Agreements = agreements.Where(a => a.IsActive).ToList(),
+                ActiveTickets = activeTickets.ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al generar paquete de bootstrap.");
+            return new BootstrapSyncDto();
+        }
     }
 
     public async Task<SyncResultDto> ProcessPendingBatchAsync(PendingSyncBatchDto batch, CancellationToken cancellationToken = default)
@@ -59,38 +71,52 @@ public class SyncService : ISyncService
         int syncedTickets = 0;
         int syncedDiscounts = 0;
 
-        foreach (var pendingTicket in batch.PendingTickets)
+        try
         {
-            var existing = await _ticketRepository.GetByIdAsync(pendingTicket.TicketId, cancellationToken);
-            if (existing == null)
+            foreach (var pendingTicket in batch.PendingTickets)
             {
-                pendingTicket.IsSynchronized = true;
-                await _ticketRepository.AddAsync(pendingTicket, cancellationToken);
-                syncedTickets++;
+                var existing = await _ticketRepository.GetByIdAsync(pendingTicket.TicketId, cancellationToken);
+                if (existing == null)
+                {
+                    pendingTicket.IsSynchronized = true;
+                    await _ticketRepository.AddAsync(pendingTicket, cancellationToken);
+                    syncedTickets++;
+                }
+                else
+                {
+                    existing.ExitTimeUtc = pendingTicket.ExitTimeUtc;
+                    existing.TotalDurationMinutes = pendingTicket.TotalDurationMinutes;
+                    existing.GrossAmount = pendingTicket.GrossAmount;
+                    existing.DiscountAmount = pendingTicket.DiscountAmount;
+                    existing.NetAmount = pendingTicket.NetAmount;
+                    existing.AmountPaid = pendingTicket.AmountPaid;
+                    existing.ChangeGiven = pendingTicket.ChangeGiven;
+                    existing.PaymentMethod = pendingTicket.PaymentMethod;
+                    existing.Status = pendingTicket.Status;
+                    existing.IsSynchronized = true;
+                    await _ticketRepository.UpdateAsync(existing, cancellationToken);
+                    syncedTickets++;
+                }
             }
-            else
-            {
-                existing.ExitTimeUtc = pendingTicket.ExitTimeUtc;
-                existing.TotalDurationMinutes = pendingTicket.TotalDurationMinutes;
-                existing.GrossAmount = pendingTicket.GrossAmount;
-                existing.DiscountAmount = pendingTicket.DiscountAmount;
-                existing.NetAmount = pendingTicket.NetAmount;
-                existing.AmountPaid = pendingTicket.AmountPaid;
-                existing.ChangeGiven = pendingTicket.ChangeGiven;
-                existing.PaymentMethod = pendingTicket.PaymentMethod;
-                existing.Status = pendingTicket.Status;
-                existing.IsSynchronized = true;
-                await _ticketRepository.UpdateAsync(existing, cancellationToken);
-                syncedTickets++;
-            }
-        }
 
-        return new SyncResultDto
+            return new SyncResultDto
+            {
+                Success = true,
+                SyncedTicketsCount = syncedTickets,
+                SyncedDiscountsCount = syncedDiscounts,
+                Message = "Lote sincronizado exitosamente en el servidor central."
+            };
+        }
+        catch (Exception ex)
         {
-            Success = true,
-            SyncedTicketsCount = syncedTickets,
-            SyncedDiscountsCount = syncedDiscounts,
-            Message = "Lote sincronizado exitosamente en el servidor central."
-        };
+            _logger.LogError(ex, "Error al procesar lote de sincronizaciÃ³n.");
+            return new SyncResultDto
+            {
+                Success = false,
+                SyncedTicketsCount = syncedTickets,
+                SyncedDiscountsCount = syncedDiscounts,
+                Message = $"Fallo al procesar lote: {ex.Message}"
+            };
+        }
     }
 }

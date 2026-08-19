@@ -1,12 +1,17 @@
-﻿using System.Threading;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using ParkingApi.Domain.Common.Enums;
-using ParkingApi.Domain.Interfaces.Repositories.Base;
 using ParkingApi.Domain.Models;
 
 namespace ParkingApi.Domain.Interfaces.Repositories.Rates;
 
-public interface IVehicleRateRepository : IBaseRepository<VehicleRate>
+public interface IVehicleRateRepository
 {
+    Task<IReadOnlyList<VehicleRate>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<VehicleRate?> GetByIdAsync(Guid rateId, CancellationToken cancellationToken = default);
     Task<VehicleRate?> GetByTypeAsync(VehicleType type, CancellationToken cancellationToken = default);
+    Task<bool> AddAsync(VehicleRate rate, CancellationToken cancellationToken = default);
+    Task<bool> UpdateAsync(VehicleRate rate, CancellationToken cancellationToken = default);
 }
