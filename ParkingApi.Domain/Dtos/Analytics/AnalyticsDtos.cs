@@ -20,3 +20,13 @@ public class OccupancyStatsDto
     public int OccupiedSpots { get; set; }
     public int AvailableSpots => Math.Max(0, TotalCapacity - OccupiedSpots);
 }
+
+public class DailyReportDto
+{
+    public DateTime Date { get; set; }
+    public decimal GrossIncome { get; set; }
+    public decimal TotalDiscounts { get; set; }
+    public decimal NetIncome { get; set; }
+    public int TotalTicketsIssued { get; set; }
+    public int TotalTicketsPaid { get; set; }
+}

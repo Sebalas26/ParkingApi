@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ParkingApi.Domain.Dtos.Tickets;
-using ParkingApi.Domain.Interfaces.Services;
+using ParkingApi.Domain.Interfaces.Services.Tickets;
 
 namespace ParkingApi.Controllers;
 
@@ -55,6 +55,14 @@ public class TicketsController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var ticket = await _ticketService.GetByIdAsync(id, cancellationToken);
+        if (ticket == null) return NotFound(new { message = "Tiquete no encontrado." });
+        return Ok(ticket);
+    }
+
+    [HttpGet("find/{ticketNumber}")]
+    public async Task<IActionResult> GetByNumber(string ticketNumber, CancellationToken cancellationToken)
+    {
+        var ticket = await _ticketService.GetByTicketNumberAsync(ticketNumber, cancellationToken);
         if (ticket == null) return NotFound(new { message = "Tiquete no encontrado." });
         return Ok(ticket);
     }

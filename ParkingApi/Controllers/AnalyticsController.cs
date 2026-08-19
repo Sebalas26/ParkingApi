@@ -1,28 +1,9 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using ParkingApi.Domain.Interfaces.Services;
+using ParkingApi.Domain.Interfaces.Services.Analytics;
 
 namespace ParkingApi.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class SyncController : ControllerBase
-{
-    private readonly ISyncService _syncService;
-
-    public SyncController(ISyncService syncService)
-    {
-        _syncService = syncService;
-    }
-
-    [HttpGet("bootstrap")]
-    public async Task<IActionResult> GetBootstrap(CancellationToken cancellationToken)
-    {
-        var data = await _syncService.GetBootstrapDataAsync(cancellationToken);
-        return Ok(data);
-    }
-}
 
 [ApiController]
 [Route("api/[controller]")]
@@ -47,16 +28,5 @@ public class AnalyticsController : ControllerBase
     {
         var occupancy = await _analyticsService.GetOccupancyStatsAsync(cancellationToken);
         return Ok(occupancy);
-    }
-}
-
-[ApiController]
-[Route("api/[controller]")]
-public class HealthController : ControllerBase
-{
-    [HttpGet]
-    public IActionResult Check()
-    {
-        return Ok(new { status = "Healthy", timestamp = System.DateTime.UtcNow });
     }
 }

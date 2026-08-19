@@ -47,3 +47,12 @@ public class TicketDto
     public TicketStatus Status { get; set; }
     public string OperatorName { get; set; } = string.Empty;
 }
+
+public class TicketFilterDto
+{
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string? PlateNumber { get; set; }
+    public VehicleType? VehicleType { get; set; }
+    public TicketStatus? Status { get; set; }
+}

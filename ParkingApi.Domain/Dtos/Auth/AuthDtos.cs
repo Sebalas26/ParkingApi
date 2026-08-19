@@ -18,30 +18,34 @@ public class AuthResponseDto
     public string FullName { get; set; } = string.Empty;
     public string RoleName { get; set; } = string.Empty;
     public bool IsAdmin { get; set; }
+    public DateTime ExpiresAtUtc { get; set; }
 }
 
 public class ChangePasswordDto
 {
     public string CurrentPassword { get; set; } = string.Empty;
     public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmNewPassword { get; set; } = string.Empty;
 }
 
-public class UserDto
+public class ForgotPasswordDto
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ResetPasswordDto
+{
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public class CurrentUserDto
 {
     public Guid UserId { get; set; }
     public string Username { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string RoleName { get; set; } = string.Empty;
-    public Guid RoleId { get; set; }
-    public bool IsActive { get; set; }
-}
-
-public class CreateUserDto
-{
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public string? Email { get; set; }
-    public Guid RoleId { get; set; }
+    public bool IsAdmin { get; set; }
 }

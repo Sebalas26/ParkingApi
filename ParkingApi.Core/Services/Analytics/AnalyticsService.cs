@@ -5,8 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Analytics;
-using ParkingApi.Domain.Interfaces.Repositories;
-using ParkingApi.Domain.Interfaces.Services;
+using ParkingApi.Domain.Interfaces.Repositories.Tickets;
+using ParkingApi.Domain.Interfaces.Services.Analytics;
 
 namespace ParkingApi.Core.Services.Analytics;
 

@@ -4,8 +4,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Tickets;
-using ParkingApi.Domain.Interfaces.Repositories;
-using ParkingApi.Domain.Interfaces.Services;
+using ParkingApi.Domain.Interfaces.Repositories.Agreements;
+using ParkingApi.Domain.Interfaces.Repositories.Rates;
+using ParkingApi.Domain.Interfaces.Repositories.Stores;
+using ParkingApi.Domain.Interfaces.Repositories.Tickets;
+using ParkingApi.Domain.Interfaces.Services.Tickets;
 using ParkingApi.Domain.Models;
 
 namespace ParkingApi.Core.Services.Tickets;
@@ -35,13 +38,13 @@ public class ParkingTicketService : IParkingTicketService
         var active = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, cancellationToken);
         if (active != null)
         {
-            throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
+            throw new InvalidOperationException($"El vehÃ­culo con placa '{normalizedPlate}' ya se encuentra adentro.");
         }
 
         var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, cancellationToken);
         var hourRate = rate?.HourRate ?? 3000m;
-        var countToday = (await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken)).Count + 1;
-        var ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
+        var todayCount = (await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken)).Count + (await _ticketRepository.GetActiveTicketsAsync(cancellationToken)).Count + 1;
+        var ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{todayCount:D3}";
 
         var ticket = new ParkingTicket
         {
@@ -55,7 +58,8 @@ public class ParkingTicketService : IParkingTicketService
             HourlyRate = hourRate,
             Status = TicketStatus.Active,
             OperatorName = string.IsNullOrWhiteSpace(dto.OperatorName) ? "Operador General" : dto.OperatorName,
-            IsSynchronized = true
+            IsSynchronized = true,
+            CreatedAtUtc = DateTime.UtcNow
         };
 
         return await _ticketRepository.AddAsync(ticket, cancellationToken);
@@ -116,8 +120,15 @@ public class ParkingTicketService : IParkingTicketService
         return await _ticketRepository.GetByIdAsync(id, cancellationToken);
     }
 
+    public async Task<ParkingTicket?> GetByTicketNumberAsync(string ticketNumber, CancellationToken cancellationToken = default)
+    {
+        return await _ticketRepository.GetByTicketNumberAsync(ticketNumber, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, CancellationToken cancellationToken = default)
     {
-        return await _ticketRepository.FindAsync(t => t.EntryTimeUtc.Date == date.Date || (t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == date.Date), cancellationToken);
+        var start = date.Date;
+        var end = start.AddDays(1).AddTicks(-1);
+        return await _ticketRepository.GetByDateRangeAsync(start, end, cancellationToken);
     }
 }
