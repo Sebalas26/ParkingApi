@@ -1,64 +1,10 @@
-<<<<<<< HEAD
-﻿using System;
-using System.Collections.Generic;
-=======
 using System;
 using System.Collections.Generic;
 using System.Linq;
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-<<<<<<< HEAD
-using ParkingApi.Domain.Interfaces.Repositories.Users;
-using ParkingApi.Domain.Models;
-using ParkingApi.Infrastructure.Data;
-
-namespace ParkingApi.Infrastructure.Data.Repositories.Users;
-
-public sealed class UserRepository : IUserRepository
-{
-    private readonly DataContext _context;
-    private readonly ILogger<UserRepository> _logger;
-
-    public UserRepository(DataContext context, ILogger<UserRepository> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
-
-    public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            return await _context.Users
-                .Include(u => u.Role)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al obtener lista de usuarios.");
-            return new List<User>();
-        }
-    }
-
-    public async Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            return await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al obtener usuario por ID: {UserId}", userId);
-            return null;
-        }
-    }
-=======
 using ParkingApi.Domain.Common.Constants;
 using ParkingApi.Domain.Dtos.IdentificationTypes;
 using ParkingApi.Domain.Dtos.UserRoles;
@@ -72,44 +18,18 @@ public class UserRepository : IUserRepository
 {
     private readonly DataContext _context;
     private readonly ILogger<UserRepository> _logger;
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
 
     public UserRepository(DataContext context, ILogger<UserRepository> logger)
     {
-<<<<<<< HEAD
-        try
-        {
-            var normalized = username.Trim().ToLowerInvariant();
-            return await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Username.ToLower() == normalized && u.IsActive, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al buscar usuario por username: {Username}", username);
-            return null;
-        }
-=======
         _context = context;
         _logger = logger;
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
     }
 
     public async Task<IEnumerable<GetUsersDto>> GetUsers(CancellationToken cancellation = default)
     {
         try
         {
-<<<<<<< HEAD
-            var normalized = email.Trim().ToLowerInvariant();
-            return await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == normalized && u.IsActive, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al buscar usuario por email: {Email}", email);
-=======
-            var query = await _context.User
+            return await _context.User
                 .AsNoTracking()
                 .Include(x => x.UserRoleIdNavigation)
                 .Include(x => x.IdentificationTypeIdNavigation)
@@ -144,8 +64,6 @@ public class UserRepository : IUserRepository
                     }
                 })
                 .ToListAsync(cancellation);
-
-            return query;
         }
         catch (Exception ex)
         {
@@ -158,7 +76,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            var user = await _context.User
+            return await _context.User
                 .AsNoTracking()
                 .Include(x => x.UserRoleIdNavigation)
                 .Include(x => x.IdentificationTypeIdNavigation)
@@ -194,35 +112,20 @@ public class UserRepository : IUserRepository
                     }
                 })
                 .FirstOrDefaultAsync(cancellation);
-
-            return user;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, Constants.GetUserError);
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             return null;
         }
     }
 
-<<<<<<< HEAD
-    public async Task<bool> AddAsync(User user, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await _context.Users.AddAsync(user, cancellationToken);
-            return await _context.SaveChangesAsync(cancellationToken) > 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al agregar usuario: {Username}", user.Username);
-=======
     public async Task<LoginUserDto?> GetUser(string username, CancellationToken cancellation = default)
     {
         try
         {
             var normalizedUser = username.Trim().ToLower();
-            var user = await _context.User
+            return await _context.User
                 .AsNoTracking()
                 .Include(x => x.UserRoleIdNavigation)
                 .Where(x => x.Username.ToLower() == normalizedUser && x.IsActive)
@@ -236,8 +139,6 @@ public class UserRepository : IUserRepository
                     IdUserRole = x.UserRoleId
                 })
                 .FirstOrDefaultAsync(cancellation);
-
-            return user;
         }
         catch (Exception ex)
         {
@@ -257,23 +158,10 @@ public class UserRepository : IUserRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear usuario en base de datos");
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             return false;
         }
     }
 
-<<<<<<< HEAD
-    public async Task<bool> UpdateAsync(User user, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _context.Users.Update(user);
-            return await _context.SaveChangesAsync(cancellationToken) > 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al actualizar usuario: {UserId}", user.UserId);
-=======
     public async Task<bool> UpdateUser(User user, CancellationToken cancellation = default)
     {
         try
@@ -303,26 +191,10 @@ public class UserRepository : IUserRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar usuario");
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             return false;
         }
     }
 
-<<<<<<< HEAD
-    public async Task<bool> DeleteAsync(User user, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            user.IsActive = false;
-            _context.Users.Update(user);
-            return await _context.SaveChangesAsync(cancellationToken) > 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al desactivar usuario: {UserId}", user.UserId);
-            return false;
-        }
-=======
     public async Task<bool> UpdateUserToken(LoginUserDto user, CancellationToken cancellation = default)
     {
         try
@@ -351,7 +223,7 @@ public class UserRepository : IUserRepository
             var normalizedUser = username.Trim().ToLower();
             var normalizedDoc = numberIdentification.Trim();
 
-            var user = await _context.User
+            return await _context.User
                 .AsNoTracking()
                 .Where(x => x.Username.ToLower() == normalizedUser || x.IdentificationNumber == normalizedDoc)
                 .Select(x => new GetUsersDto
@@ -371,8 +243,6 @@ public class UserRepository : IUserRepository
                     IsActive = x.IsActive
                 })
                 .FirstOrDefaultAsync(cancellation);
-
-            return user;
         }
         catch (Exception ex)
         {
@@ -428,6 +298,21 @@ public class UserRepository : IUserRepository
             _logger.LogError(ex, Constants.GetUserError);
             return null;
         }
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
+    }
+
+    public async Task<IReadOnlyList<User>> GetAllActiveUsersAsync(CancellationToken cancellation = default)
+    {
+        try
+        {
+            return await _context.User
+                .AsNoTracking()
+                .Where(u => u.IsActive)
+                .ToListAsync(cancellation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar usuarios activos");
+            return new List<User>();
+        }
     }
 }

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Models;
-using ParkingApi.Infrastructure.Security;
 using Action = ParkingApi.Domain.Models.Action;
 using PaymentMethodModel = ParkingApi.Domain.Models.PaymentMethod;
 
@@ -31,16 +30,12 @@ public class SecurityConfigurations :
         builder.ToTable("User");
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Username).IsRequired().HasMaxLength(50);
-        builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(255);
-        builder.Property(u => u.FullName).IsRequired().HasMaxLength(150);
-<<<<<<< HEAD
-        builder.Property(u => u.Email).HasMaxLength(150);
-        builder.HasIndex(u => u.Username).IsUnique();
-=======
         builder.Property(u => u.Password).IsRequired().HasMaxLength(255);
+        builder.Property(u => u.FullName).IsRequired().HasMaxLength(150);
         builder.Property(u => u.Email).IsRequired().HasMaxLength(100);
         builder.Property(u => u.IdentificationNumber).IsRequired().HasMaxLength(50);
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
+
+        builder.HasIndex(u => u.Username).IsUnique();
 
         builder.HasOne(u => u.UserRoleIdNavigation)
             .WithMany(r => r.Users)
@@ -94,17 +89,15 @@ public class SecurityConfigurations :
 
     public void Configure(EntityTypeBuilder<UserRole> builder)
     {
-<<<<<<< HEAD
-        builder.ToTable("UserSessions");
-        builder.HasKey(s => s.SessionId);
-        builder.Property(s => s.SessionToken).IsRequired().HasMaxLength(500);
-        builder.Property(s => s.DeviceIdentifier).HasMaxLength(150).IsRequired(false);
-        builder.Property(s => s.IpAddress).HasMaxLength(50).IsRequired(false);
-=======
         builder.ToTable("UserRole");
         builder.HasKey(r => r.Id);
         builder.Property(r => r.Role).IsRequired().HasMaxLength(50);
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
+
+        builder.HasOne(r => r.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(r => r.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasData(
             new UserRole { Id = 1, Role = "Administrador", IsActive = true, CreatedAt = BaseSeedDate },
@@ -117,6 +110,12 @@ public class SecurityConfigurations :
         builder.ToTable("Module");
         builder.HasKey(m => m.Id);
         builder.Property(m => m.Name).IsRequired().HasMaxLength(100);
+
+        builder.HasOne(m => m.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(m => m.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasData(
             new Module { Id = 1, Name = "Seguridad", IsActive = true, CreatedAt = BaseSeedDate },
@@ -133,6 +132,12 @@ public class SecurityConfigurations :
         builder.ToTable("Operation");
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Name).IsRequired().HasMaxLength(100);
+
+        builder.HasOne(o => o.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(o => o.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasData(
             new Operation { Id = 1, Name = "Lectura", IsActive = true, CreatedAt = BaseSeedDate },
@@ -158,6 +163,12 @@ public class SecurityConfigurations :
             .WithMany(o => o.Actions)
             .HasForeignKey(a => a.OperationId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(a => a.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(a => a.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<RoleAction> builder)
@@ -174,6 +185,12 @@ public class SecurityConfigurations :
             .WithMany(a => a.RoleActions)
             .HasForeignKey(ra => ra.ActionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(ra => ra.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(ra => ra.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<UserRoleModule> builder)
@@ -190,6 +207,12 @@ public class SecurityConfigurations :
             .WithMany(m => m.UserRoleModules)
             .HasForeignKey(urm => urm.ModulesRoleId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(urm => urm.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(urm => urm.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<IdentificationType> builder)
@@ -197,6 +220,12 @@ public class SecurityConfigurations :
         builder.ToTable("IdentificationType");
         builder.HasKey(i => i.Id);
         builder.Property(i => i.Identification).IsRequired().HasMaxLength(50);
+
+        builder.HasOne(i => i.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(i => i.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasData(
             new IdentificationType { Id = 1, Identification = "Cédula de Ciudadanía", IsActive = true, CreatedAt = BaseSeedDate },
@@ -213,6 +242,12 @@ public class SecurityConfigurations :
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Name).IsRequired().HasMaxLength(50);
         builder.Property(p => p.Icon).HasMaxLength(50);
+
+        builder.HasOne(p => p.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(p => p.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasData(
             new PaymentMethodModel { Id = 1, Name = "Efectivo", Icon = "cash", IsActive = true, CreatedAt = BaseSeedDate },
@@ -240,15 +275,9 @@ public class SecurityConfigurations :
         builder.HasKey(pr => pr.Id);
         builder.Property(pr => pr.Token).IsRequired().HasMaxLength(255);
 
-<<<<<<< HEAD
-        builder.HasOne(t => t.User)
-            .WithMany()
-            .HasForeignKey(t => t.UserId)
-=======
         builder.HasOne(pr => pr.User)
             .WithMany(u => u.PasswordResetTokens)
             .HasForeignKey(pr => pr.UserId)
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
@@ -258,29 +287,20 @@ public class ParkingBusinessConfigurations :
     IEntityTypeConfiguration<Store>,
     IEntityTypeConfiguration<CommercialAgreement>,
     IEntityTypeConfiguration<ParkingTicket>,
-    IEntityTypeConfiguration<TicketDiscount>
+    IEntityTypeConfiguration<TicketDiscount>,
+    IEntityTypeConfiguration<WorkShift>
 {
     private static readonly DateTime BaseSeedDate = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     public void Configure(EntityTypeBuilder<VehicleRate> builder)
     {
         builder.ToTable("VehicleRates");
-<<<<<<< HEAD
-        builder.HasKey(vr => vr.RateId);
-        builder.Property(vr => vr.DisplayName).IsRequired().HasMaxLength(50);
-        builder.Property(vr => vr.IconKey).HasMaxLength(50);
-        builder.Property(vr => vr.HourRate).HasPrecision(18, 2);
-        builder.Property(vr => vr.MinuteRate).HasPrecision(18, 2);
-        builder.Property(vr => vr.FullDayRate).HasPrecision(18, 2);
-    }
-}
-=======
         builder.HasKey(r => r.RateId);
         builder.Property(r => r.DisplayName).IsRequired().HasMaxLength(50);
+        builder.Property(r => r.IconKey).HasMaxLength(50);
         builder.Property(r => r.HourRate).HasPrecision(18, 2);
         builder.Property(r => r.MinuteRate).HasPrecision(18, 2);
         builder.Property(r => r.FullDayRate).HasPrecision(18, 2);
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
 
         builder.HasData(
             new VehicleRate
@@ -390,26 +410,12 @@ public class ParkingBusinessConfigurations :
     public void Configure(EntityTypeBuilder<ParkingTicket> builder)
     {
         builder.ToTable("ParkingTickets");
-<<<<<<< HEAD
-        builder.HasKey(pt => pt.TicketId);
-        builder.Property(pt => pt.TicketNumber).IsRequired().HasMaxLength(50);
-        builder.Property(pt => pt.PlateNumber).IsRequired().HasMaxLength(20);
-        builder.Property(pt => pt.CustomerPhone).HasMaxLength(30);
-        builder.Property(pt => pt.Notes).HasMaxLength(500);
-        builder.Property(pt => pt.OperatorName).IsRequired().HasMaxLength(100);
-        builder.Property(pt => pt.HourlyRate).HasPrecision(18, 2);
-        builder.Property(pt => pt.GrossAmount).HasPrecision(18, 2);
-        builder.Property(pt => pt.DiscountAmount).HasPrecision(18, 2);
-        builder.Property(pt => pt.NetAmount).HasPrecision(18, 2);
-        builder.Property(pt => pt.AmountPaid).HasPrecision(18, 2);
-        builder.Property(pt => pt.ChangeGiven).HasPrecision(18, 2);
-
-        builder.HasIndex(pt => pt.TicketNumber).IsUnique();
-        builder.HasIndex(pt => pt.PlateNumber);
-=======
         builder.HasKey(t => t.TicketId);
         builder.Property(t => t.TicketNumber).IsRequired().HasMaxLength(50);
         builder.Property(t => t.PlateNumber).IsRequired().HasMaxLength(20);
+        builder.Property(t => t.CustomerPhone).HasMaxLength(30);
+        builder.Property(t => t.Notes).HasMaxLength(500);
+        builder.Property(t => t.OperatorName).IsRequired().HasMaxLength(100);
         builder.Property(t => t.HourlyRate).HasPrecision(18, 2);
         builder.Property(t => t.GrossAmount).HasPrecision(18, 2);
         builder.Property(t => t.DiscountAmount).HasPrecision(18, 2);
@@ -418,7 +424,6 @@ public class ParkingBusinessConfigurations :
         builder.Property(t => t.ChangeGiven).HasPrecision(18, 2);
         builder.HasIndex(t => t.PlateNumber);
         builder.HasIndex(t => t.TicketNumber).IsUnique();
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
     }
 
     public void Configure(EntityTypeBuilder<TicketDiscount> builder)
@@ -435,13 +440,37 @@ public class ParkingBusinessConfigurations :
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(td => td.Store)
-            .WithMany()
+            .WithMany(s => s.TicketDiscounts)
             .HasForeignKey(td => td.StoreId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(td => td.Agreement)
-            .WithMany()
+            .WithMany(a => a.TicketDiscounts)
             .HasForeignKey(td => td.AgreementId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    public void Configure(EntityTypeBuilder<WorkShift> builder)
+    {
+        builder.ToTable("WorkShifts");
+        builder.HasKey(ws => ws.ShiftId);
+        builder.Property(ws => ws.OperatorName).IsRequired().HasMaxLength(100);
+        builder.Property(ws => ws.BaseAmount).HasPrecision(18, 2);
+        builder.Property(ws => ws.TotalCashCollected).HasPrecision(18, 2);
+        builder.Property(ws => ws.TotalCardCollected).HasPrecision(18, 2);
+        builder.Property(ws => ws.TotalTransferCollected).HasPrecision(18, 2);
+        builder.Property(ws => ws.TotalDiscounts).HasPrecision(18, 2);
+        builder.Property(ws => ws.ExpectedCash).HasPrecision(18, 2);
+        builder.Property(ws => ws.ActualCashCounted).HasPrecision(18, 2);
+        builder.Property(ws => ws.CashDifference).HasPrecision(18, 2);
+        builder.Property(ws => ws.Notes).HasMaxLength(500);
+
+        builder.HasIndex(ws => ws.UserId);
+        builder.HasIndex(ws => ws.Status);
+
+        builder.HasOne(ws => ws.User)
+            .WithMany()
+            .HasForeignKey(ws => ws.UserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

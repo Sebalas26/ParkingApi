@@ -96,9 +96,20 @@ public class TicketsController : ControllerBase
     [HttpGet("find/{ticketNumber}")]
     public async Task<IActionResult> GetByNumber(string ticketNumber, CancellationToken cancellationToken)
     {
-        var ticket = await _ticketService.GetByTicketNumberAsync(ticketNumber, cancellationToken);
-        if (ticket == null) return NotFound(new { message = "Tiquete no encontrado." });
-        return Ok(ticket);
+        try
+        {
+            var ticket = await _ticketService.GetByTicketNumberAsync(ticketNumber, cancellationToken);
+            if (ticket == null)
+            {
+                return NotFound(new { message = "Tiquete no encontrado." });
+            }
+            return Ok(ticket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en endpoint get ticket by number {TicketNumber}", ticketNumber);
+            return StatusCode(500, new { message = "Error interno al consultar el tiquete." });
+        }
     }
 
     [HttpGet("history")]

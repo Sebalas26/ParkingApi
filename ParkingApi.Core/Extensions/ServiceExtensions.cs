@@ -60,6 +60,7 @@ public static class ServiceExtensions
         services.AddScoped<ICommercialAgreementService, CommercialAgreementService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
         services.AddScoped<ISyncService, SyncService>();
+        services.AddScoped<ParkingApi.Domain.Interfaces.Services.Shifts.IShiftService, ParkingApi.Core.Services.Shifts.ShiftService>();
 
         return services;
     }

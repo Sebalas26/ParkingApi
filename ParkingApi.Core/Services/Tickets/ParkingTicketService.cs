@@ -3,18 +3,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-<<<<<<< HEAD
-using ParkingApi.Domain.Common.Enums;
-using ParkingApi.Domain.Dtos.Tickets;
-using ParkingApi.Domain.Interfaces.Repositories.Rates;
-=======
 using ParkingApi.Domain.Common.Constants;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
 using ParkingApi.Domain.Interfaces.Repositories.Discounts;
 using ParkingApi.Domain.Interfaces.Repositories.Stores;
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
 using ParkingApi.Domain.Interfaces.Repositories.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.VehicleRates;
 using ParkingApi.Domain.Interfaces.Services.Tickets;
@@ -26,33 +20,24 @@ public class ParkingTicketService : IParkingTicketService
 {
     private readonly IParkingTicketRepository _ticketRepository;
     private readonly IVehicleRateRepository _rateRepository;
-<<<<<<< HEAD
-=======
     private readonly IStoreRepository _storeRepository;
     private readonly ICommercialAgreementRepository _agreementRepository;
     private readonly ITicketDiscountRepository _discountRepository;
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
     private readonly ILogger<ParkingTicketService> _logger;
 
     public ParkingTicketService(
         IParkingTicketRepository ticketRepository,
         IVehicleRateRepository rateRepository,
-<<<<<<< HEAD
-=======
         IStoreRepository storeRepository,
         ICommercialAgreementRepository agreementRepository,
         ITicketDiscountRepository discountRepository,
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
         ILogger<ParkingTicketService> logger)
     {
         _ticketRepository = ticketRepository;
         _rateRepository = rateRepository;
-<<<<<<< HEAD
-=======
         _storeRepository = storeRepository;
         _agreementRepository = agreementRepository;
         _discountRepository = discountRepository;
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
         _logger = logger;
     }
 
@@ -64,22 +49,13 @@ public class ParkingTicketService : IParkingTicketService
             var active = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, cancellationToken);
             if (active != null)
             {
-<<<<<<< HEAD
-                throw new InvalidOperationException($"El vehÃ­culo con placa '{normalizedPlate}' ya se encuentra adentro.");
-=======
                 throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             }
 
             var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, cancellationToken);
             var hourRate = rate?.HourRate ?? 3000m;
-<<<<<<< HEAD
-            var todayCount = (await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken)).Count + (await _ticketRepository.GetActiveTicketsAsync(cancellationToken)).Count + 1;
-            var ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{todayCount:D3}";
-=======
             var countToday = (await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken)).Count + 1;
             var ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
 
             var ticket = new ParkingTicket
             {
@@ -97,16 +73,6 @@ public class ParkingTicketService : IParkingTicketService
                 CreatedAtUtc = DateTime.UtcNow
             };
 
-<<<<<<< HEAD
-            await _ticketRepository.AddAsync(ticket, cancellationToken);
-            return ticket;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error en CheckIn de vehÃ­culo: {PlateNumber}", dto.PlateNumber);
-            throw;
-        }
-=======
             return await _ticketRepository.AddAsync(ticket, cancellationToken);
         }
         catch (InvalidOperationException)
@@ -118,7 +84,6 @@ public class ParkingTicketService : IParkingTicketService
             _logger.LogError(ex, "{Error}: Error en CheckIn para placa {Plate}", Constants.TicketError, dto.PlateNumber);
             throw new Exception("Error interno al procesar el ingreso del vehículo.");
         }
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
     }
 
     public async Task<ParkingTicket?> CheckOutAsync(CheckOutRequestDto dto, CancellationToken cancellationToken = default)
@@ -150,11 +115,7 @@ public class ParkingTicketService : IParkingTicketService
 
             if (dto.StoreId.HasValue && dto.AgreementId.HasValue && !string.IsNullOrWhiteSpace(dto.InvoiceNumber) && dto.DiscountAmount > 0)
             {
-<<<<<<< HEAD
-                ticket.Discounts.Add(new TicketDiscount
-=======
                 var discount = new TicketDiscount
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
                 {
                     TicketDiscountId = Guid.NewGuid(),
                     TicketId = ticket.TicketId,
@@ -165,13 +126,9 @@ public class ParkingTicketService : IParkingTicketService
                     AppliedDiscountAmount = dto.DiscountAmount,
                     ValidatedAtUtc = DateTime.UtcNow,
                     IsSynchronized = true
-<<<<<<< HEAD
-                });
-=======
                 };
 
                 await _discountRepository.AddAsync(discount, cancellationToken);
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             }
 
             await _ticketRepository.UpdateAsync(ticket, cancellationToken);
@@ -179,11 +136,7 @@ public class ParkingTicketService : IParkingTicketService
         }
         catch (Exception ex)
         {
-<<<<<<< HEAD
-            _logger.LogError(ex, "Error en CheckOut de tiquete: {TicketId}", dto.TicketId);
-=======
             _logger.LogError(ex, "{Error}: Error en CheckOut para tiquete {TicketId}", Constants.TicketError, dto.TicketId);
->>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             return null;
         }
     }

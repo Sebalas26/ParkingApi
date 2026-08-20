@@ -86,6 +86,7 @@ if (app.Environment.IsDevelopment())
     {
         options.SwaggerEndpoint("/openapi/v1.json", "ParkFlow API v1");
     });
+    app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
 app.UseCors("AllowAll");
