@@ -38,6 +38,22 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
+    public async Task<ParkingTicket?> GetByTicketNumberAsync(string ticketNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var normalized = ticketNumber.Trim();
+            return await _context.ParkingTickets
+                .Include(t => t.Discounts)
+                .FirstOrDefaultAsync(t => t.TicketNumber == normalized, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al consultar tiquete por número {Number}", Constants.TicketError, ticketNumber);
+            return null;
+        }
+    }
+
     public async Task<ParkingTicket?> GetActiveByPlateAsync(string plateNumber, CancellationToken cancellationToken = default)
     {
         try

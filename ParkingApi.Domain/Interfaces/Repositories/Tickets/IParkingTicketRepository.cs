@@ -9,6 +9,7 @@ namespace ParkingApi.Domain.Interfaces.Repositories.Tickets;
 public interface IParkingTicketRepository
 {
     Task<ParkingTicket?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<ParkingTicket?> GetByTicketNumberAsync(string ticketNumber, CancellationToken cancellationToken = default);
     Task<ParkingTicket?> GetActiveByPlateAsync(string plateNumber, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ParkingTicket>> GetActiveTicketsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(CancellationToken cancellationToken = default);

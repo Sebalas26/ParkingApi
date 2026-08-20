@@ -167,6 +167,19 @@ public class ParkingTicketService : IParkingTicketService
         }
     }
 
+    public async Task<ParkingTicket?> GetByTicketNumberAsync(string ticketNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _ticketRepository.GetByTicketNumberAsync(ticketNumber, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al consultar tiquete {Number}", Constants.TicketError, ticketNumber);
+            return null;
+        }
+    }
+
     public async Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, CancellationToken cancellationToken = default)
     {
         try
