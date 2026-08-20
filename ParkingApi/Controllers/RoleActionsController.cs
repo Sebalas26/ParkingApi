@@ -1,0 +1,55 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using ParkingApi.Domain.Interfaces.Services.RoleActions;
+
+namespace ParkingApi.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+[Authorize]
+public class RoleActionsController : ControllerBase
+{
+    private readonly ILogger<RoleActionsController> _logger;
+    private readonly IRoleActionService _roleActionService;
+
+    public RoleActionsController(ILogger<RoleActionsController> logger, IRoleActionService roleActionService)
+    {
+        _logger = logger;
+        _roleActionService = roleActionService;
+    }
+
+    [HttpGet("GetRoleActions/{id}")]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetRoleActions(int id, CancellationToken cancellation)
+    {
+        try
+        {
+            var actions = await _roleActionService.GetActionsByRoleIdAsync(id, cancellation);
+            return Ok(actions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error consultando las acciones del rol {Id}", id);
+            return StatusCode(500, new { message = "Error interno al consultar las acciones del rol." });
+        }
+    }
+
+    [HttpGet("PermissionRole/{id}")]
+    public async Task<IActionResult> PermissionRole(int id, CancellationToken cancellation)
+    {
+        try
+        {
+            var permissions = await _roleActionService.GetActionsByRoleAsync(id, cancellation);
+            return Ok(permissions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error consultando los permisos del rol {Id}", id);
+            return StatusCode(500, new { message = "Error interno al consultar permisos del rol." });
+        }
+    }
+}

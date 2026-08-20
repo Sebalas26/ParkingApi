@@ -1,0 +1,20 @@
+using System;
+
+namespace ParkingApi.Domain.Models;
+
+public class TicketDiscount
+{
+    public Guid TicketDiscountId { get; set; } = Guid.NewGuid();
+    public Guid TicketId { get; set; }
+    public Guid StoreId { get; set; }
+    public Guid AgreementId { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public decimal PurchaseAmount { get; set; }
+    public decimal AppliedDiscountAmount { get; set; }
+    public DateTime ValidatedAtUtc { get; set; } = DateTime.UtcNow;
+    public bool IsSynchronized { get; set; } = true;
+
+    public virtual ParkingTicket Ticket { get; set; } = null!;
+    public virtual Store Store { get; set; } = null!;
+    public virtual CommercialAgreement Agreement { get; set; } = null!;
+}

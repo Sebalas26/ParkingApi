@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ParkingApi.Domain.Models;
+using Action = ParkingApi.Domain.Models.Action;
+using Module = ParkingApi.Domain.Models.Module;
 
 namespace ParkingApi.Infrastructure.Data;
 
@@ -9,14 +11,25 @@ public class DataContext : DbContext
     {
     }
 
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Role> Roles => Set<Role>();
-    public DbSet<UserSession> UserSessions => Set<UserSession>();
-    public DbSet<VehicleRate> VehicleRates => Set<VehicleRate>();
-    public DbSet<Store> Stores => Set<Store>();
-    public DbSet<CommercialAgreement> CommercialAgreements => Set<CommercialAgreement>();
-    public DbSet<ParkingTicket> ParkingTickets => Set<ParkingTicket>();
-    public DbSet<TicketDiscount> TicketDiscounts => Set<TicketDiscount>();
+    // Módulo Seguridad y Parametrización (Migración ApiTaller)
+    public DbSet<User> User { get; set; }
+    public DbSet<UserRole> UserRole { get; set; }
+    public DbSet<Module> Module { get; set; }
+    public DbSet<Operation> Operation { get; set; }
+    public DbSet<Action> Action { get; set; }
+    public DbSet<RoleAction> RoleAction { get; set; }
+    public DbSet<UserRoleModule> UserRoleModule { get; set; }
+    public DbSet<IdentificationType> IdentificationType { get; set; }
+    public DbSet<PaymentMethod> PaymentMethod { get; set; }
+    public DbSet<Login> Login { get; set; }
+    public DbSet<PasswordResetToken> PasswordResetToken { get; set; }
+
+    // Módulo Negocio Parqueadero (Preservación 100%)
+    public DbSet<VehicleRate> VehicleRates { get; set; }
+    public DbSet<Store> Stores { get; set; }
+    public DbSet<CommercialAgreement> CommercialAgreements { get; set; }
+    public DbSet<ParkingTicket> ParkingTickets { get; set; }
+    public DbSet<TicketDiscount> TicketDiscounts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
