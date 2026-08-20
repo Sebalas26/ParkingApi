@@ -108,17 +108,16 @@ public class PublicTicketsController : ControllerBase
             if (foundTicket.Status == TicketStatus.Active) // Activo: calcular tarifa en tiempo real
             {
                 var rate = await _rateRepository.GetByTypeAsync(foundTicket.VehicleType, cancellationToken);
-                var hourlyRate = rate?.HourRate ?? foundTicket.HourlyRate;
-                var gracePeriod = rate?.GracePeriodMinutes ?? 15;
+                var hourlyRate = rate?.HourRate ?? (foundTicket.HourlyRate > 0 ? foundTicket.HourlyRate : 2000m);
+                var gracePeriod = rate?.GracePeriodMinutes ?? 0;
 
-                if (elapsedMinutes <= gracePeriod)
+                if (gracePeriod > 0 && elapsedMinutes <= gracePeriod)
                 {
                     estimatedAmount = 0m;
                 }
                 else
                 {
-                    var billableHours = (decimal)Math.Ceiling(elapsedMinutes / 60.0);
-                    if (billableHours < 1m) billableHours = 1m;
+                    var billableHours = (decimal)Math.Max(1.0, Math.Ceiling(Math.Max(0.01, elapsedMinutes) / 60.0));
                     estimatedAmount = billableHours * hourlyRate;
                 }
             }

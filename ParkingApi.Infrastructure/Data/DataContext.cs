@@ -31,6 +31,7 @@ public class DataContext : DbContext
     public DbSet<ParkingTicket> ParkingTickets { get; set; }
     public DbSet<TicketDiscount> TicketDiscounts { get; set; }
     public DbSet<WorkShift> WorkShifts { get; set; }
+    public DbSet<MonthlySubscription> MonthlySubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

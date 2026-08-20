@@ -19,5 +19,6 @@ public interface IParkingTicketRepository
     Task<bool> UpdateAsync(ParkingTicket ticket, CancellationToken cancellationToken = default);
     Task<int> CountActiveAsync(CancellationToken cancellationToken = default);
     Task<int> CountTodayCompletedAsync(CancellationToken cancellationToken = default);
+    Task<int> CountTodayTotalAsync(CancellationToken cancellationToken = default);
     Task<decimal> GetTodayRevenueAsync(CancellationToken cancellationToken = default);
 }

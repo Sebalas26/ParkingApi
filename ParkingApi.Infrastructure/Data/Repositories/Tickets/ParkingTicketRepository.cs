@@ -207,6 +207,22 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
+    public async Task<int> CountTodayTotalAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var today = DateTime.UtcNow.Date;
+            return await _context.ParkingTickets
+                .AsNoTracking()
+                .CountAsync(t => t.EntryTimeUtc.Date == today, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al contar total de tiquetes de hoy", Constants.TicketError);
+            return 0;
+        }
+    }
+
     public async Task<decimal> GetTodayRevenueAsync(CancellationToken cancellationToken = default)
     {
         try

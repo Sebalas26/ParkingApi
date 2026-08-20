@@ -54,12 +54,31 @@ public class ParkingTicketService : IParkingTicketService
 
             var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, cancellationToken);
             var hourRate = rate?.HourRate ?? 3000m;
-            var countToday = (await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken)).Count + 1;
-            var ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
+
+            var ticketId = dto.TicketId.HasValue && dto.TicketId.Value != Guid.Empty
+                ? dto.TicketId.Value
+                : Guid.NewGuid();
+
+            string ticketNumber;
+            if (!string.IsNullOrWhiteSpace(dto.TicketNumber))
+            {
+                ticketNumber = dto.TicketNumber.Trim();
+                var existingWithNumber = await _ticketRepository.GetByTicketNumberAsync(ticketNumber, cancellationToken);
+                if (existingWithNumber != null)
+                {
+                    var countToday = await _ticketRepository.CountTodayTotalAsync(cancellationToken) + 1;
+                    ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+                }
+            }
+            else
+            {
+                var countToday = await _ticketRepository.CountTodayTotalAsync(cancellationToken) + 1;
+                ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
+            }
 
             var ticket = new ParkingTicket
             {
-                TicketId = Guid.NewGuid(),
+                TicketId = ticketId,
                 TicketNumber = ticketNumber,
                 PlateNumber = normalizedPlate,
                 VehicleType = dto.VehicleType,
@@ -82,7 +101,7 @@ public class ParkingTicketService : IParkingTicketService
         catch (Exception ex)
         {
             _logger.LogError(ex, "{Error}: Error en CheckIn para placa {Plate}", Constants.TicketError, dto.PlateNumber);
-            throw new Exception("Error interno al procesar el ingreso del vehículo.");
+            throw new Exception($"Error al procesar el ingreso: {ex.Message}");
         }
     }
 
