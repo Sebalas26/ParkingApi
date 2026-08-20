@@ -1,6 +1,8 @@
-﻿using System.Threading;
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Interfaces.Services.Analytics;
 
 namespace ParkingApi.Controllers;
@@ -10,23 +12,41 @@ namespace ParkingApi.Controllers;
 public class AnalyticsController : ControllerBase
 {
     private readonly IAnalyticsService _analyticsService;
+    private readonly ILogger<AnalyticsController> _logger;
 
-    public AnalyticsController(IAnalyticsService analyticsService)
+    public AnalyticsController(IAnalyticsService analyticsService, ILogger<AnalyticsController> logger)
     {
         _analyticsService = analyticsService;
+        _logger = logger;
     }
 
     [HttpGet("daily-summary")]
     public async Task<IActionResult> GetDailySummary(CancellationToken cancellationToken)
     {
-        var summary = await _analyticsService.GetDailySummaryAsync(cancellationToken);
-        return Ok(summary);
+        try
+        {
+            var summary = await _analyticsService.GetDailySummaryAsync(cancellationToken);
+            return Ok(summary);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener resumen diario");
+            return StatusCode(500, new { message = "Error interno al generar resumen diario." });
+        }
     }
 
     [HttpGet("occupancy")]
     public async Task<IActionResult> GetOccupancy(CancellationToken cancellationToken)
     {
-        var occupancy = await _analyticsService.GetOccupancyStatsAsync(cancellationToken);
-        return Ok(occupancy);
+        try
+        {
+            var occupancy = await _analyticsService.GetOccupancyStatsAsync(cancellationToken);
+            return Ok(occupancy);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener ocupación");
+            return StatusCode(500, new { message = "Error interno al consultar ocupación." });
+        }
     }
 }

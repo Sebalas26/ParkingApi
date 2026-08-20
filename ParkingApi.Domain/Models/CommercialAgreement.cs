@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ParkingApi.Domain.Models;
@@ -15,6 +15,6 @@ public class CommercialAgreement
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-    public Store Store { get; set; } = null!;
-    public ICollection<TicketDiscount> TicketDiscounts { get; set; } = new List<TicketDiscount>();
+    public virtual Store Store { get; set; } = null!;
+    public virtual ICollection<TicketDiscount> TicketDiscounts { get; set; } = new List<TicketDiscount>();
 }

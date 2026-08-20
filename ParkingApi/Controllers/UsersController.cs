@@ -1,66 +1,96 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Users;
 using ParkingApi.Domain.Interfaces.Services.Users;
 
 namespace ParkingApi.Controllers;
 
-[Authorize]
-[ApiController]
 [Route("api/[controller]")]
+[ApiController]
+[Authorize]
 public class UsersController : ControllerBase
 {
+    private readonly ILogger<UsersController> _logger;
     private readonly IUserService _userService;
 
-    public UsersController(IUserService userService)
+    public UsersController(ILogger<UsersController> logger, IUserService userService)
     {
+        _logger = logger;
         _userService = userService;
     }
 
+    [HttpGet("GetUsers")]
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
-    {
-        var users = await _userService.GetAllUsersAsync(cancellationToken);
-        return Ok(users);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
-    {
-        var user = await _userService.GetByIdAsync(id, cancellationToken);
-        if (user == null) return NotFound(new { message = "Usuario no encontrado." });
-        return Ok(user);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateUserDto dto, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUsers(CancellationToken cancellation)
     {
         try
         {
-            var user = await _userService.CreateUserAsync(dto, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = user.UserId }, user);
+            var users = await _userService.GetUsers(cancellation);
+            return Ok(users);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            _logger.LogError(ex, "Error al obtener usuarios");
+            return StatusCode(500, new { message = "Error interno al consultar usuarios." });
         }
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserDto dto, CancellationToken cancellationToken)
+    [HttpGet("GetUser/{id}")]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserById(int id, CancellationToken cancellation)
     {
-        var user = await _userService.UpdateUserAsync(id, dto, cancellationToken);
-        if (user == null) return NotFound(new { message = "Usuario no encontrado." });
-        return Ok(user);
+        try
+        {
+            var user = await _userService.GetUserById(id, cancellation);
+            if (user == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado." });
+            }
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener usuario por id {Id}", id);
+            return StatusCode(500, new { message = "Error interno al consultar usuario." });
+        }
+    }
+
+    [HttpPost("SaveOrEditUsers")]
+    [HttpPost]
+    public async Task<IActionResult> SaveOrEditUsers([FromBody] GetUsersDto getUsersDto, CancellationToken cancellation)
+    {
+        try
+        {
+            var result = await _userService.CreateOrEditUser(getUsersDto, cancellation);
+            if (result == null)
+            {
+                return BadRequest(new { message = "No se pudo guardar o editar el usuario." });
+            }
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al guardar o editar usuario");
+            return StatusCode(500, new { message = "Error interno al guardar usuario." });
+        }
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Deactivate(int id, CancellationToken cancellation)
     {
-        var success = await _userService.DeactivateUserAsync(id, cancellationToken);
-        return success ? Ok(new { message = "Usuario desactivado exitosamente." }) : NotFound();
+        try
+        {
+            var success = await _userService.DeactivateUserAsync(id, cancellation);
+            return success ? Ok(new { message = "Usuario desactivado correctamente." }) : NotFound(new { message = "Usuario no encontrado." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al desactivar usuario {Id}", id);
+            return StatusCode(500, new { message = "Error interno al desactivar usuario." });
+        }
     }
 }
