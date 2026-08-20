@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using ParkingApi.Domain.Common.Enums;
 
 namespace ParkingApi.Domain.Models;

@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ParkingApi.Domain.Dtos.Rates;
-using ParkingApi.Domain.Interfaces.Services.Rates;
+using Microsoft.Extensions.Logging;
+using ParkingApi.Domain.Interfaces.Services.VehicleRates;
+using ParkingApi.Domain.Models;
 
 namespace ParkingApi.Controllers;
 
@@ -13,41 +13,67 @@ namespace ParkingApi.Controllers;
 public class VehicleRatesController : ControllerBase
 {
     private readonly IVehicleRateService _rateService;
+    private readonly ILogger<VehicleRatesController> _logger;
 
-    public VehicleRatesController(IVehicleRateService rateService)
+    public VehicleRatesController(IVehicleRateService rateService, ILogger<VehicleRatesController> logger)
     {
         _rateService = rateService;
+        _logger = logger;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var rates = await _rateService.GetAllRatesAsync(cancellationToken);
-        return Ok(rates);
+        try
+        {
+            var rates = await _rateService.GetAllRatesAsync(cancellationToken);
+            return Ok(rates);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar tarifas");
+            return StatusCode(500, new { message = "Error interno al consultar tarifas." });
+        }
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var rate = await _rateService.GetByIdAsync(id, cancellationToken);
-        if (rate == null) return NotFound(new { message = "Tarifa no encontrada." });
-        return Ok(rate);
+        try
+        {
+            var rate = await _rateService.GetByIdAsync(id, cancellationToken);
+            if (rate == null)
+            {
+                return NotFound(new { message = "Tarifa no encontrada." });
+            }
+            return Ok(rate);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar tarifa {Id}", id);
+            return StatusCode(500, new { message = "Error interno al consultar tarifa." });
+        }
     }
 
-    [Authorize]
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateRateDto dto, CancellationToken cancellationToken)
-    {
-        var rate = await _rateService.CreateRateAsync(dto, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = rate.RateId }, rate);
-    }
-
-    [Authorize]
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRateDto dto, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, [FromBody] VehicleRate rate, CancellationToken cancellationToken)
     {
-        var rate = await _rateService.UpdateRateAsync(id, dto, cancellationToken);
-        if (rate == null) return NotFound(new { message = "Tarifa no encontrada." });
-        return Ok(rate);
+        try
+        {
+            var updated = await _rateService.UpdateRateAsync(
+                id,
+                rate.HourRate,
+                rate.MinuteRate,
+                rate.FullDayRate,
+                rate.GracePeriodMinutes,
+                cancellationToken);
+
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar tarifa {Id}", id);
+            return StatusCode(500, new { message = "Error interno al actualizar tarifa." });
+        }
     }
 }

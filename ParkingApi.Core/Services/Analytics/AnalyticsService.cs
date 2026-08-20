@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -27,34 +27,34 @@ public class AnalyticsService : IAnalyticsService
     {
         try
         {
-            var completed = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
-            var active = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
+            var todayTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
+            var activeCount = await _ticketRepository.CountActiveAsync(cancellationToken);
 
-            var totalRev = completed.Sum(t => t.NetAmount);
-            var avgDuration = completed.Count > 0 ? completed.Average(t => t.TotalDurationMinutes) : 0.0;
+            var totalRevenue = todayTickets.Sum(t => t.NetAmount);
+            var completedCount = todayTickets.Count;
+            var avgDuration = completedCount > 0 ? todayTickets.Average(t => t.TotalDurationMinutes) : 0;
 
-            var revByType = new Dictionary<VehicleType, decimal>();
-            var countByType = new Dictionary<VehicleType, int>();
+            var revenueByType = todayTickets
+                .GroupBy(t => t.VehicleType)
+                .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
 
-            foreach (VehicleType type in Enum.GetValues<VehicleType>())
-            {
-                revByType[type] = completed.Where(t => t.VehicleType == type).Sum(t => t.NetAmount);
-                countByType[type] = completed.Count(t => t.VehicleType == type) + active.Count(t => t.VehicleType == type);
-            }
+            var countByType = todayTickets
+                .GroupBy(t => t.VehicleType)
+                .ToDictionary(g => g.Key, g => g.Count());
 
             return new FinancialSummaryDto
             {
-                TotalRevenueToday = totalRev,
-                ActiveVehiclesCount = active.Count,
-                CompletedTransactionsToday = completed.Count,
-                AverageDurationMinutes = avgDuration,
-                RevenueByVehicleType = revByType,
+                TotalRevenueToday = totalRevenue,
+                ActiveVehiclesCount = activeCount,
+                CompletedTransactionsToday = completedCount,
+                AverageDurationMinutes = Math.Round(avgDuration, 1),
+                RevenueByVehicleType = revenueByType,
                 CountByVehicleType = countByType
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al generar resumen financiero diario.");
+            _logger.LogError(ex, "Error al generar resumen financiero diario");
             return new FinancialSummaryDto();
         }
     }
@@ -63,16 +63,16 @@ public class AnalyticsService : IAnalyticsService
     {
         try
         {
-            var active = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
+            var activeCount = await _ticketRepository.CountActiveAsync(cancellationToken);
             return new OccupancyStatsDto
             {
                 TotalCapacity = TotalCapacity,
-                OccupiedSpots = active.Count
+                OccupiedSpots = activeCount
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al calcular estadÃ­sticas de ocupaciÃ³n.");
+            _logger.LogError(ex, "Error al obtener estadísticas de ocupación");
             return new OccupancyStatsDto { TotalCapacity = TotalCapacity, OccupiedSpots = 0 };
         }
     }

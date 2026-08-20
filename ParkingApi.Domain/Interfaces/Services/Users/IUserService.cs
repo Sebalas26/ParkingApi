@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,9 +7,10 @@ namespace ParkingApi.Domain.Interfaces.Services.Users;
 
 public interface IUserService
 {
-    Task<IReadOnlyList<UserDto>> GetAllUsersAsync(CancellationToken cancellationToken = default);
-    Task<UserDto?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<UserDto> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default);
-    Task<UserDto?> UpdateUserAsync(Guid userId, UpdateUserDto dto, CancellationToken cancellationToken = default);
-    Task<bool> DeactivateUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<GetUsersDto>> GetUsers(CancellationToken cancellation = default);
+    Task<GetUsersDto?> GetUserById(int id, CancellationToken cancellation = default);
+    Task<LoginUserDto?> GetUser(string username, CancellationToken cancellation = default);
+    Task<GetUsersDto?> CreateOrEditUser(GetUsersDto userDto, CancellationToken cancellation = default);
+    Task<bool> UpdateUserToken(LoginUserDto user, CancellationToken cancellation = default);
+    Task<bool> DeactivateUserAsync(int userId, CancellationToken cancellation = default);
 }

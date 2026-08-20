@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ParkingApi.Domain.Models;
@@ -9,10 +9,9 @@ public class Store
     public string Name { get; set; } = string.Empty;
     public string TaxId { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
-    public string? ContactName { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-    public ICollection<CommercialAgreement> Agreements { get; set; } = new List<CommercialAgreement>();
-    public ICollection<TicketDiscount> TicketDiscounts { get; set; } = new List<TicketDiscount>();
+    public virtual ICollection<CommercialAgreement> Agreements { get; set; } = new List<CommercialAgreement>();
+    public virtual ICollection<TicketDiscount> TicketDiscounts { get; set; } = new List<TicketDiscount>();
 }

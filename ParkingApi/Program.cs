@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using ParkingApi.Core.Extensions;
 using ParkingApi.Domain.Dtos.Options;
-using ParkingApi.Filters;
 using ParkingApi.Infrastructure.Data;
 using ParkingApi.Infrastructure.Extensions;
 
@@ -46,7 +45,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// 3. MySQL DataContext con versión explícita (Igual que ApiTaller, no bloquea inicio si MySQL no está levantado)
+// 3. MySQL DataContext con versión explícita (No bloquea inicio si MySQL no está levantado en tiempo de compilación)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost;Port=3306;Database=parkflow_db;User=root;Password=root;";
 
@@ -57,11 +56,10 @@ builder.Services.AddDbContext<DataContext>(options =>
         mysqlOptions => mysqlOptions.EnableRetryOnFailure(3)
     ));
 
-// 4. Inyección de Repositorios, Servicios y Filtros
+// 4. Inyección de Repositorios y Servicios
 builder.Services.AddRepositories();
 builder.Services.AddServices();
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<PermissionFilter>();
 
 // 5. CORS
 builder.Services.AddCors(options =>
@@ -75,11 +73,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<PermissionFilter>();
-});
-
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();

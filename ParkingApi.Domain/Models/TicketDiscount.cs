@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace ParkingApi.Domain.Models;
 
@@ -14,7 +14,7 @@ public class TicketDiscount
     public DateTime ValidatedAtUtc { get; set; } = DateTime.UtcNow;
     public bool IsSynchronized { get; set; } = true;
 
-    public ParkingTicket Ticket { get; set; } = null!;
-    public Store Store { get; set; } = null!;
-    public CommercialAgreement Agreement { get; set; } = null!;
+    public virtual ParkingTicket Ticket { get; set; } = null!;
+    public virtual Store Store { get; set; } = null!;
+    public virtual CommercialAgreement Agreement { get; set; } = null!;
 }

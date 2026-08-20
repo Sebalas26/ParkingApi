@@ -1,15 +1,17 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Sync;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
-using ParkingApi.Domain.Interfaces.Repositories.Rates;
 using ParkingApi.Domain.Interfaces.Repositories.Stores;
 using ParkingApi.Domain.Interfaces.Repositories.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
+using ParkingApi.Domain.Interfaces.Repositories.VehicleRates;
 using ParkingApi.Domain.Interfaces.Services.Sync;
+using ParkingApi.Domain.Models;
 
 namespace ParkingApi.Core.Services.Sync;
 
@@ -18,7 +20,7 @@ public class SyncService : ISyncService
     private readonly IUserRepository _userRepository;
     private readonly IVehicleRateRepository _rateRepository;
     private readonly IStoreRepository _storeRepository;
-    private readonly IAgreementRepository _agreementRepository;
+    private readonly ICommercialAgreementRepository _agreementRepository;
     private readonly IParkingTicketRepository _ticketRepository;
     private readonly ILogger<SyncService> _logger;
 
@@ -26,7 +28,11 @@ public class SyncService : ISyncService
         IUserRepository userRepository,
         IVehicleRateRepository rateRepository,
         IStoreRepository storeRepository,
+<<<<<<< HEAD
         IAgreementRepository agreementRepository,
+=======
+        ICommercialAgreementRepository agreementRepository,
+>>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
         IParkingTicketRepository ticketRepository,
         ILogger<SyncService> logger)
     {
@@ -42,11 +48,15 @@ public class SyncService : ISyncService
     {
         try
         {
+<<<<<<< HEAD
             var users = await _userRepository.GetAllAsync(cancellationToken);
+=======
+>>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             var rates = await _rateRepository.GetAllAsync(cancellationToken);
             var stores = await _storeRepository.GetAllAsync(cancellationToken);
             var agreements = await _agreementRepository.GetAllAsync(cancellationToken);
             var activeTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
+<<<<<<< HEAD
 
             return new BootstrapSyncDto
             {
@@ -105,10 +115,23 @@ public class SyncService : ISyncService
                 SyncedTicketsCount = syncedTickets,
                 SyncedDiscountsCount = syncedDiscounts,
                 Message = "Lote sincronizado exitosamente en el servidor central."
+=======
+
+            return new BootstrapSyncDto
+            {
+                ServerTimeUtc = DateTime.UtcNow,
+                TotalCapacity = 120,
+                Users = new List<User>(),
+                Rates = rates.ToList(),
+                Stores = stores.ToList(),
+                Agreements = agreements.ToList(),
+                ActiveTickets = activeTickets.ToList()
+>>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
             };
         }
         catch (Exception ex)
         {
+<<<<<<< HEAD
             _logger.LogError(ex, "Error al procesar lote de sincronizaciÃ³n.");
             return new SyncResultDto
             {
@@ -117,6 +140,10 @@ public class SyncService : ISyncService
                 SyncedDiscountsCount = syncedDiscounts,
                 Message = $"Fallo al procesar lote: {ex.Message}"
             };
+=======
+            _logger.LogError(ex, "Error al generar datos de sincronización inicial (bootstrap)");
+            return new BootstrapSyncDto();
+>>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
         }
     }
 }

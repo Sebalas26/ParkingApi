@@ -1,7 +1,8 @@
-﻿using System.Threading;
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using ParkingApi.Domain.Dtos.Sync;
+using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Interfaces.Services.Sync;
 
 namespace ParkingApi.Controllers;
@@ -11,23 +12,26 @@ namespace ParkingApi.Controllers;
 public class SyncController : ControllerBase
 {
     private readonly ISyncService _syncService;
+    private readonly ILogger<SyncController> _logger;
 
-    public SyncController(ISyncService syncService)
+    public SyncController(ISyncService syncService, ILogger<SyncController> logger)
     {
         _syncService = syncService;
+        _logger = logger;
     }
 
     [HttpGet("bootstrap")]
     public async Task<IActionResult> GetBootstrap(CancellationToken cancellationToken)
     {
-        var data = await _syncService.GetBootstrapDataAsync(cancellationToken);
-        return Ok(data);
-    }
-
-    [HttpPost("batch")]
-    public async Task<IActionResult> ProcessBatch([FromBody] PendingSyncBatchDto batch, CancellationToken cancellationToken)
-    {
-        var result = await _syncService.ProcessPendingBatchAsync(batch, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var data = await _syncService.GetBootstrapDataAsync(cancellationToken);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener datos de bootstrap de sincronización");
+            return StatusCode(500, new { message = "Error interno al sincronizar datos." });
+        }
     }
 }

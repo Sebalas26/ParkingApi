@@ -1,13 +1,21 @@
+<<<<<<< HEAD
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+=======
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using ParkingApi.Domain.Dtos.Users;
+>>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
 using ParkingApi.Domain.Models;
 
 namespace ParkingApi.Domain.Interfaces.Repositories.Users;
 
 public interface IUserRepository
 {
+<<<<<<< HEAD
     Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default);
@@ -15,4 +23,16 @@ public interface IUserRepository
     Task<bool> AddAsync(User user, CancellationToken cancellationToken = default);
     Task<bool> UpdateAsync(User user, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(User user, CancellationToken cancellationToken = default);
+=======
+    Task<IEnumerable<GetUsersDto>> GetUsers(CancellationToken cancellation = default);
+    Task<GetUsersDto?> GetUserById(int id, CancellationToken cancellation = default);
+    Task<LoginUserDto?> GetUser(string username, CancellationToken cancellation = default);
+    Task<bool> CreateUser(User user, CancellationToken cancellation = default);
+    Task<bool> UpdateUser(User user, CancellationToken cancellation = default);
+    Task<bool> UpdateUserToken(LoginUserDto user, CancellationToken cancellation = default);
+    Task<GetUsersDto?> ValidateExist(string username, string numberIdentification, CancellationToken cancellation = default);
+    Task<User?> GetByIdAsync(int id, CancellationToken cancellation = default);
+    Task<User?> GetByUsernameAsync(string username, CancellationToken cancellation = default);
+    Task<User?> GetByEmailAsync(string email, CancellationToken cancellation = default);
+>>>>>>> 90bdfc8b254eafadbadd6661c5529f3ac113a605
 }
