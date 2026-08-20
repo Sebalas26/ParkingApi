@@ -49,6 +49,7 @@ public class SyncService : ISyncService
             var stores = await _storeRepository.GetAllAsync(cancellationToken);
             var agreements = await _agreementRepository.GetAllAsync(cancellationToken);
             var activeTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
+            var recentTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
 
             return new BootstrapSyncDto
             {
@@ -58,7 +59,8 @@ public class SyncService : ISyncService
                 Rates = rates.ToList(),
                 Stores = stores.ToList(),
                 Agreements = agreements.ToList(),
-                ActiveTickets = activeTickets.ToList()
+                ActiveTickets = activeTickets.ToList(),
+                RecentTickets = recentTickets.ToList()
             };
         }
         catch (Exception ex)

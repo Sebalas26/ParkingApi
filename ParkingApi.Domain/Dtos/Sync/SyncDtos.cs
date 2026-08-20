@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using ParkingApi.Domain.Models;
 
@@ -13,6 +13,7 @@ public class BootstrapSyncDto
     public List<Store> Stores { get; set; } = new();
     public List<CommercialAgreement> Agreements { get; set; } = new();
     public List<ParkingTicket> ActiveTickets { get; set; } = new();
+    public List<ParkingTicket> RecentTickets { get; set; } = new();
 }
 
 public class PendingSyncBatchDto
