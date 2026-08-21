@@ -11,4 +11,5 @@ public class FinancialSummaryDto
     public double AverageDurationMinutes { get; set; }
     public Dictionary<VehicleType, decimal> RevenueByVehicleType { get; set; } = new();
     public Dictionary<VehicleType, int> CountByVehicleType { get; set; } = new();
+    public Dictionary<PaymentMethod, decimal> RevenueByPaymentMethod { get; set; } = new();
 }

@@ -42,6 +42,11 @@ public class AnalyticsService : IAnalyticsService
                 .GroupBy(t => t.VehicleType)
                 .ToDictionary(g => g.Key, g => g.Count());
 
+            var revenueByPayment = todayTickets
+                .Where(t => t.PaymentMethod.HasValue)
+                .GroupBy(t => t.PaymentMethod!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
+
             return new FinancialSummaryDto
             {
                 TotalRevenueToday = totalRevenue,
@@ -49,7 +54,8 @@ public class AnalyticsService : IAnalyticsService
                 CompletedTransactionsToday = completedCount,
                 AverageDurationMinutes = Math.Round(avgDuration, 1),
                 RevenueByVehicleType = revenueByType,
-                CountByVehicleType = countByType
+                CountByVehicleType = countByType,
+                RevenueByPaymentMethod = revenueByPayment
             };
         }
         catch (Exception ex)
