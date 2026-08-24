@@ -20,7 +20,7 @@ builder.Services.Configure<JwtOptions>(jwtSection);
 var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.JwtSigningKey);
 
-// 2. Autenticación JWT Bearer
+// 2. Autenticacion JWT Bearer
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -47,7 +47,7 @@ builder.Services.AddAuthorization();
 
 // 3. MySQL DataContext con versión explícita (No bloquea inicio si MySQL no está levantado en tiempo de compilación)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Port=3306;Database=parkflow_db;User=root;Password=root;";
+    ?? "Data Source=parkflow.db";
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseMySql(
@@ -56,7 +56,7 @@ builder.Services.AddDbContext<DataContext>(options =>
         mysqlOptions => mysqlOptions.EnableRetryOnFailure(3)
     ));
 
-// 4. Inyección de Repositorios y Servicios
+// 4. Inyeccion de Repositorios y Servicios
 builder.Services.AddRepositories();
 builder.Services.AddServices();
 builder.Services.AddMemoryCache();
@@ -83,6 +83,13 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Asegurar que la base de datos y los datos semilla (Seed) existan automaticamente
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+    dbContext.Database.EnsureCreated();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

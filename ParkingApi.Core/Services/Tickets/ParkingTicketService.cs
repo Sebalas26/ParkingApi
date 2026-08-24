@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -49,7 +50,7 @@ public class ParkingTicketService : IParkingTicketService
             var active = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, cancellationToken);
             if (active != null)
             {
-                throw new InvalidOperationException($"El vehÃ­culo con placa '{normalizedPlate}' ya se encuentra adentro.");
+                throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
             }
 
             var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, cancellationToken);
