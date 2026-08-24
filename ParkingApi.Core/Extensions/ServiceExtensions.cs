@@ -54,6 +54,7 @@ public static class ServiceExtensions
         services.AddScoped<ILoginService, LoginService>();
 
         // Negocio Parqueadero (Preservación 100%)
+        services.AddScoped<ParkingApi.Domain.Interfaces.Services.ParkingLots.IParkingLotService, ParkingApi.Core.Services.ParkingLots.ParkingLotService>();
         services.AddScoped<IParkingTicketService, ParkingTicketService>();
         services.AddScoped<IVehicleRateService, VehicleRateService>();
         services.AddScoped<IStoreService, StoreService>();

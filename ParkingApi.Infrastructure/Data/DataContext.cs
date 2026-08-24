@@ -25,6 +25,8 @@ public class DataContext : DbContext
     public DbSet<PasswordResetToken> PasswordResetToken { get; set; }
 
     // Módulo Negocio Parqueadero (Preservación 100%)
+    public DbSet<ParkingLot> ParkingLots { get; set; }
+    public DbSet<UserParking> UserParkings { get; set; }
     public DbSet<VehicleRate> VehicleRates { get; set; }
     public DbSet<Store> Stores { get; set; }
     public DbSet<CommercialAgreement> CommercialAgreements { get; set; }
