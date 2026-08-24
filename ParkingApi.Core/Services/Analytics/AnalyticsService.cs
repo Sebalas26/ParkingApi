@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Analytics;
@@ -14,12 +15,16 @@ namespace ParkingApi.Core.Services.Analytics;
 public class AnalyticsService : IAnalyticsService
 {
     private readonly IParkingTicketRepository _ticketRepository;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<AnalyticsService> _logger;
-    private const int TotalCapacity = 120;
 
-    public AnalyticsService(IParkingTicketRepository ticketRepository, ILogger<AnalyticsService> logger)
+    public AnalyticsService(
+        IParkingTicketRepository ticketRepository,
+        IConfiguration configuration,
+        ILogger<AnalyticsService> logger)
     {
         _ticketRepository = ticketRepository;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -67,19 +72,20 @@ public class AnalyticsService : IAnalyticsService
 
     public async Task<OccupancyStatsDto> GetOccupancyStatsAsync(CancellationToken cancellationToken = default)
     {
+        var totalCapacity = int.TryParse(_configuration["ParkingSettings:TotalCapacity"], out var cap) ? cap : 100;
         try
         {
             var activeCount = await _ticketRepository.CountActiveAsync(cancellationToken);
             return new OccupancyStatsDto
             {
-                TotalCapacity = TotalCapacity,
+                TotalCapacity = totalCapacity,
                 OccupiedSpots = activeCount
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener estadísticas de ocupación");
-            return new OccupancyStatsDto { TotalCapacity = TotalCapacity, OccupiedSpots = 0 };
+            return new OccupancyStatsDto { TotalCapacity = totalCapacity, OccupiedSpots = 0 };
         }
     }
 }

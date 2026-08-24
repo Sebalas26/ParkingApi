@@ -21,10 +21,6 @@ public class SecurityConfigurations :
     IEntityTypeConfiguration<Login>,
     IEntityTypeConfiguration<PasswordResetToken>
 {
-    private static readonly DateTime BaseSeedDate = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-    private static readonly string AdminPasswordHash = ParkingApi.Infrastructure.Security.PasswordHasher.HashPassword("admin123");
-    private static readonly string OperadorPasswordHash = ParkingApi.Infrastructure.Security.PasswordHasher.HashPassword("operador123");
-
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("User");
@@ -46,45 +42,6 @@ public class SecurityConfigurations :
             .WithMany(i => i.Users)
             .HasForeignKey(u => u.IdentificationTypeId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new User
-            {
-                Id = 1,
-                UserRoleId = 1,
-                IdentificationTypeId = 1,
-                IdentificationNumber = "1000000001",
-                FirstName = "Administrador",
-                MiddleName = string.Empty,
-                FirstSurname = "Principal",
-                SecondLastName = string.Empty,
-                FullName = "Administrador del Sistema",
-                Username = "admin",
-                Password = AdminPasswordHash,
-                Email = "admin@parkflow.com",
-                IsActive = true,
-                MustChangePassword = false,
-                CreatedAt = BaseSeedDate
-            },
-            new User
-            {
-                Id = 2,
-                UserRoleId = 2,
-                IdentificationTypeId = 1,
-                IdentificationNumber = "1000000002",
-                FirstName = "Operador",
-                MiddleName = string.Empty,
-                FirstSurname = "Turno",
-                SecondLastName = string.Empty,
-                FullName = "Operador de Turno",
-                Username = "operador",
-                Password = OperadorPasswordHash,
-                Email = "operador@parkflow.com",
-                IsActive = true,
-                MustChangePassword = false,
-                CreatedAt = BaseSeedDate
-            }
-        );
     }
 
     public void Configure(EntityTypeBuilder<UserRole> builder)
@@ -98,11 +55,6 @@ public class SecurityConfigurations :
             .HasForeignKey(r => r.ResponsibleUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new UserRole { Id = 1, Role = "Administrador", IsActive = true, CreatedAt = BaseSeedDate },
-            new UserRole { Id = 2, Role = "Operador", IsActive = true, CreatedAt = BaseSeedDate }
-        );
     }
 
     public void Configure(EntityTypeBuilder<Module> builder)
@@ -116,15 +68,6 @@ public class SecurityConfigurations :
             .HasForeignKey(m => m.ResponsibleUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new Module { Id = 1, Name = "Seguridad", IsActive = true, CreatedAt = BaseSeedDate },
-            new Module { Id = 2, Name = "Tiquetes", IsActive = true, CreatedAt = BaseSeedDate },
-            new Module { Id = 3, Name = "Tarifas", IsActive = true, CreatedAt = BaseSeedDate },
-            new Module { Id = 4, Name = "Comercios y Convenios", IsActive = true, CreatedAt = BaseSeedDate },
-            new Module { Id = 5, Name = "Reportes y Métricas", IsActive = true, CreatedAt = BaseSeedDate },
-            new Module { Id = 6, Name = "Sincronización", IsActive = true, CreatedAt = BaseSeedDate }
-        );
     }
 
     public void Configure(EntityTypeBuilder<Operation> builder)
@@ -138,13 +81,6 @@ public class SecurityConfigurations :
             .HasForeignKey(o => o.ResponsibleUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new Operation { Id = 1, Name = "Lectura", IsActive = true, CreatedAt = BaseSeedDate },
-            new Operation { Id = 2, Name = "Creación", IsActive = true, CreatedAt = BaseSeedDate },
-            new Operation { Id = 3, Name = "Edición", IsActive = true, CreatedAt = BaseSeedDate },
-            new Operation { Id = 4, Name = "Eliminación", IsActive = true, CreatedAt = BaseSeedDate }
-        );
     }
 
     public void Configure(EntityTypeBuilder<Action> builder)
@@ -226,14 +162,6 @@ public class SecurityConfigurations :
             .HasForeignKey(i => i.ResponsibleUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new IdentificationType { Id = 1, Identification = "Cédula de Ciudadanía", IsActive = true, CreatedAt = BaseSeedDate },
-            new IdentificationType { Id = 2, Identification = "Cédula de Extranjería", IsActive = true, CreatedAt = BaseSeedDate },
-            new IdentificationType { Id = 3, Identification = "Tarjeta de Identidad", IsActive = true, CreatedAt = BaseSeedDate },
-            new IdentificationType { Id = 4, Identification = "NIT", IsActive = true, CreatedAt = BaseSeedDate },
-            new IdentificationType { Id = 5, Identification = "Pasaporte", IsActive = true, CreatedAt = BaseSeedDate }
-        );
     }
 
     public void Configure(EntityTypeBuilder<PaymentMethodModel> builder)
@@ -248,13 +176,6 @@ public class SecurityConfigurations :
             .HasForeignKey(p => p.ResponsibleUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasData(
-            new PaymentMethodModel { Id = 1, Name = "Efectivo", Icon = "cash", IsActive = true, CreatedAt = BaseSeedDate },
-            new PaymentMethodModel { Id = 2, Name = "Tarjeta Débito", Icon = "credit-card", IsActive = true, CreatedAt = BaseSeedDate },
-            new PaymentMethodModel { Id = 3, Name = "Tarjeta Crédito", Icon = "credit-card", IsActive = true, CreatedAt = BaseSeedDate },
-            new PaymentMethodModel { Id = 4, Name = "Transferencia / QR", Icon = "qrcode", IsActive = true, CreatedAt = BaseSeedDate }
-        );
     }
 
     public void Configure(EntityTypeBuilder<Login> builder)
@@ -290,8 +211,6 @@ public class ParkingBusinessConfigurations :
     IEntityTypeConfiguration<TicketDiscount>,
     IEntityTypeConfiguration<WorkShift>
 {
-    private static readonly DateTime BaseSeedDate = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
     public void Configure(EntityTypeBuilder<VehicleRate> builder)
     {
         builder.ToTable("VehicleRates");
@@ -301,87 +220,6 @@ public class ParkingBusinessConfigurations :
         builder.Property(r => r.HourRate).HasPrecision(18, 2);
         builder.Property(r => r.MinuteRate).HasPrecision(18, 2);
         builder.Property(r => r.FullDayRate).HasPrecision(18, 2);
-
-        builder.HasData(
-            new VehicleRate
-            {
-                RateId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                VehicleType = VehicleType.Car,
-                DisplayName = "Automóvil / Sedán",
-                HourRate = 4000m,
-                MinuteRate = 70m,
-                FullDayRate = 28000m,
-                GracePeriodMinutes = 15,
-                IconKey = "IconCar",
-                IsActive = true,
-                CreatedAtUtc = BaseSeedDate
-            },
-            new VehicleRate
-            {
-                RateId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                VehicleType = VehicleType.Motorcycle,
-                DisplayName = "Motocicleta",
-                HourRate = 2000m,
-                MinuteRate = 35m,
-                FullDayRate = 14000m,
-                GracePeriodMinutes = 15,
-                IconKey = "IconMotorcycle",
-                IsActive = true,
-                CreatedAtUtc = BaseSeedDate
-            },
-            new VehicleRate
-            {
-                RateId = Guid.Parse("33333333-3333-3333-3333-333333333333"),
-                VehicleType = VehicleType.Suv,
-                DisplayName = "Camioneta / SUV",
-                HourRate = 5000m,
-                MinuteRate = 85m,
-                FullDayRate = 35000m,
-                GracePeriodMinutes = 15,
-                IconKey = "IconSuv",
-                IsActive = true,
-                CreatedAtUtc = BaseSeedDate
-            },
-            new VehicleRate
-            {
-                RateId = Guid.Parse("44444444-4444-4444-4444-444444444444"),
-                VehicleType = VehicleType.Van,
-                DisplayName = "Furgón / Minibús",
-                HourRate = 6000m,
-                MinuteRate = 100m,
-                FullDayRate = 42000m,
-                GracePeriodMinutes = 15,
-                IconKey = "IconVan",
-                IsActive = true,
-                CreatedAtUtc = BaseSeedDate
-            },
-            new VehicleRate
-            {
-                RateId = Guid.Parse("55555555-5555-5555-5555-555555555555"),
-                VehicleType = VehicleType.Truck,
-                DisplayName = "Vehículo Pesado / Camión",
-                HourRate = 10000m,
-                MinuteRate = 170m,
-                FullDayRate = 70000m,
-                GracePeriodMinutes = 15,
-                IconKey = "IconTruck",
-                IsActive = true,
-                CreatedAtUtc = BaseSeedDate
-            },
-            new VehicleRate
-            {
-                RateId = Guid.Parse("66666666-6666-6666-6666-666666666666"),
-                VehicleType = VehicleType.Bicycle,
-                DisplayName = "Bicicleta",
-                HourRate = 800m,
-                MinuteRate = 15m,
-                FullDayRate = 5000m,
-                GracePeriodMinutes = 15,
-                IconKey = "IconBicycle",
-                IsActive = true,
-                CreatedAtUtc = BaseSeedDate
-            }
-        );
     }
 
     public void Configure(EntityTypeBuilder<Store> builder)

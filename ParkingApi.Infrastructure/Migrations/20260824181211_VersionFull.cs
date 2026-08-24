@@ -4,12 +4,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
 namespace ParkingApi.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class VersionBase : Migration
+    public partial class VersionFull : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -242,6 +240,43 @@ namespace ParkingApi.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Module", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "MonthlySubscriptions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    SubscriptionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CustomerName = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CustomerDocument = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CustomerPhone = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CustomerEmail = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PlateNumber = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    VehicleType = table.Column<int>(type: "int", nullable: false),
+                    StartDateUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    EndDateUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    MonthlyFee = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    AmountPaid = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    PaymentMethod = table.Column<int>(type: "int", nullable: false),
+                    Notes = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ResponsibleUserId = table.Column<int>(type: "int", nullable: true),
+                    ResponsibleUserIdNavigationId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MonthlySubscriptions", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -480,84 +515,6 @@ namespace ParkingApi.Infrastructure.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
-            migrationBuilder.InsertData(
-                table: "IdentificationType",
-                columns: new[] { "Id", "CreatedAt", "Identification", "IsActive", "ResponsibleUserId", "UpdatedAt" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Cédula de Ciudadanía", true, null, null },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Cédula de Extranjería", true, null, null },
-                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Tarjeta de Identidad", true, null, null },
-                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "NIT", true, null, null },
-                    { 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Pasaporte", true, null, null }
-                });
-
-            migrationBuilder.InsertData(
-                table: "Module",
-                columns: new[] { "Id", "CreatedAt", "IsActive", "Name", "ResponsibleUserId", "UpdatedAt" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Seguridad", null, null },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Tiquetes", null, null },
-                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Tarifas", null, null },
-                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Comercios y Convenios", null, null },
-                    { 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Reportes y Métricas", null, null },
-                    { 6, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Sincronización", null, null }
-                });
-
-            migrationBuilder.InsertData(
-                table: "Operation",
-                columns: new[] { "Id", "CreatedAt", "IsActive", "Name", "ResponsibleUserId", "UpdatedAt" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Lectura", null, null },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Creación", null, null },
-                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Edición", null, null },
-                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Eliminación", null, null }
-                });
-
-            migrationBuilder.InsertData(
-                table: "PaymentMethod",
-                columns: new[] { "Id", "CreatedAt", "Icon", "IsActive", "Name", "ResponsibleUserId", "UpdatedAt" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "cash", true, "Efectivo", null, null },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "credit-card", true, "Tarjeta Débito", null, null },
-                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "credit-card", true, "Tarjeta Crédito", null, null },
-                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "qrcode", true, "Transferencia / QR", null, null }
-                });
-
-            migrationBuilder.InsertData(
-                table: "UserRole",
-                columns: new[] { "Id", "CreatedAt", "IsActive", "ResponsibleUserId", "Role", "UpdatedAt" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, null, "Administrador", null },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, null, "Operador", null }
-                });
-
-            migrationBuilder.InsertData(
-                table: "VehicleRates",
-                columns: new[] { "RateId", "CreatedAtUtc", "DisplayName", "FullDayRate", "GracePeriodMinutes", "HourRate", "IconKey", "IsActive", "MinuteRate", "UpdatedAtUtc", "VehicleType" },
-                values: new object[,]
-                {
-                    { new Guid("11111111-1111-1111-1111-111111111111"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Automóvil / Sedán", 28000m, 15, 4000m, "IconCar", true, 70m, null, 0 },
-                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Motocicleta", 14000m, 15, 2000m, "IconMotorcycle", true, 35m, null, 1 },
-                    { new Guid("33333333-3333-3333-3333-333333333333"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Camioneta / SUV", 35000m, 15, 5000m, "IconSuv", true, 85m, null, 5 },
-                    { new Guid("44444444-4444-4444-4444-444444444444"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Furgón / Minibús", 42000m, 15, 6000m, "IconVan", true, 100m, null, 3 },
-                    { new Guid("55555555-5555-5555-5555-555555555555"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Vehículo Pesado / Camión", 70000m, 15, 10000m, "IconTruck", true, 170m, null, 2 },
-                    { new Guid("66666666-6666-6666-6666-666666666666"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Bicicleta", 5000m, 15, 800m, "IconBicycle", true, 15m, null, 4 }
-                });
-
-            migrationBuilder.InsertData(
-                table: "User",
-                columns: new[] { "Id", "AssignmentDate", "CreatedAt", "Email", "ExpirationDate", "FirstName", "FirstSurname", "FullName", "IdentificationNumber", "IdentificationTypeId", "IsActive", "MiddleName", "MustChangePassword", "Password", "SecondLastName", "Token", "UpdatedAt", "UserRoleId", "Username" },
-                values: new object[,]
-                {
-                    { 1, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "admin@parkflow.com", null, "Administrador", "Principal", "Administrador del Sistema", "1000000001", 1, true, "", false, "$2a$11$AFLUWi4qDaKPVko1OopOEu5FIh8Fu9f94pby4uqKPzwGJfZvqO93y", "", null, null, 1, "admin" },
-                    { 2, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "operador@parkflow.com", null, "Operador", "Turno", "Operador de Turno", "1000000002", 1, true, "", false, "$2a$11$e2qqUTVWokInjCyxD5/.VOKMPlxVoPkXPcUaaktRVUYmZCM3hPys.", "", null, null, 2, "operador" }
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_Action_ModuleId",
                 table: "Action",
@@ -597,6 +554,11 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "IX_Module_ResponsibleUserId",
                 table: "Module",
                 column: "ResponsibleUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MonthlySubscriptions_ResponsibleUserIdNavigationId",
+                table: "MonthlySubscriptions",
+                column: "ResponsibleUserIdNavigationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Operation_ResponsibleUserId",
@@ -761,6 +723,13 @@ namespace ParkingApi.Infrastructure.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_MonthlySubscriptions_User_ResponsibleUserIdNavigationId",
+                table: "MonthlySubscriptions",
+                column: "ResponsibleUserIdNavigationId",
+                principalTable: "User",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_Operation_User_ResponsibleUserId",
                 table: "Operation",
                 column: "ResponsibleUserId",
@@ -829,6 +798,9 @@ namespace ParkingApi.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Login");
+
+            migrationBuilder.DropTable(
+                name: "MonthlySubscriptions");
 
             migrationBuilder.DropTable(
                 name: "PasswordResetToken");

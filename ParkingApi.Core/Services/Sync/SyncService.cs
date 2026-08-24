@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Sync;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
@@ -22,6 +23,7 @@ public class SyncService : ISyncService
     private readonly IStoreRepository _storeRepository;
     private readonly ICommercialAgreementRepository _agreementRepository;
     private readonly IParkingTicketRepository _ticketRepository;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SyncService> _logger;
 
     public SyncService(
@@ -30,6 +32,7 @@ public class SyncService : ISyncService
         IStoreRepository storeRepository,
         ICommercialAgreementRepository agreementRepository,
         IParkingTicketRepository ticketRepository,
+        IConfiguration configuration,
         ILogger<SyncService> logger)
     {
         _userRepository = userRepository;
@@ -37,6 +40,7 @@ public class SyncService : ISyncService
         _storeRepository = storeRepository;
         _agreementRepository = agreementRepository;
         _ticketRepository = ticketRepository;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -51,10 +55,12 @@ public class SyncService : ISyncService
             var activeTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
             var recentTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
 
+            var totalCapacity = int.TryParse(_configuration["ParkingSettings:TotalCapacity"], out var cap) ? cap : 100;
+
             return new BootstrapSyncDto
             {
                 ServerTimeUtc = DateTime.UtcNow,
-                TotalCapacity = 120,
+                TotalCapacity = totalCapacity,
                 Users = users.ToList(),
                 Rates = rates.ToList(),
                 Stores = stores.ToList(),

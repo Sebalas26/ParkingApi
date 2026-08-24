@@ -141,43 +141,6 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.HasIndex("ResponsibleUserId");
 
                     b.ToTable("IdentificationType", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Identification = "Cédula de Ciudadanía",
-                            IsActive = true
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Identification = "Cédula de Extranjería",
-                            IsActive = true
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Identification = "Tarjeta de Identidad",
-                            IsActive = true
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Identification = "NIT",
-                            IsActive = true
-                        },
-                        new
-                        {
-                            Id = 5,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Identification = "Pasaporte",
-                            IsActive = true
-                        });
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.Login", b =>
@@ -250,50 +213,6 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.HasIndex("ResponsibleUserId");
 
                     b.ToTable("Module", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Seguridad"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Tiquetes"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Tarifas"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Comercios y Convenios"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Reportes y Métricas"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Sincronización"
-                        });
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.MonthlySubscription", b =>
@@ -399,36 +318,6 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.HasIndex("ResponsibleUserId");
 
                     b.ToTable("Operation", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Lectura"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Creación"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Edición"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Eliminación"
-                        });
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.ParkingTicket", b =>
@@ -599,40 +488,6 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.HasIndex("ResponsibleUserId");
 
                     b.ToTable("PaymentMethod", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Icon = "cash",
-                            IsActive = true,
-                            Name = "Efectivo"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Icon = "credit-card",
-                            IsActive = true,
-                            Name = "Tarjeta Débito"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Icon = "credit-card",
-                            IsActive = true,
-                            Name = "Tarjeta Crédito"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Icon = "qrcode",
-                            IsActive = true,
-                            Name = "Transferencia / QR"
-                        });
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.RoleAction", b =>
@@ -833,44 +688,6 @@ namespace ParkingApi.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("User", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "admin@parkflow.com",
-                            FirstName = "Administrador",
-                            FirstSurname = "Principal",
-                            FullName = "Administrador del Sistema",
-                            IdentificationNumber = "1000000001",
-                            IdentificationTypeId = 1,
-                            IsActive = true,
-                            MiddleName = "",
-                            MustChangePassword = false,
-                            Password = "$2a$11$1F9TMN7OFqm4MDZadzmh9ePC9Kh.xYqwjXp9N5YHWOEJ//2bgtqgC",
-                            SecondLastName = "",
-                            UserRoleId = 1,
-                            Username = "admin"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "operador@parkflow.com",
-                            FirstName = "Operador",
-                            FirstSurname = "Turno",
-                            FullName = "Operador de Turno",
-                            IdentificationNumber = "1000000002",
-                            IdentificationTypeId = 1,
-                            IsActive = true,
-                            MiddleName = "",
-                            MustChangePassword = false,
-                            Password = "$2a$11$1hYXD5rI7Myho12PuIpp1O/CxAnrEL7nrB.7r65EAXz/UwNAjXXAm",
-                            SecondLastName = "",
-                            UserRoleId = 2,
-                            Username = "operador"
-                        });
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.UserRole", b =>
@@ -903,22 +720,6 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.HasIndex("ResponsibleUserId");
 
                     b.ToTable("UserRole", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Role = "Administrador"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Role = "Operador"
-                        });
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.UserRoleModule", b =>
@@ -1004,86 +805,6 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.HasKey("RateId");
 
                     b.ToTable("VehicleRates", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            RateId = new Guid("11111111-1111-1111-1111-111111111111"),
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Automóvil / Sedán",
-                            FullDayRate = 28000m,
-                            GracePeriodMinutes = 15,
-                            HourRate = 4000m,
-                            IconKey = "IconCar",
-                            IsActive = true,
-                            MinuteRate = 70m,
-                            VehicleType = 0
-                        },
-                        new
-                        {
-                            RateId = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Motocicleta",
-                            FullDayRate = 14000m,
-                            GracePeriodMinutes = 15,
-                            HourRate = 2000m,
-                            IconKey = "IconMotorcycle",
-                            IsActive = true,
-                            MinuteRate = 35m,
-                            VehicleType = 1
-                        },
-                        new
-                        {
-                            RateId = new Guid("33333333-3333-3333-3333-333333333333"),
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Camioneta / SUV",
-                            FullDayRate = 35000m,
-                            GracePeriodMinutes = 15,
-                            HourRate = 5000m,
-                            IconKey = "IconSuv",
-                            IsActive = true,
-                            MinuteRate = 85m,
-                            VehicleType = 5
-                        },
-                        new
-                        {
-                            RateId = new Guid("44444444-4444-4444-4444-444444444444"),
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Furgón / Minibús",
-                            FullDayRate = 42000m,
-                            GracePeriodMinutes = 15,
-                            HourRate = 6000m,
-                            IconKey = "IconVan",
-                            IsActive = true,
-                            MinuteRate = 100m,
-                            VehicleType = 3
-                        },
-                        new
-                        {
-                            RateId = new Guid("55555555-5555-5555-5555-555555555555"),
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Vehículo Pesado / Camión",
-                            FullDayRate = 70000m,
-                            GracePeriodMinutes = 15,
-                            HourRate = 10000m,
-                            IconKey = "IconTruck",
-                            IsActive = true,
-                            MinuteRate = 170m,
-                            VehicleType = 2
-                        },
-                        new
-                        {
-                            RateId = new Guid("66666666-6666-6666-6666-666666666666"),
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Bicicleta",
-                            FullDayRate = 5000m,
-                            GracePeriodMinutes = 15,
-                            HourRate = 800m,
-                            IconKey = "IconBicycle",
-                            IsActive = true,
-                            MinuteRate = 15m,
-                            VehicleType = 4
-                        });
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.WorkShift", b =>
