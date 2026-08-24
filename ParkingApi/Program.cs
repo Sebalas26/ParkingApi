@@ -20,6 +20,7 @@ builder.Services.Configure<JwtOptions>(jwtSection);
 var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.JwtSigningKey);
 
+
 // 2. Autenticacion JWT Bearer
 builder.Services.AddAuthentication(options =>
 {
