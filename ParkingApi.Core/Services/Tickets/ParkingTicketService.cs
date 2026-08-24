@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -49,13 +50,20 @@ public class ParkingTicketService : IParkingTicketService
             var active = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, cancellationToken);
             if (active != null)
             {
-                throw new InvalidOperationException($"El vehÃ­culo con placa '{normalizedPlate}' ya se encuentra adentro.");
+                throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
             }
 
             var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, cancellationToken);
             var hourRate = rate?.HourRate ?? 3000m;
-            var countToday = (await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken)).Count + 1;
+            
+            var allTickets = await _ticketRepository.GetAllAsync(cancellationToken);
+            var countToday = allTickets.Count(t => t.CreatedAtUtc.Date == DateTime.UtcNow.Date || t.EntryTimeUtc.Date == DateTime.UtcNow.Date) + 1;
             var ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
+            while (allTickets.Any(t => t.TicketNumber == ticketNumber))
+            {
+                countToday++;
+                ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
+            }
 
             var ticket = new ParkingTicket
             {
@@ -82,7 +90,7 @@ public class ParkingTicketService : IParkingTicketService
         catch (Exception ex)
         {
             _logger.LogError(ex, "{Error}: Error en CheckIn para placa {Plate}", Constants.TicketError, dto.PlateNumber);
-            throw new Exception("Error interno al procesar el ingreso del vehÃ­culo.");
+            throw new Exception("Error interno al procesar el ingreso del vehículo.");
         }
     }
 
