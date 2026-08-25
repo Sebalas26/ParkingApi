@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using ParkingApi.Core.Extensions;
 using ParkingApi.Domain.Dtos.Options;
 using ParkingApi.Infrastructure.Data;
@@ -20,8 +21,7 @@ builder.Services.Configure<JwtOptions>(jwtSection);
 var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.JwtSigningKey);
 
-
-// 2. Autenticacion JWT Bearer
+// 2. Autenticación JWT Bearer
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -46,7 +46,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// 3. MySQL DataContext con versión explícita (No bloquea inicio si MySQL no está levantado en tiempo de compilación)
+// 3. MySQL DataContext con versión explícita
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Data Source=parkflow.db";
 
@@ -57,7 +57,7 @@ builder.Services.AddDbContext<DataContext>(options =>
         mysqlOptions => mysqlOptions.EnableRetryOnFailure(3)
     ));
 
-// 4. Inyeccion de Repositorios y Servicios
+// 4. Inyección de Repositorios y Servicios
 builder.Services.AddRepositories();
 builder.Services.AddServices();
 builder.Services.AddMemoryCache();
@@ -82,25 +82,32 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new ParkingApi.Converters.UtcDateTimeJsonConverter());
         options.JsonSerializerOptions.Converters.Add(new ParkingApi.Converters.NullableUtcDateTimeJsonConverter());
     });
-builder.Services.AddOpenApi();
+
+// 6. Swagger / OpenAPI Robusto con resolución de conflictos de rutas
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Park Point API",
+        Version = "v1",
+        Description = "API Central de Control de Acceso y Gestión de Parqueaderos (Park Point)"
+    });
+
+    options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+    options.CustomSchemaIds(type => type.FullName ?? type.Name);
+});
 
 var app = builder.Build();
-
-// Asegurar que la base de datos y los datos semilla (Seed) existan automaticamente
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
-    dbContext.Database.EnsureCreated();
-    await DatabaseSeeder.SeedAsync(dbContext);
-}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "ParkFlow API v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Park Point API v1");
+        options.RoutePrefix = "swagger";
     });
     app.MapGet("/", () => Results.Redirect("/swagger"));
 }
