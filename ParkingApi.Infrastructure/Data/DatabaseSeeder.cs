@@ -175,50 +175,8 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // 8. Métodos de Pago
-        if (!await context.PaymentMethod.AnyAsync())
-        {
-            context.PaymentMethod.AddRange(
-                new PaymentMethodModel { Id = 1, Name = "Efectivo (Cash)", Icon = "Banknote", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new PaymentMethodModel { Id = 2, Name = "Tarjeta de Crédito", Icon = "CreditCard", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new PaymentMethodModel { Id = 3, Name = "Tarjeta de Débito", Icon = "CreditCard", IsActive = true, CreatedAt = DateTime.UtcNow },
-                new PaymentMethodModel { Id = 4, Name = "Transferencia / PSE / Nequi", Icon = "Smartphone", IsActive = true, CreatedAt = DateTime.UtcNow }
-            );
-            await context.SaveChangesAsync();
-        }
-
-        // 9. Tarifas Vehiculares
-        if (!await context.VehicleRates.AnyAsync())
-        {
-            context.VehicleRates.AddRange(
-                new VehicleRate { RateId = Guid.NewGuid(), VehicleType = VehicleType.Car, DisplayName = "Automóvil / Sedán", HourRate = 3000, MinuteRate = 50, FullDayRate = 25000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new VehicleRate { RateId = Guid.NewGuid(), VehicleType = VehicleType.Motorcycle, DisplayName = "Motocicleta", HourRate = 1500, MinuteRate = 25, FullDayRate = 12000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new VehicleRate { RateId = Guid.NewGuid(), VehicleType = VehicleType.Truck, DisplayName = "Vehículo Pesado / Camión", HourRate = 6000, MinuteRate = 100, FullDayRate = 45000, GracePeriodMinutes = 15, IconKey = "IconTruck", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new VehicleRate { RateId = Guid.NewGuid(), VehicleType = VehicleType.Van, DisplayName = "Furgón / Minibús", HourRate = 4000, MinuteRate = 70, FullDayRate = 30000, GracePeriodMinutes = 15, IconKey = "IconVan", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new VehicleRate { RateId = Guid.NewGuid(), VehicleType = VehicleType.Bicycle, DisplayName = "Bicicleta", HourRate = 800, MinuteRate = 15, FullDayRate = 6000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new VehicleRate { RateId = Guid.NewGuid(), VehicleType = VehicleType.Suv, DisplayName = "Camioneta / SUV", HourRate = 3500, MinuteRate = 60, FullDayRate = 28000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow }
-            );
-            await context.SaveChangesAsync();
-        }
-
-        // 10. Comercios y Convenios
-        if (!await context.Stores.AnyAsync())
-        {
-            var store1 = new Store { StoreId = Guid.NewGuid(), Name = "Centro Comercial Plaza Mayor", TaxId = "900123456-1", PhoneNumber = "3001234567", IsActive = true, CreatedAtUtc = DateTime.UtcNow };
-            var store2 = new Store { StoreId = Guid.NewGuid(), Name = "Gimnasio SmartFit", TaxId = "900987654-2", PhoneNumber = "3109876543", IsActive = true, CreatedAtUtc = DateTime.UtcNow };
-            var store3 = new Store { StoreId = Guid.NewGuid(), Name = "CineMark Colombia", TaxId = "900555666-3", PhoneNumber = "3205556667", IsActive = true, CreatedAtUtc = DateTime.UtcNow };
-            var store4 = new Store { StoreId = Guid.NewGuid(), Name = "Supermercado Éxito", TaxId = "890900608-9", PhoneNumber = "3015558899", IsActive = true, CreatedAtUtc = DateTime.UtcNow };
-
-            context.Stores.AddRange(store1, store2, store3, store4);
-            await context.SaveChangesAsync();
-
-            context.CommercialAgreements.AddRange(
-                new CommercialAgreement { AgreementId = Guid.NewGuid(), StoreId = store1.StoreId, Name = "Convenio Centro Comercial Plaza", MinPurchaseAmount = 20000, DiscountPercentage = 50, MaxHoursApplicable = 3, IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new CommercialAgreement { AgreementId = Guid.NewGuid(), StoreId = store2.StoreId, Name = "Convenio Gimnasio SmartFit (2 Horas Gratis)", MinPurchaseAmount = 0, DiscountPercentage = 100, MaxHoursApplicable = 2, IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new CommercialAgreement { AgreementId = Guid.NewGuid(), StoreId = store3.StoreId, Name = "Convenio CineMark (3 Horas con Boleta)", MinPurchaseAmount = 15000, DiscountPercentage = 100, MaxHoursApplicable = 3, IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new CommercialAgreement { AgreementId = Guid.NewGuid(), StoreId = store4.StoreId, Name = "Convenio Supermercado Éxito (30% Descuento)", MinPurchaseAmount = 50000, DiscountPercentage = 30, MaxHoursApplicable = 2, IsActive = true, CreatedAtUtc = DateTime.UtcNow }
-            );
-            await context.SaveChangesAsync();
-        }
+        // Solo se inicializan Tipos de Identificación, Roles, Usuario Administrador Inicial, Módulos, Operaciones y Acciones RBAC.
+        // Las Sedes (Branches), Medios de Pago (PaymentMethods), Tarifas Vehiculares (VehicleRates) y Convenios (Stores/Agreements)
+        // se deben crear MANUALMENTE desde la PWA (Zero-Data Bootstrap).
     }
 }

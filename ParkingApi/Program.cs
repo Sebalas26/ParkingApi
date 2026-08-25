@@ -100,6 +100,25 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+<<<<<<< HEAD
+=======
+// Asegurar que la base de datos y los datos semilla (Seed) existan automaticamente
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Nota en MigrateAsync: {ex.Message}. Intentando EnsureCreated...");
+        dbContext.Database.EnsureCreated();
+    }
+    await DatabaseSeeder.SeedAsync(dbContext);
+}
+
+>>>>>>> fe0525406570d931699ca55b7218ad3a5a0c20c9
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
