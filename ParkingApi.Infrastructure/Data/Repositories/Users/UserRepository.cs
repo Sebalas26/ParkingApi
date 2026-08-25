@@ -269,29 +269,25 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByUsernameAsync(string username, CancellationToken cancellation = default)
     {
-        try
-        {
-            var normalized = username.Trim().ToLower();
-            return await _context.User
-                .Include(u => u.UserRoleIdNavigation)
-                .Include(u => u.IdentificationTypeIdNavigation)
-                .FirstOrDefaultAsync(u => u.Username.ToLower() == normalized && u.IsActive, cancellation);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, Constants.GetUserError);
-            return null;
-        }
+        return await GetByIdentifierAsync(username, cancellation);
     }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellation = default)
     {
+        return await GetByIdentifierAsync(email, cancellation);
+    }
+
+    public async Task<User?> GetByIdentifierAsync(string identifier, CancellationToken cancellation = default)
+    {
         try
         {
-            var normalized = email.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(identifier)) return null;
+
+            var normalized = identifier.Trim().ToLower();
             return await _context.User
                 .Include(u => u.UserRoleIdNavigation)
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalized && u.IsActive, cancellation);
+                .Include(u => u.IdentificationTypeIdNavigation)
+                .FirstOrDefaultAsync(u => (u.Username.ToLower() == normalized || u.Email.ToLower() == normalized) && u.IsActive, cancellation);
         }
         catch (Exception ex)
         {

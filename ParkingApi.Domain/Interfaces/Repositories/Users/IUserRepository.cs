@@ -18,5 +18,6 @@ public interface IUserRepository
     Task<User?> GetByIdAsync(int id, CancellationToken cancellation = default);
     Task<User?> GetByUsernameAsync(string username, CancellationToken cancellation = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellation = default);
+    Task<User?> GetByIdentifierAsync(string identifier, CancellationToken cancellation = default);
     Task<IReadOnlyList<User>> GetAllActiveUsersAsync(CancellationToken cancellation = default);
 }
