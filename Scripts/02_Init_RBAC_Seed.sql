@@ -17,7 +17,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------------------------------------------------------------
 -- 1. TIPOS DE IDENTIFICACIÓN (IdentificationType)
 -- ----------------------------------------------------------------------------------
-INSERT INTO `IdentificationType` (`Id`, `Identification`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
+INSERT INTO IdentificationType (Id, Identification, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
     (1, 'CC',  1, UTC_TIMESTAMP(), NULL),
     (2, 'CE',  1, UTC_TIMESTAMP(), NULL),
@@ -26,29 +26,30 @@ VALUES
     (5, 'PEP', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
-    `Identification` = new_row.`Identification`,
-    `IsActive` = new_row.`IsActive`;
+    Identification = new_row.Identification,
+    IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
 -- 2. ROLES DE USUARIO (UserRole)
 -- ----------------------------------------------------------------------------------
-INSERT INTO `UserRole` (`Id`, `Role`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
+INSERT INTO UserRole (Id, Role, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
     (1, 'Administrador', 1, UTC_TIMESTAMP(), NULL),
-    (2, 'Operador',      1, UTC_TIMESTAMP(), NULL)
+    (2, 'Operador',      1, UTC_TIMESTAMP(), NULL),
+    (3, 'Supervisor',    1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
-    `Role` = new_row.`Role`, 
-    `IsActive` = new_row.`IsActive`;
+    Role = new_row.Role, 
+    IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
 -- 3. USUARIO ADMINISTRADOR PRINCIPAL (User)
 -- Contraseña generada con BCrypt para 'Admin2026*'
 -- ----------------------------------------------------------------------------------
-INSERT INTO `User` (
-    `Id`, `UserRoleId`, `IdentificationTypeId`, `IdentificationNumber`, 
-    `FirstName`, `MiddleName`, `FirstSurname`, `SecondLastName`, `FullName`,
-    `Username`, `Password`, `Email`, `IsActive`, `MustChangePassword`, `CreatedAt`
+INSERT INTO User (
+    Id, UserRoleId, IdentificationTypeId, IdentificationNumber, 
+    FirstName, MiddleName, FirstSurname, SecondLastName, FullName,
+    Username, Password, Email, IsActive, MustChangePassword, CreatedAt
 )
 VALUES (
     1, 1, 1, '1000000000', 
@@ -60,18 +61,18 @@ VALUES (
 )
 AS new_row
 ON DUPLICATE KEY UPDATE 
-    `UserRoleId` = new_row.`UserRoleId`,
-    `IdentificationTypeId` = new_row.`IdentificationTypeId`,
-    `IdentificationNumber` = new_row.`IdentificationNumber`,
-    `FullName` = new_row.`FullName`,
-    `Email` = new_row.`Email`,
-    `Password` = new_row.`Password`,
-    `IsActive` = 1;
+    UserRoleId = new_row.UserRoleId,
+    IdentificationTypeId = new_row.IdentificationTypeId,
+    IdentificationNumber = new_row.IdentificationNumber,
+    FullName = new_row.FullName,
+    Email = new_row.Email,
+    Password = new_row.Password,
+    IsActive = 1;
 
 -- ----------------------------------------------------------------------------------
 -- 4. MÓDULOS DEL SISTEMA (Module) - 13 Módulos (WPF & PWA)
 -- ----------------------------------------------------------------------------------
-INSERT INTO `Module` (`Id`, `Name`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
+INSERT INTO Module (Id, Name, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
     -- Módulos Operativos (WPF / PWA)
     (1,  'Ingreso de Vehículos (CheckIn)',    1, UTC_TIMESTAMP(), NULL),
@@ -91,13 +92,13 @@ VALUES
     (13, 'Configuración y Sistema',           1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
-    `Name` = new_row.`Name`, 
-    `IsActive` = new_row.`IsActive`;
+    Name = new_row.Name, 
+    IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
 -- 5. OPERACIONES BASE (Operation) - 7 Operaciones Estándar
 -- ----------------------------------------------------------------------------------
-INSERT INTO `Operation` (`Id`, `Name`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
+INSERT INTO Operation (Id, Name, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
     (1, 'READ',    1, UTC_TIMESTAMP(), NULL),
     (2, 'CREATE',  1, UTC_TIMESTAMP(), NULL),
@@ -108,13 +109,13 @@ VALUES
     (7, 'ASSIGN',  1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
-    `Name` = new_row.`Name`, 
-    `IsActive` = new_row.`IsActive`;
+    Name = new_row.Name, 
+    IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
 -- 6. ACCIONES Y SLUGS REALES DEL SISTEMA (Action) - 48 Acciones
 -- ----------------------------------------------------------------------------------
-INSERT INTO `Action` (`Id`, `ModuleId`, `OperationId`, `Name`, `Slug`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
+INSERT INTO Action (Id, ModuleId, OperationId, Name, Slug, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
     -- ==============================================================================
     -- MÓDULO 1: INGRESO DE VEHÍCULOS (CheckIn)
@@ -228,17 +229,17 @@ VALUES
     (59, 13, 3, 'Cambiar tema visual de la interfaz', 'system.theme', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
-    `ModuleId` = new_row.`ModuleId`,
-    `OperationId` = new_row.`OperationId`,
-    `Name` = new_row.`Name`,
-    `Slug` = new_row.`Slug`,
-    `IsActive` = new_row.`IsActive`;
+    ModuleId = new_row.ModuleId,
+    OperationId = new_row.OperationId,
+    Name = new_row.Name,
+    Slug = new_row.Slug,
+    IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
 -- 7. MATRIZ DE MÓDULOS POR ROL (UserRoleModule)
 -- Asignación del 100% de los 13 Módulos al Rol 1 (Administrador)
 -- ----------------------------------------------------------------------------------
-DELETE FROM `UserRoleModule` WHERE `UserRoleId` = 1;
+DELETE FROM UserRoleModule WHERE UserRoleId = 1;
 
 INSERT INTO `UserRoleModule` (`UserRoleId`, `ModulesRoleId`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
 SELECT 1, `Id`, 1, UTC_TIMESTAMP(), 1 FROM `Module`;
@@ -285,10 +286,10 @@ SELECT
     r.Role AS RolAsignado,
     COUNT(DISTINCT urm.ModulesRoleId) AS TotalModulosAsignados,
     COUNT(DISTINCT ra.ActionId) AS TotalAccionesAsignadas
-FROM `User` u
-INNER JOIN `UserRole` r ON u.UserRoleId = r.Id
-LEFT JOIN `UserRoleModule` urm ON urm.UserRoleId = r.Id AND urm.IsActive = 1
-LEFT JOIN `RoleAction` ra ON ra.RoleId = r.Id AND ra.IsActive = 1
+FROM User u
+INNER JOIN UserRole r ON u.UserRoleId = r.Id
+LEFT JOIN UserRoleModule urm ON urm.UserRoleId = r.Id AND urm.IsActive = 1
+LEFT JOIN RoleAction ra ON ra.RoleId = r.Id AND ra.IsActive = 1
 WHERE u.Username = 'admin'
 GROUP BY u.Id, u.Username, u.FullName, r.Role;
 
@@ -299,11 +300,11 @@ SELECT
     a.Name AS Accion,
     a.Slug AS CodigoPermiso,
     ra.IsActive AS AsignadoActivo
-FROM `User` u
-INNER JOIN `UserRole` r ON u.UserRoleId = r.Id
-INNER JOIN `RoleAction` ra ON ra.RoleId = r.Id
-INNER JOIN `Action` a ON ra.ActionId = a.Id
-INNER JOIN `Module` m ON a.ModuleId = m.Id
-INNER JOIN `Operation` o ON a.OperationId = o.Id
+FROM User u
+INNER JOIN UserRole r ON u.UserRoleId = r.Id
+INNER JOIN RoleAction ra ON ra.RoleId = r.Id
+INNER JOIN Action a ON ra.ActionId = a.Id
+INNER JOIN Module m ON a.ModuleId = m.Id
+INNER JOIN Operation o ON a.OperationId = o.Id
 WHERE u.Username = 'admin'
 ORDER BY m.Id, o.Id, a.Id;
