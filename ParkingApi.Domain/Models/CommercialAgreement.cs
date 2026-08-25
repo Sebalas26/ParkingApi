@@ -15,6 +15,6 @@ public class CommercialAgreement
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-    public virtual Store Store { get; set; } = null!;
+    public virtual Store? Store { get; set; }
     public virtual ICollection<TicketDiscount> TicketDiscounts { get; set; } = new List<TicketDiscount>();
 }

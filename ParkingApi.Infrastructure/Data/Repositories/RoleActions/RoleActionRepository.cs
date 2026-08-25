@@ -144,4 +144,65 @@ public class RoleActionRepository : IRoleActionRepository
             return false;
         }
     }
+
+    public async Task<bool> AssignRolePermissionsAsync(int roleId, List<int> actionIds, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // 1. Eliminar asignaciones actuales de acciones para el rol
+            var currentRoleActions = await _context.RoleAction.Where(ra => ra.RoleId == roleId).ToListAsync(cancellationToken);
+            _context.RoleAction.RemoveRange(currentRoleActions);
+
+            int? uid = null;
+            if (int.TryParse(_currentUser?.UserId, out int parsedUid)) uid = parsedUid;
+
+            // 2. Insertar nuevas asignaciones de acciones
+            var distinctActionIds = actionIds.Distinct().ToList();
+            if (distinctActionIds.Any())
+            {
+                var newRoleActions = distinctActionIds.Select(actionId => new RoleAction
+                {
+                    RoleId = roleId,
+                    ActionId = actionId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    ResponsibleUserId = uid
+                }).ToList();
+
+                await _context.RoleAction.AddRangeAsync(newRoleActions, cancellationToken);
+            }
+
+            // 3. Sincronizar UserRoleModule para los módulos correspondientes a las acciones asignadas
+            var currentModules = await _context.UserRoleModule.Where(urm => urm.UserRoleId == roleId).ToListAsync(cancellationToken);
+            _context.UserRoleModule.RemoveRange(currentModules);
+
+            if (distinctActionIds.Any())
+            {
+                var moduleIds = await _context.Action
+                    .Where(a => distinctActionIds.Contains(a.Id))
+                    .Select(a => a.ModuleId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                var newUserRoleModules = moduleIds.Select(modId => new UserRoleModule
+                {
+                    UserRoleId = roleId,
+                    ModulesRoleId = modId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    ResponsibleUserId = uid
+                }).ToList();
+
+                await _context.UserRoleModule.AddRangeAsync(newUserRoleModules, cancellationToken);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al asignar permisos al rol {RoleId}", roleId);
+            return false;
+        }
+    }
 }

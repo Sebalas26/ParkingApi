@@ -14,4 +14,5 @@ public interface IRoleActionRepository
     Task<bool> SaveRoleAction(RoleAction roleAction, CancellationToken cancellationToken = default);
     Task<bool> ActiveOrInactiveRoleAction(RoleAction roleAction, CancellationToken cancellationToken = default);
     Task<bool> ValidateActionActive(int actionId, CancellationToken cancellationToken = default);
+    Task<bool> AssignRolePermissionsAsync(int roleId, List<int> actionIds, CancellationToken cancellationToken = default);
 }

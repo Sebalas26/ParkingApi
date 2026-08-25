@@ -74,7 +74,14 @@ public class StoreRepository : IStoreRepository
     {
         try
         {
-            _context.Stores.Update(store);
+            var existing = await _context.Stores.FirstOrDefaultAsync(s => s.StoreId == store.StoreId, cancellationToken);
+            if (existing == null) return false;
+
+            existing.Name = store.Name;
+            existing.TaxId = store.TaxId ?? existing.TaxId;
+            existing.PhoneNumber = store.PhoneNumber ?? existing.PhoneNumber;
+            existing.IsActive = store.IsActive;
+
             return await _context.SaveChangesAsync(cancellationToken) > 0;
         }
         catch (Exception ex)

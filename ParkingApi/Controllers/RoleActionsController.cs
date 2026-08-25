@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using ParkingApi.Domain.Dtos.RoleActions;
 using ParkingApi.Domain.Interfaces.Services.RoleActions;
 
 namespace ParkingApi.Controllers;
@@ -50,6 +51,21 @@ public class RoleActionsController : ControllerBase
         {
             _logger.LogError(ex, "Error consultando los permisos del rol {Id}", id);
             return StatusCode(500, new { message = "Error interno al consultar permisos del rol." });
+        }
+    }
+
+    [HttpPost("AssignRolePermissions")]
+    public async Task<IActionResult> AssignRolePermissions([FromBody] AssignRolePermissionsDto dto, CancellationToken cancellation)
+    {
+        try
+        {
+            var result = await _roleActionService.AssignRolePermissionsAsync(dto.RoleId, dto.ActionIds, cancellation);
+            return Ok(new { success = result, message = result ? "Permisos asignados correctamente." : "Error al asignar permisos." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error asignando permisos al rol {RoleId}", dto.RoleId);
+            return StatusCode(500, new { message = "Error interno al asignar permisos al rol." });
         }
     }
 }

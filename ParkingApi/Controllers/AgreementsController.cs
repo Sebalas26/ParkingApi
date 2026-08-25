@@ -85,4 +85,25 @@ public class AgreementsController : ControllerBase
             return StatusCode(500, new { message = "Error interno al actualizar convenio." });
         }
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var agreement = await _agreementService.GetByIdAsync(id, cancellationToken);
+            if (agreement == null)
+            {
+                return NotFound(new { message = "Convenio no encontrado." });
+            }
+            agreement.IsActive = false;
+            var success = await _agreementService.UpdateAsync(agreement, cancellationToken);
+            return success ? Ok(new { message = "Convenio inactivado correctamente." }) : StatusCode(500, new { message = "Error al inactivar convenio." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al inactivar convenio {Id}", id);
+            return StatusCode(500, new { message = "Error interno al inactivar convenio." });
+        }
+    }
 }

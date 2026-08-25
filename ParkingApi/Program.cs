@@ -77,6 +77,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
         options.JsonSerializerOptions.Converters.Add(new ParkingApi.Converters.UtcDateTimeJsonConverter());
         options.JsonSerializerOptions.Converters.Add(new ParkingApi.Converters.NullableUtcDateTimeJsonConverter());
@@ -90,6 +91,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
     dbContext.Database.EnsureCreated();
+    await DatabaseSeeder.SeedAsync(dbContext);
 }
 
 // Configure the HTTP request pipeline.

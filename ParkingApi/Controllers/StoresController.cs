@@ -85,4 +85,25 @@ public class StoresController : ControllerBase
             return StatusCode(500, new { message = "Error interno al actualizar comercio." });
         }
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var store = await _storeService.GetByIdAsync(id, cancellationToken);
+            if (store == null)
+            {
+                return NotFound(new { message = "Comercio no encontrado." });
+            }
+            store.IsActive = false;
+            var success = await _storeService.UpdateAsync(store, cancellationToken);
+            return success ? Ok(new { message = "Comercio inactivado correctamente." }) : StatusCode(500, new { message = "Error al inactivar comercio." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al inactivar comercio {Id}", id);
+            return StatusCode(500, new { message = "Error interno al inactivar comercio." });
+        }
+    }
 }
