@@ -55,6 +55,21 @@ public class VehicleRatesController : ControllerBase
         }
     }
 
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] VehicleRate rate, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var created = await _rateService.CreateRateAsync(rate, cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = created.RateId }, created);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear tarifa");
+            return StatusCode(500, new { message = "Error interno al crear tarifa." });
+        }
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] VehicleRate rate, CancellationToken cancellationToken)
     {

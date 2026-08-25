@@ -47,6 +47,25 @@ public class VehicleRateService : IVehicleRateService
         }
     }
 
+    public async Task<VehicleRate> CreateRateAsync(VehicleRate rate, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (rate.RateId == Guid.Empty)
+            {
+                rate.RateId = Guid.NewGuid();
+            }
+            rate.CreatedAtUtc = DateTime.UtcNow;
+            rate.IsActive = true;
+            return await _rateRepository.AddAsync(rate, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al crear tarifa", Constants.RateError);
+            throw new Exception("Error interno al registrar la tarifa.");
+        }
+    }
+
     public async Task<VehicleRate> UpdateRateAsync(Guid rateId, decimal hourRate, decimal minuteRate, decimal fullDayRate, int graceMinutes, CancellationToken cancellationToken = default)
     {
         try

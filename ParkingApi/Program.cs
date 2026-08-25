@@ -90,7 +90,15 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
-    dbContext.Database.EnsureCreated();
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Nota en MigrateAsync: {ex.Message}. Intentando EnsureCreated...");
+        dbContext.Database.EnsureCreated();
+    }
     await DatabaseSeeder.SeedAsync(dbContext);
 }
 
