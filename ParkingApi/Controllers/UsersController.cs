@@ -80,17 +80,17 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Deactivate(int id, CancellationToken cancellation)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellation)
     {
         try
         {
-            var success = await _userService.DeactivateUserAsync(id, cancellation);
-            return success ? Ok(new { message = "Usuario desactivado correctamente." }) : NotFound(new { message = "Usuario no encontrado." });
+            var success = await _userService.DeleteUserAsync(id, cancellation);
+            return success ? Ok(new { message = "Usuario eliminado correctamente de la base de datos." }) : NotFound(new { message = "Usuario no encontrado." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al desactivar usuario {Id}", id);
-            return StatusCode(500, new { message = "Error interno al desactivar usuario." });
+            _logger.LogError(ex, "Error al eliminar usuario {Id}", id);
+            return StatusCode(500, new { message = "Error interno al eliminar usuario." });
         }
     }
 }

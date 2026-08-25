@@ -13,4 +13,5 @@ public interface IUserService
     Task<GetUsersDto?> CreateOrEditUser(GetUsersDto userDto, CancellationToken cancellation = default);
     Task<bool> UpdateUserToken(LoginUserDto user, CancellationToken cancellation = default);
     Task<bool> DeactivateUserAsync(int userId, CancellationToken cancellation = default);
+    Task<bool> DeleteUserAsync(int userId, CancellationToken cancellation = default);
 }

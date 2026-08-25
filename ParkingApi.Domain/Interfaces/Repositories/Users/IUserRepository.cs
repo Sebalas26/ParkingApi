@@ -13,6 +13,7 @@ public interface IUserRepository
     Task<LoginUserDto?> GetUser(string username, CancellationToken cancellation = default);
     Task<bool> CreateUser(User user, CancellationToken cancellation = default);
     Task<bool> UpdateUser(User user, CancellationToken cancellation = default);
+    Task<bool> DeleteUser(int userId, CancellationToken cancellation = default);
     Task<bool> UpdateUserToken(LoginUserDto user, CancellationToken cancellation = default);
     Task<GetUsersDto?> ValidateExist(string username, string numberIdentification, CancellationToken cancellation = default);
     Task<User?> GetByIdAsync(int id, CancellationToken cancellation = default);
