@@ -104,12 +104,10 @@ public class AuthService : IAuthService
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellation);
 
-            var userBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellation);
             var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
-            if (userBranches.Count == 0 && isAdmin)
-            {
-                userBranches = await _branchRepository.GetActiveAsync(cancellation);
-            }
+            var userBranches = isAdmin
+                ? await _branchRepository.GetActiveAsync(cancellation)
+                : await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellation);
 
             var branchDtos = userBranches.Select(b => new Domain.Dtos.Branches.BranchDto
             {
@@ -165,12 +163,10 @@ public class AuthService : IAuthService
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellationToken);
 
-            var userBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
             var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
-            if (userBranches.Count == 0 && isAdmin)
-            {
-                userBranches = await _branchRepository.GetActiveAsync(cancellationToken);
-            }
+            var userBranches = isAdmin
+                ? await _branchRepository.GetActiveAsync(cancellationToken)
+                : await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
 
             var branchDtos = userBranches.Select(b => new Domain.Dtos.Branches.BranchDto
             {

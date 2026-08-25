@@ -114,6 +114,28 @@ public class BranchService : IBranchService
         return await _branchRepository.SetPaymentMethodsAsync(dto.BranchId, dto.PaymentMethodIds, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Domain.Dtos.Users.GetUsersDto>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        var users = await _branchRepository.GetUsersByBranchIdAsync(branchId, cancellationToken);
+        return users.Select(u => new Domain.Dtos.Users.GetUsersDto
+        {
+            Id = u.Id,
+            UserRoleId = u.UserRoleId,
+            IdentificationTypeId = u.IdentificationTypeId,
+            IdentificationNumber = u.IdentificationNumber ?? string.Empty,
+            FirstName = u.FirstName ?? string.Empty,
+            MiddleName = u.MiddleName ?? string.Empty,
+            FirstSurname = u.FirstSurname ?? string.Empty,
+            SecondLastName = u.SecondLastName ?? string.Empty,
+            FullName = u.FullName,
+            Email = u.Email ?? string.Empty,
+            Username = u.Username,
+            IsActive = u.IsActive,
+            CreatedAt = u.CreatedAt,
+            UpdatedAt = u.UpdatedAt
+        }).ToList();
+    }
+
     private static BranchDto MapToDto(Branch b) => new()
     {
         Id = b.Id,

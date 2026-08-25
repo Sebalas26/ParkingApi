@@ -119,4 +119,11 @@ public class BranchesController : ControllerBase
         if (success) return Ok(new { message = "Medios de pago configurados correctamente para la sede." });
         return BadRequest(new { message = "No se pudieron configurar los medios de pago para la sede." });
     }
+
+    [HttpGet("{id:int}/users")]
+    public async Task<IActionResult> GetBranchUsers(int id, CancellationToken cancellationToken)
+    {
+        var users = await _branchService.GetUsersByBranchIdAsync(id, cancellationToken);
+        return Ok(users);
+    }
 }
