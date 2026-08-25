@@ -195,6 +195,30 @@ public class UserRepository : IUserRepository
         }
     }
 
+    public async Task<bool> DeleteUser(int userId, CancellationToken cancellation = default)
+    {
+        try
+        {
+            var existing = await _context.User
+                .Include(u => u.UserBranches)
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellation);
+            if (existing == null) return false;
+
+            if (existing.UserBranches != null && existing.UserBranches.Any())
+            {
+                _context.UserBranches.RemoveRange(existing.UserBranches);
+            }
+
+            _context.User.Remove(existing);
+            return await _context.SaveChangesAsync(cancellation) > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar usuario {UserId} de la base de datos", userId);
+            return false;
+        }
+    }
+
     public async Task<bool> UpdateUserToken(LoginUserDto user, CancellationToken cancellation = default)
     {
         try

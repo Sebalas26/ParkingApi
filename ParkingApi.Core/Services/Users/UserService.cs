@@ -159,6 +159,19 @@ public class UserService : IUserService
         }
     }
 
+    public async Task<bool> DeleteUserAsync(int userId, CancellationToken cancellation = default)
+    {
+        try
+        {
+            return await _userRepository.DeleteUser(userId, cancellation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar usuario {UserId}", userId);
+            return false;
+        }
+    }
+
     private async Task<bool> ValidateExist(string username, string numberIdentification, CancellationToken cancellation = default)
     {
         try
