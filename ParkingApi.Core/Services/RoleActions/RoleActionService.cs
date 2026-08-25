@@ -45,4 +45,17 @@ public class RoleActionService : IRoleActionService
             return new List<string>();
         }
     }
+
+    public async Task<bool> AssignRolePermissionsAsync(int roleId, List<int> actionIds, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _roleActionsRepository.AssignRolePermissionsAsync(roleId, actionIds, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error asignando permisos al rol {RoleId}", roleId);
+            return false;
+        }
+    }
 }

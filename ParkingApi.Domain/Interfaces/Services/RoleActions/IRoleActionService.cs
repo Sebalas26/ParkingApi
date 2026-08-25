@@ -9,4 +9,5 @@ public interface IRoleActionService
 {
     Task<List<ActionsRoleDto>> GetActionsByRoleAsync(int roleId, CancellationToken cancellationToken = default);
     Task<List<string>> GetActionsByRoleIdAsync(int roleId, CancellationToken cancellationToken = default);
+    Task<bool> AssignRolePermissionsAsync(int roleId, List<int> actionIds, CancellationToken cancellationToken = default);
 }

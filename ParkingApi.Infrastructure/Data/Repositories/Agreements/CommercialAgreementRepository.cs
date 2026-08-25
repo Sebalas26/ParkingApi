@@ -90,7 +90,17 @@ public class CommercialAgreementRepository : ICommercialAgreementRepository
     {
         try
         {
-            _context.CommercialAgreements.Update(agreement);
+            var existing = await _context.CommercialAgreements.FirstOrDefaultAsync(a => a.AgreementId == agreement.AgreementId, cancellationToken);
+            if (existing == null) return false;
+
+            existing.StoreId = agreement.StoreId;
+            existing.Name = agreement.Name;
+            existing.MinPurchaseAmount = agreement.MinPurchaseAmount;
+            existing.DiscountPercentage = agreement.DiscountPercentage;
+            existing.DiscountFixedAmount = agreement.DiscountFixedAmount;
+            existing.MaxHoursApplicable = agreement.MaxHoursApplicable;
+            existing.IsActive = agreement.IsActive;
+
             return await _context.SaveChangesAsync(cancellationToken) > 0;
         }
         catch (Exception ex)
