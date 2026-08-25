@@ -203,13 +203,76 @@ public class SecurityConfigurations :
     }
 }
 
+public class MultiBranchConfigurations :
+    IEntityTypeConfiguration<Branch>,
+    IEntityTypeConfiguration<UserBranch>,
+    IEntityTypeConfiguration<BranchPaymentMethod>
+{
+    public void Configure(EntityTypeBuilder<Branch> builder)
+    {
+        builder.ToTable("Branches");
+        builder.HasKey(b => b.Id);
+        builder.Property(b => b.Code).IsRequired().HasMaxLength(20);
+        builder.Property(b => b.Name).IsRequired().HasMaxLength(100);
+        builder.Property(b => b.Address).IsRequired().HasMaxLength(200);
+        builder.Property(b => b.Phone).HasMaxLength(30);
+        builder.Property(b => b.City).HasMaxLength(50);
+        builder.Property(b => b.Notes).HasMaxLength(500);
+
+        builder.HasIndex(b => b.Code).IsUnique();
+
+        builder.HasOne(b => b.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(b => b.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    public void Configure(EntityTypeBuilder<UserBranch> builder)
+    {
+        builder.ToTable("UserBranches");
+        builder.HasKey(ub => ub.Id);
+
+        builder.HasIndex(ub => new { ub.UserId, ub.BranchId }).IsUnique();
+
+        builder.HasOne(ub => ub.User)
+            .WithMany(u => u.UserBranches)
+            .HasForeignKey(ub => ub.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(ub => ub.Branch)
+            .WithMany(b => b.UserBranches)
+            .HasForeignKey(ub => ub.BranchId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    public void Configure(EntityTypeBuilder<BranchPaymentMethod> builder)
+    {
+        builder.ToTable("BranchPaymentMethods");
+        builder.HasKey(bpm => bpm.Id);
+
+        builder.HasIndex(bpm => new { bpm.BranchId, bpm.PaymentMethodId }).IsUnique();
+
+        builder.HasOne(bpm => bpm.Branch)
+            .WithMany(b => b.BranchPaymentMethods)
+            .HasForeignKey(bpm => bpm.BranchId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(bpm => bpm.PaymentMethod)
+            .WithMany()
+            .HasForeignKey(bpm => bpm.PaymentMethodId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class ParkingBusinessConfigurations :
     IEntityTypeConfiguration<VehicleRate>,
     IEntityTypeConfiguration<Store>,
     IEntityTypeConfiguration<CommercialAgreement>,
     IEntityTypeConfiguration<ParkingTicket>,
     IEntityTypeConfiguration<TicketDiscount>,
-    IEntityTypeConfiguration<WorkShift>
+    IEntityTypeConfiguration<WorkShift>,
+    IEntityTypeConfiguration<MonthlySubscription>
 {
     public void Configure(EntityTypeBuilder<VehicleRate> builder)
     {
@@ -220,6 +283,14 @@ public class ParkingBusinessConfigurations :
         builder.Property(r => r.HourRate).HasPrecision(18, 2);
         builder.Property(r => r.MinuteRate).HasPrecision(18, 2);
         builder.Property(r => r.FullDayRate).HasPrecision(18, 2);
+
+        builder.HasIndex(r => r.BranchId);
+
+        builder.HasOne(r => r.Branch)
+            .WithMany(b => b.VehicleRates)
+            .HasForeignKey(r => r.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<Store> builder)
@@ -228,6 +299,14 @@ public class ParkingBusinessConfigurations :
         builder.HasKey(s => s.StoreId);
         builder.Property(s => s.Name).IsRequired().HasMaxLength(100);
         builder.Property(s => s.TaxId).IsRequired().HasMaxLength(50);
+
+        builder.HasIndex(s => s.BranchId);
+
+        builder.HasOne(s => s.Branch)
+            .WithMany(b => b.Stores)
+            .HasForeignKey(s => s.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<CommercialAgreement> builder)
@@ -260,8 +339,16 @@ public class ParkingBusinessConfigurations :
         builder.Property(t => t.NetAmount).HasPrecision(18, 2);
         builder.Property(t => t.AmountPaid).HasPrecision(18, 2);
         builder.Property(t => t.ChangeGiven).HasPrecision(18, 2);
+
         builder.HasIndex(t => t.PlateNumber);
         builder.HasIndex(t => t.TicketNumber).IsUnique();
+        builder.HasIndex(t => t.BranchId);
+
+        builder.HasOne(t => t.Branch)
+            .WithMany(b => b.ParkingTickets)
+            .HasForeignKey(t => t.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     public void Configure(EntityTypeBuilder<TicketDiscount> builder)
@@ -305,6 +392,13 @@ public class ParkingBusinessConfigurations :
 
         builder.HasIndex(ws => ws.UserId);
         builder.HasIndex(ws => ws.Status);
+        builder.HasIndex(ws => ws.BranchId);
+
+        builder.HasOne(ws => ws.Branch)
+            .WithMany(b => b.WorkShifts)
+            .HasForeignKey(ws => ws.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(ws => ws.User)
             .WithMany()
@@ -328,5 +422,12 @@ public class ParkingBusinessConfigurations :
 
         builder.HasIndex(s => s.PlateNumber);
         builder.HasIndex(s => s.SubscriptionId).IsUnique();
+        builder.HasIndex(s => s.BranchId);
+
+        builder.HasOne(s => s.Branch)
+            .WithMany(b => b.MonthlySubscriptions)
+            .HasForeignKey(s => s.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

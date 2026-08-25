@@ -8,10 +8,15 @@ public class BootstrapSyncDto
 {
     public DateTime ServerTimeUtc { get; set; } = DateTime.UtcNow;
     public int TotalCapacity { get; set; } = 120;
+    public List<Branch> Branches { get; set; } = new();
     public List<User> Users { get; set; } = new();
+    public List<PaymentMethod> PaymentMethods { get; set; } = new();
+    public List<BranchPaymentMethod> BranchPaymentMethods { get; set; } = new();
     public List<VehicleRate> Rates { get; set; } = new();
     public List<Store> Stores { get; set; } = new();
     public List<CommercialAgreement> Agreements { get; set; } = new();
+    public List<WorkShift> WorkShifts { get; set; } = new();
+    public List<MonthlySubscription> MonthlySubscriptions { get; set; } = new();
     public List<ParkingTicket> ActiveTickets { get; set; } = new();
     public List<ParkingTicket> RecentTickets { get; set; } = new();
 }

@@ -65,6 +65,7 @@ public static class RepositoryExtensions
         services.AddScoped<ITicketDiscountRepository, TicketDiscountRepository>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Shifts.IShiftRepository, ParkingApi.Infrastructure.Data.Repositories.Shifts.ShiftRepository>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.MonthlySubscriptions.IMonthlySubscriptionRepository, ParkingApi.Infrastructure.Data.Repositories.MonthlySubscriptions.MonthlySubscriptionRepository>();
+        services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Branches.IBranchRepository, ParkingApi.Infrastructure.Data.Repositories.Branches.BranchRepository>();
 
         return services;
     }

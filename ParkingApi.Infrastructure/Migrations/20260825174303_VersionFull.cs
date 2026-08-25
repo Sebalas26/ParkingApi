@@ -16,10 +16,64 @@ namespace ParkingApi.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Action",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    ModuleId = table.Column<int>(type: "int", nullable: false),
+                    OperationId = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Slug = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ResponsibleUserId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Action", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Branches",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Address = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Phone = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    City = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TotalCapacity = table.Column<int>(type: "int", nullable: false),
+                    Notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ResponsibleUserId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Branches", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "ParkingTickets",
                 columns: table => new
                 {
                     TicketId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    BranchId = table.Column<int>(type: "int", nullable: true),
                     TicketNumber = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PlateNumber = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
@@ -48,6 +102,12 @@ namespace ParkingApi.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ParkingTickets", x => x.TicketId);
+                    table.ForeignKey(
+                        name: "FK_ParkingTickets_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -56,6 +116,7 @@ namespace ParkingApi.Infrastructure.Migrations
                 columns: table => new
                 {
                     StoreId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    BranchId = table.Column<int>(type: "int", nullable: true),
                     Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     TaxId = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
@@ -68,6 +129,12 @@ namespace ParkingApi.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Stores", x => x.StoreId);
+                    table.ForeignKey(
+                        name: "FK_Stores_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -76,6 +143,7 @@ namespace ParkingApi.Infrastructure.Migrations
                 columns: table => new
                 {
                     RateId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    BranchId = table.Column<int>(type: "int", nullable: true),
                     VehicleType = table.Column<int>(type: "int", nullable: false),
                     DisplayName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -92,6 +160,12 @@ namespace ParkingApi.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_VehicleRates", x => x.RateId);
+                    table.ForeignKey(
+                        name: "FK_VehicleRates_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -162,25 +236,29 @@ namespace ParkingApi.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Action",
+                name: "BranchPaymentMethods",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    ModuleId = table.Column<int>(type: "int", nullable: false),
-                    OperationId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Slug = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    PaymentMethodId = table.Column<int>(type: "int", nullable: false),
+                    RequiresCashTender = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    ResponsibleUserId = table.Column<int>(type: "int", nullable: true)
+                    ResponsibleUserId = table.Column<int>(type: "int", nullable: true),
+                    ResponsibleUserIdNavigationId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Action", x => x.Id);
+                    table.PrimaryKey("PK_BranchPaymentMethods", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BranchPaymentMethods_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -250,23 +328,24 @@ namespace ParkingApi.Infrastructure.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     SubscriptionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    CustomerName = table.Column<string>(type: "longtext", nullable: false)
+                    BranchId = table.Column<int>(type: "int", nullable: true),
+                    CustomerName = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    CustomerDocument = table.Column<string>(type: "longtext", nullable: false)
+                    CustomerDocument = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    CustomerPhone = table.Column<string>(type: "longtext", nullable: false)
+                    CustomerPhone = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    CustomerEmail = table.Column<string>(type: "longtext", nullable: true)
+                    CustomerEmail = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    PlateNumber = table.Column<string>(type: "longtext", nullable: false)
+                    PlateNumber = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     VehicleType = table.Column<int>(type: "int", nullable: false),
                     StartDateUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     EndDateUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    MonthlyFee = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    AmountPaid = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    MonthlyFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    AmountPaid = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     PaymentMethod = table.Column<int>(type: "int", nullable: false),
-                    Notes = table.Column<string>(type: "longtext", nullable: true)
+                    Notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
@@ -277,6 +356,12 @@ namespace ParkingApi.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MonthlySubscriptions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MonthlySubscriptions_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -416,6 +501,44 @@ namespace ParkingApi.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "UserBranches",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    IsDefault = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ResponsibleUserId = table.Column<int>(type: "int", nullable: true),
+                    ResponsibleUserIdNavigationId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserBranches", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserBranches_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserBranches_User_ResponsibleUserIdNavigationId",
+                        column: x => x.ResponsibleUserIdNavigationId,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_UserBranches_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "UserRole",
                 columns: table => new
                 {
@@ -445,6 +568,7 @@ namespace ParkingApi.Infrastructure.Migrations
                 columns: table => new
                 {
                     ShiftId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    BranchId = table.Column<int>(type: "int", nullable: true),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     OperatorName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -469,6 +593,12 @@ namespace ParkingApi.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_WorkShifts", x => x.ShiftId);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_WorkShifts_User_UserId",
                         column: x => x.UserId,
@@ -531,6 +661,33 @@ namespace ParkingApi.Infrastructure.Migrations
                 column: "ResponsibleUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Branches_Code",
+                table: "Branches",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Branches_ResponsibleUserId",
+                table: "Branches",
+                column: "ResponsibleUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchPaymentMethods_BranchId_PaymentMethodId",
+                table: "BranchPaymentMethods",
+                columns: new[] { "BranchId", "PaymentMethodId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchPaymentMethods_PaymentMethodId",
+                table: "BranchPaymentMethods",
+                column: "PaymentMethodId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchPaymentMethods_ResponsibleUserIdNavigationId",
+                table: "BranchPaymentMethods",
+                column: "ResponsibleUserIdNavigationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CommercialAgreements_StoreId",
                 table: "CommercialAgreements",
                 column: "StoreId");
@@ -556,14 +713,35 @@ namespace ParkingApi.Infrastructure.Migrations
                 column: "ResponsibleUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MonthlySubscriptions_BranchId",
+                table: "MonthlySubscriptions",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MonthlySubscriptions_PlateNumber",
+                table: "MonthlySubscriptions",
+                column: "PlateNumber");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MonthlySubscriptions_ResponsibleUserIdNavigationId",
                 table: "MonthlySubscriptions",
                 column: "ResponsibleUserIdNavigationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MonthlySubscriptions_SubscriptionId",
+                table: "MonthlySubscriptions",
+                column: "SubscriptionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Operation_ResponsibleUserId",
                 table: "Operation",
                 column: "ResponsibleUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ParkingTickets_BranchId",
+                table: "ParkingTickets",
+                column: "BranchId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ParkingTickets_PlateNumber",
@@ -607,6 +785,11 @@ namespace ParkingApi.Infrastructure.Migrations
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Stores_BranchId",
+                table: "Stores",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TicketDiscounts_AgreementId",
                 table: "TicketDiscounts",
                 column: "AgreementId");
@@ -638,6 +821,22 @@ namespace ParkingApi.Infrastructure.Migrations
                 column: "UserRoleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserBranches_BranchId",
+                table: "UserBranches",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBranches_ResponsibleUserIdNavigationId",
+                table: "UserBranches",
+                column: "ResponsibleUserIdNavigationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBranches_UserId_BranchId",
+                table: "UserBranches",
+                columns: new[] { "UserId", "BranchId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserRole_ResponsibleUserId",
                 table: "UserRole",
                 column: "ResponsibleUserId");
@@ -656,6 +855,16 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "IX_UserRoleModule_UserRoleId",
                 table: "UserRoleModule",
                 column: "UserRoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VehicleRates_BranchId",
+                table: "VehicleRates",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkShifts_BranchId",
+                table: "WorkShifts",
+                column: "BranchId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_WorkShifts_Status",
@@ -690,6 +899,29 @@ namespace ParkingApi.Infrastructure.Migrations
                 principalTable: "User",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Branches_User_ResponsibleUserId",
+                table: "Branches",
+                column: "ResponsibleUserId",
+                principalTable: "User",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BranchPaymentMethods_PaymentMethod_PaymentMethodId",
+                table: "BranchPaymentMethods",
+                column: "PaymentMethodId",
+                principalTable: "PaymentMethod",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BranchPaymentMethods_User_ResponsibleUserIdNavigationId",
+                table: "BranchPaymentMethods",
+                column: "ResponsibleUserIdNavigationId",
+                principalTable: "User",
+                principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_IdentificationType_User_ResponsibleUserId",
@@ -797,6 +1029,9 @@ namespace ParkingApi.Infrastructure.Migrations
                 table: "UserRole");
 
             migrationBuilder.DropTable(
+                name: "BranchPaymentMethods");
+
+            migrationBuilder.DropTable(
                 name: "Login");
 
             migrationBuilder.DropTable(
@@ -806,13 +1041,13 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "PasswordResetToken");
 
             migrationBuilder.DropTable(
-                name: "PaymentMethod");
-
-            migrationBuilder.DropTable(
                 name: "RoleAction");
 
             migrationBuilder.DropTable(
                 name: "TicketDiscounts");
+
+            migrationBuilder.DropTable(
+                name: "UserBranches");
 
             migrationBuilder.DropTable(
                 name: "UserRoleModule");
@@ -822,6 +1057,9 @@ namespace ParkingApi.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "WorkShifts");
+
+            migrationBuilder.DropTable(
+                name: "PaymentMethod");
 
             migrationBuilder.DropTable(
                 name: "Action");
@@ -840,6 +1078,9 @@ namespace ParkingApi.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Stores");
+
+            migrationBuilder.DropTable(
+                name: "Branches");
 
             migrationBuilder.DropTable(
                 name: "User");

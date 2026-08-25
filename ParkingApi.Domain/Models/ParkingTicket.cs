@@ -8,6 +8,7 @@ namespace ParkingApi.Domain.Models;
 public class ParkingTicket
 {
     public Guid TicketId { get; set; } = Guid.NewGuid();
+    public int? BranchId { get; set; }
     public string TicketNumber { get; set; } = string.Empty;
     public string PlateNumber { get; set; } = string.Empty;
     public VehicleType VehicleType { get; set; }
@@ -28,5 +29,6 @@ public class ParkingTicket
     public bool IsSynchronized { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    public virtual Branch? Branch { get; set; }
     public virtual ICollection<TicketDiscount> Discounts { get; set; } = new List<TicketDiscount>();
 }

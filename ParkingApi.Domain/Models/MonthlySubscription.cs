@@ -7,6 +7,7 @@ namespace ParkingApi.Domain.Models;
 public class MonthlySubscription : GeneralEntity
 {
     public Guid SubscriptionId { get; set; } = Guid.NewGuid();
+    public int? BranchId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerDocument { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
@@ -19,4 +20,6 @@ public class MonthlySubscription : GeneralEntity
     public decimal AmountPaid { get; set; }
     public PaymentMethodEnum PaymentMethod { get; set; } = PaymentMethodEnum.Cash;
     public string? Notes { get; set; }
+
+    public virtual Branch? Branch { get; set; }
 }

@@ -6,6 +6,7 @@ namespace ParkingApi.Domain.Models;
 public class WorkShift
 {
     public Guid ShiftId { get; set; } = Guid.NewGuid();
+    public int? BranchId { get; set; }
     public int UserId { get; set; }
     public string OperatorName { get; set; } = string.Empty;
     public DateTime StartTimeUtc { get; set; } = DateTime.UtcNow;
@@ -25,5 +26,6 @@ public class WorkShift
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? ClosedAtUtc { get; set; }
 
+    public virtual Branch? Branch { get; set; }
     public virtual User? User { get; set; }
 }

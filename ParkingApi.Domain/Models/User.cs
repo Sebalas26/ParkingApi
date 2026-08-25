@@ -29,4 +29,5 @@ public class User
     public virtual IdentificationType IdentificationTypeIdNavigation { get; set; } = null!;
     public virtual ICollection<Login> Logins { get; set; } = new List<Login>();
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+    public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
 }

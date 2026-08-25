@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Options;
 using ParkingApi.Domain.Dtos.Auth;
 using ParkingApi.Domain.Dtos.Options;
 using ParkingApi.Domain.Dtos.Users;
+using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Login;
 using ParkingApi.Domain.Interfaces.Repositories.PasswordResetToken;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
@@ -22,6 +24,7 @@ public class AuthService : IAuthService
 {
     private readonly IUserService _userService;
     private readonly IUserRepository _userRepository;
+    private readonly IBranchRepository _branchRepository;
     private readonly ILoginService _loginService;
     private readonly IPasswordResetTokenRepository _resetTokenRepository;
     private readonly JwtOptions _options;
@@ -30,6 +33,7 @@ public class AuthService : IAuthService
     public AuthService(
         IUserService userService,
         IUserRepository userRepository,
+        IBranchRepository branchRepository,
         ILoginService loginService,
         IPasswordResetTokenRepository resetTokenRepository,
         IOptions<JwtOptions> options,
@@ -37,6 +41,7 @@ public class AuthService : IAuthService
     {
         _userService = userService;
         _userRepository = userRepository;
+        _branchRepository = branchRepository;
         _loginService = loginService;
         _resetTokenRepository = resetTokenRepository;
         _options = options.Value;
@@ -99,13 +104,35 @@ public class AuthService : IAuthService
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellation);
 
+            var userBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellation);
+            var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            if (userBranches.Count == 0 && isAdmin)
+            {
+                userBranches = await _branchRepository.GetActiveAsync(cancellation);
+            }
+
+            var branchDtos = userBranches.Select(b => new Domain.Dtos.Branches.BranchDto
+            {
+                Id = b.Id,
+                Code = b.Code,
+                Name = b.Name,
+                Address = b.Address,
+                Phone = b.Phone,
+                City = b.City,
+                TotalCapacity = b.TotalCapacity,
+                Notes = b.Notes,
+                IsActive = b.IsActive,
+                CreatedAt = b.CreatedAt
+            }).ToList();
+
             return new LoginResponseDto
             {
                 Token = jwtResult.Token,
                 Role = roleName,
                 MustChangePassword = user.MustChangePassword,
                 UserId = user.Id,
-                FullName = user.FullName
+                FullName = user.FullName,
+                Branches = branchDtos
             };
         }
         catch (Exception ex)
@@ -138,15 +165,37 @@ public class AuthService : IAuthService
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellationToken);
 
+            var userBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
+            var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            if (userBranches.Count == 0 && isAdmin)
+            {
+                userBranches = await _branchRepository.GetActiveAsync(cancellationToken);
+            }
+
+            var branchDtos = userBranches.Select(b => new Domain.Dtos.Branches.BranchDto
+            {
+                Id = b.Id,
+                Code = b.Code,
+                Name = b.Name,
+                Address = b.Address,
+                Phone = b.Phone,
+                City = b.City,
+                TotalCapacity = b.TotalCapacity,
+                Notes = b.Notes,
+                IsActive = b.IsActive,
+                CreatedAt = b.CreatedAt
+            }).ToList();
+
             return new AuthResponseDto
             {
                 Success = true,
                 Token = jwtResult.Token,
-                UserId = Guid.Empty, // Compatibilidad con cliente
+                UserId = user.Id,
                 Username = user.Username,
                 FullName = user.FullName,
                 RoleName = roleName,
-                IsAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                IsAdmin = isAdmin,
+                Branches = branchDtos
             };
         }
         catch (Exception ex)

@@ -6,6 +6,7 @@ namespace ParkingApi.Domain.Models;
 public class VehicleRate
 {
     public Guid RateId { get; set; } = Guid.NewGuid();
+    public int? BranchId { get; set; }
     public VehicleType VehicleType { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public decimal HourRate { get; set; }
@@ -16,4 +17,6 @@ public class VehicleRate
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
+
+    public virtual Branch? Branch { get; set; }
 }

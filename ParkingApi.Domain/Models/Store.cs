@@ -6,12 +6,14 @@ namespace ParkingApi.Domain.Models;
 public class Store
 {
     public Guid StoreId { get; set; } = Guid.NewGuid();
+    public int? BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string TaxId { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    public virtual Branch? Branch { get; set; }
     public virtual ICollection<CommercialAgreement> Agreements { get; set; } = new List<CommercialAgreement>();
     public virtual ICollection<TicketDiscount> TicketDiscounts { get; set; } = new List<TicketDiscount>();
 }
