@@ -102,17 +102,14 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Configure the HTTP request pipeline (Swagger disponible en todos los entornos, incluido Producción).
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Park Point API v1");
-        options.RoutePrefix = "swagger";
-    });
-    app.MapGet("/", () => Results.Redirect("/swagger"));
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Park Point API v1");
+    options.RoutePrefix = "swagger";
+});
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseCors("AllowAll");
 app.UseAuthentication();

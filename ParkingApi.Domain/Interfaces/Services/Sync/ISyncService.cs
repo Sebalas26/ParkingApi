@@ -6,5 +6,5 @@ namespace ParkingApi.Domain.Interfaces.Services.Sync;
 
 public interface ISyncService
 {
-    Task<BootstrapSyncDto> GetBootstrapDataAsync(CancellationToken cancellationToken = default);
+    Task<BootstrapSyncDto> GetBootstrapDataAsync(int? branchId = null, CancellationToken cancellationToken = default);
 }
