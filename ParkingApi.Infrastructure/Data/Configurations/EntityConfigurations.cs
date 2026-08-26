@@ -218,6 +218,7 @@ public class MultiBranchConfigurations :
         builder.Property(b => b.Phone).HasMaxLength(30);
         builder.Property(b => b.City).HasMaxLength(50);
         builder.Property(b => b.Notes).HasMaxLength(500);
+        builder.Ignore(b => b.LogoBase64);
 
         builder.HasIndex(b => b.Code).IsUnique();
 

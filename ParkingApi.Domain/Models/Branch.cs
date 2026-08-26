@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ParkingApi.Domain.Models;
 
@@ -11,6 +12,8 @@ public class Branch : GeneralEntity
     public string? City { get; set; }
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
+
+    [NotMapped]
     public string? LogoBase64 { get; set; }
 
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
