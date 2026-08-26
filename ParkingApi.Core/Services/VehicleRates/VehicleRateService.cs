@@ -95,4 +95,52 @@ public class VehicleRateService : IVehicleRateService
             throw new Exception("Error interno al actualizar la tarifa.");
         }
     }
+
+    public async Task<VehicleRate> UpdateRateAsync(VehicleRate input, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var rate = await _rateRepository.GetByIdAsync(input.RateId, cancellationToken);
+            if (rate == null)
+            {
+                throw new KeyNotFoundException("Tarifa no encontrada.");
+            }
+
+            rate.BranchId = input.BranchId;
+            rate.VehicleType = input.VehicleType;
+            rate.DisplayName = input.DisplayName;
+            rate.HourRate = input.HourRate;
+            rate.MinuteRate = input.MinuteRate;
+            rate.FullDayRate = input.FullDayRate;
+            rate.GracePeriodMinutes = input.GracePeriodMinutes;
+            rate.IconKey = input.IconKey ?? rate.IconKey;
+            rate.IsActive = input.IsActive;
+            rate.UpdatedAtUtc = DateTime.UtcNow;
+
+            await _rateRepository.UpdateAsync(rate, cancellationToken);
+            return rate;
+        }
+        catch (KeyNotFoundException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al actualizar tarifa {RateId}", Constants.RateError, input.RateId);
+            throw new Exception("Error interno al actualizar la tarifa.");
+        }
+    }
+
+    public async Task<bool> DeleteRateAsync(Guid rateId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _rateRepository.DeleteAsync(rateId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al eliminar tarifa {RateId}", Constants.RateError, rateId);
+            return false;
+        }
+    }
 }

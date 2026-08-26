@@ -12,4 +12,6 @@ public interface IVehicleRateService
     Task<VehicleRate?> GetByIdAsync(Guid rateId, CancellationToken cancellationToken = default);
     Task<VehicleRate> CreateRateAsync(VehicleRate rate, CancellationToken cancellationToken = default);
     Task<VehicleRate> UpdateRateAsync(Guid rateId, decimal hourRate, decimal minuteRate, decimal fullDayRate, int graceMinutes, CancellationToken cancellationToken = default);
+    Task<VehicleRate> UpdateRateAsync(VehicleRate rate, CancellationToken cancellationToken = default);
+    Task<bool> DeleteRateAsync(Guid rateId, CancellationToken cancellationToken = default);
 }

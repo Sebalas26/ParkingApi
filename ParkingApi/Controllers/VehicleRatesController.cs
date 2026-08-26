@@ -81,21 +81,41 @@ public class VehicleRatesController : ControllerBase
     {
         try
         {
-            var updated = await _rateService.UpdateRateAsync(
-                id,
-                rate.HourRate,
-                rate.MinuteRate,
-                rate.FullDayRate,
-                rate.GracePeriodMinutes,
-                cancellationToken);
+            rate.RateId = id;
+            var updated = await _rateService.UpdateRateAsync(rate, cancellationToken);
 
             _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifas Actualizadas", "Se han modificado las tarifas y minutos de gracia en la plataforma.", cancellationToken);
             return Ok(updated);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Tarifa no encontrada." });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar tarifa {Id}", id);
             return StatusCode(500, new { message = "Error interno al actualizar tarifa." });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await _rateService.DeleteRateAsync(id, cancellationToken);
+            if (!deleted)
+            {
+                return NotFound(new { message = "Tarifa no encontrada o no se pudo eliminar." });
+            }
+
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifa Eliminada", "Se ha eliminado una tarifa vehicular del sistema.", cancellationToken);
+            return Ok(new { success = true, message = "Tarifa eliminada exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar tarifa {Id}", id);
+            return StatusCode(500, new { message = "Error interno al eliminar tarifa." });
         }
     }
 }

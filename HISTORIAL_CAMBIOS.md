@@ -4,6 +4,57 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
+## 📌 Entrada: Asignación Explícita de Tipo de Vehículo y Eliminación de Tarifas Vehiculares
+- **`💬 Prompt Original del Usuario`**:
+  - *"Quiero que en esta pantalla me permita asignar el tipo de vehiculo en la parametrizacion del parqueadero, no que me lo asigne automaticamente, adicional agregale la opcion de eliminar al tipo de vehiculo"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Backend (ParkingApi)**:
+    - Se agregó `Task<bool> DeleteAsync(Guid id)` en `IVehicleRateRepository` y `VehicleRateRepository`.
+    - Se agregó `Task<bool> DeleteRateAsync(Guid rateId)` y sobrecarga completa `UpdateRateAsync(VehicleRate)` en `IVehicleRateService` y `VehicleRateService`.
+    - Se implementó el endpoint `[HttpDelete("{id}")]` y se mejoró `[HttpPut("{id}")]` en `VehicleRatesController` con notificación en tiempo real `RatesChanged`.
+  - **Frontend (ParkingPwa)**:
+    - **Selector Explícito de Tipo de Vehículo**: Se implementó un `<select>` en el modal de tarifas vehiculares de la sede (`ParqueaderosTab.tsx`) y en el catálogo general (`VehiculosConfigTab.tsx`) con los tipos oficiales (`0: Automóvil / Sedán`, `1: Motocicleta`, `2: Camión / Pesado`, `3: Furgón / Van`, `4: Bicicleta`, `5: Camioneta / SUV`) junto con el nombre descriptivo y valores de cobro.
+    - **Acción de Eliminación Reactiva**: Se añadió botón de eliminar (🗑️) en la columna de Acciones de ambas tablas, respaldado por un modal de confirmación temático PWA con alerta, botones secundarios/peligro y spinner de carga, aplicando actualización optimista en el estado de React sin recargar.
+    - **Servicio PWA**: Se añadió `deleteConfig(rateId)` en `vehiculosConfigService.ts`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi.Domain/Interfaces/Repositories/VehicleRates/IVehicleRateRepository.cs`
+  - `ParkingApi/ParkingApi.Infrastructure/Data/Repositories/VehicleRates/VehicleRateRepository.cs`
+  - `ParkingApi/ParkingApi.Domain/Interfaces/Services/VehicleRates/IVehicleRateService.cs`
+  - `ParkingApi/ParkingApi.Core/Services/VehicleRates/VehicleRateService.cs`
+  - `ParkingApi/ParkingApi/Controllers/VehicleRatesController.cs`
+  - `ParkingPwa/src/features/settings/data/vehiculosConfigService.ts`
+  - `ParkingPwa/src/features/settings/ui/ParqueaderosTab.tsx`
+  - `ParkingPwa/src/features/settings/ui/VehiculosConfigTab.tsx`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: Compilación exitosa (**0 Errores**).
+  - `npx tsc --noEmit`: Tipado verificado (**0 Errores**).
+  - Ambos servicios en ejecución (`http://localhost:5135` y `http://localhost:5173`).
+
+---
+
+## 📌 Entrada: Conexión 100% Dinámica de Medios de Pago y Resoluciones en Dashboard
+- **`💬 Prompt Original del Usuario`**:
+  - *"Veo , que en dashboard de nuevo esta cargando de nuevo esto que te señale, pero el debe esta conectado a los medios de pago que se encuentren creados en la Bd y api"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico**: En `Dashboard.tsx`, las gráficas de dona de "Distribución por Métodos de Pago" y "Resoluciones de Facturación" tenían arrays con valores hardcodeados por defecto (`Efectivo, Tarjeta, Transferencia / Factura POS`) cuando la lista de la BD no estaba cargada o como fallback, violando el principio Zero-Data y no reflejando los métodos creados por el usuario (ej: `Nequi`).
+  - **Solución Aplicada**:
+    - Se eliminaron completamente todos los fallbacks estáticos en `paymentDonutData` y `resolutionsDonutData`.
+    - La gráfica ahora se construye **estrictamente con los medios de pago activos consultados a la API y base de datos** (`mediosPagoService.getPaymentMethods()`).
+    - Si no existen medios de pago o resoluciones creadas en la base de datos, se muestra un estado vacío elegante invitando a crearlos en Configuración.
+    - Se mapearon dinámicamente sus iconos, nombres y recaudaciones reales.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingPwa/src/features/dashboard/ui/Dashboard.tsx`
+
+- **`✅ Verificación y Compilación`**:
+  - `npx tsc --noEmit`: Tipado verificado (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Corrección Error 500 en GET /api/branches y Resoluciones
 - **`💬 Prompt Original del Usuario`**:
   - *"http://localhost:5135/api/branches erorr 500"*
