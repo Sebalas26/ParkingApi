@@ -27,7 +27,7 @@ public class ShiftService : IShiftService
     {
         try
         {
-            var activeShift = await _shiftRepository.GetActiveShiftByUserIdAsync(userId, cancellationToken);
+            var activeShift = await _shiftRepository.GetActiveShiftByUserIdAsync(userId, dto.BranchId, cancellationToken);
             if (activeShift != null)
             {
                 return MapToDto(activeShift);
@@ -36,6 +36,7 @@ public class ShiftService : IShiftService
             var newShift = new WorkShift
             {
                 ShiftId = Guid.NewGuid(),
+                BranchId = dto.BranchId,
                 UserId = userId,
                 OperatorName = string.IsNullOrWhiteSpace(operatorName) ? "Operador General" : operatorName,
                 StartTimeUtc = DateTime.UtcNow,
@@ -50,23 +51,23 @@ public class ShiftService : IShiftService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al abrir turno para usuario {UserId}", userId);
+            _logger.LogError(ex, "Error al abrir turno para usuario {UserId} en sede {BranchId}", userId, dto.BranchId);
             return null;
         }
     }
 
-    public async Task<WorkShiftDto?> GetActiveShiftAsync(int? userId, CancellationToken cancellationToken = default)
+    public async Task<WorkShiftDto?> GetActiveShiftAsync(int? userId, int? branchId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             WorkShift? shift;
             if (userId.HasValue && userId.Value > 0)
             {
-                shift = await _shiftRepository.GetActiveShiftByUserIdAsync(userId.Value, cancellationToken);
+                shift = await _shiftRepository.GetActiveShiftByUserIdAsync(userId.Value, branchId, cancellationToken);
             }
             else
             {
-                shift = await _shiftRepository.GetActiveShiftAsync(cancellationToken);
+                shift = await _shiftRepository.GetActiveShiftAsync(branchId, cancellationToken);
             }
 
             return shift != null ? MapToDto(shift) : null;
@@ -87,7 +88,7 @@ public class ShiftService : IShiftService
 
             var endTime = shift.EndTimeUtc ?? DateTime.UtcNow;
             var (cash, card, transfer, discounts, ticketsCompleted, ticketsEntered) =
-                await _shiftRepository.CalculateShiftMetricsAsync(shift.StartTimeUtc, endTime, cancellationToken);
+                await _shiftRepository.CalculateShiftMetricsAsync(shift.StartTimeUtc, endTime, shift.BranchId, cancellationToken);
 
             var expectedCash = shift.BaseAmount + cash;
             var difference = shift.ActualCashCounted - expectedCash;
@@ -95,6 +96,7 @@ public class ShiftService : IShiftService
             return new ShiftSummaryDto
             {
                 ShiftId = shift.ShiftId,
+                BranchId = shift.BranchId,
                 UserId = shift.UserId,
                 OperatorName = shift.OperatorName,
                 StartTimeUtc = shift.StartTimeUtc,
@@ -132,7 +134,7 @@ public class ShiftService : IShiftService
 
             var endTime = DateTime.UtcNow;
             var (cash, card, transfer, discounts, ticketsCompleted, ticketsEntered) =
-                await _shiftRepository.CalculateShiftMetricsAsync(shift.StartTimeUtc, endTime, cancellationToken);
+                await _shiftRepository.CalculateShiftMetricsAsync(shift.StartTimeUtc, endTime, shift.BranchId, cancellationToken);
 
             var expectedCash = shift.BaseAmount + cash;
             var difference = dto.ActualCashCounted - expectedCash;
@@ -164,11 +166,11 @@ public class ShiftService : IShiftService
         }
     }
 
-    public async Task<IReadOnlyList<WorkShiftDto>> GetHistoryAsync(DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<WorkShiftDto>> GetHistoryAsync(DateTime? fromDate, DateTime? toDate, int? branchId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var history = await _shiftRepository.GetHistoryAsync(fromDate, toDate, cancellationToken);
+            var history = await _shiftRepository.GetHistoryAsync(fromDate, toDate, branchId, cancellationToken);
             return history.Select(MapToDto).ToList();
         }
         catch (Exception ex)
@@ -183,6 +185,7 @@ public class ShiftService : IShiftService
         return new WorkShiftDto
         {
             ShiftId = s.ShiftId,
+            BranchId = s.BranchId,
             UserId = s.UserId,
             OperatorName = s.OperatorName,
             StartTimeUtc = s.StartTimeUtc,

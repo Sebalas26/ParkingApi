@@ -13,6 +13,7 @@ public class BranchDto
     public string? City { get; set; }
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
+    public string? LogoBase64 { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -27,6 +28,7 @@ public class CreateBranchDto
     public string? City { get; set; }
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
+    public string? LogoBase64 { get; set; }
 }
 
 public class UpdateBranchDto
@@ -38,6 +40,7 @@ public class UpdateBranchDto
     public string? City { get; set; }
     public int TotalCapacity { get; set; }
     public string? Notes { get; set; }
+    public string? LogoBase64 { get; set; }
     public bool IsActive { get; set; }
 }
 

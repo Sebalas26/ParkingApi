@@ -70,7 +70,7 @@ public class SyncService : ISyncService
             var rates = await _rateRepository.GetAllAsync(cancellationToken);
             var stores = await _storeRepository.GetAllAsync(cancellationToken);
             var agreements = await _agreementRepository.GetAllAsync(cancellationToken);
-            var shifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, cancellationToken);
+            var shifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, null, cancellationToken);
             var subscriptions = await _monthlySubscriptionRepository.GetAllAsync(cancellationToken);
             var activeTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
             var recentTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);

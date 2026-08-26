@@ -11,6 +11,7 @@ public class Branch : GeneralEntity
     public string? City { get; set; }
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
+    public string? LogoBase64 { get; set; }
 
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
     public virtual ICollection<BranchPaymentMethod> BranchPaymentMethods { get; set; } = new List<BranchPaymentMethod>();

@@ -97,6 +97,9 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("LogoBase64")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -440,6 +443,51 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.HasIndex("ResponsibleUserId");
 
                     b.ToTable("Operation", (string)null);
+                });
+
+            modelBuilder.Entity("ParkingApi.Domain.Models.ParkingLot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsMainImage")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("ResponsibleUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResponsibleUserIdNavigationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponsibleUserIdNavigationId");
+
+                    b.ToTable("ParkingLots");
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.ParkingTicket", b =>
@@ -866,6 +914,29 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.ToTable("UserBranches", (string)null);
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.UserParking", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ParkingLotId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParkingLotId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserParkings");
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.UserRole", b =>
                 {
                     b.Property<int>("Id")
@@ -1208,6 +1279,15 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Navigation("ResponsibleUserIdNavigation");
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.ParkingLot", b =>
+                {
+                    b.HasOne("ParkingApi.Domain.Models.User", "ResponsibleUserIdNavigation")
+                        .WithMany()
+                        .HasForeignKey("ResponsibleUserIdNavigationId");
+
+                    b.Navigation("ResponsibleUserIdNavigation");
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.ParkingTicket", b =>
                 {
                     b.HasOne("ParkingApi.Domain.Models.Branch", "Branch")
@@ -1352,6 +1432,25 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.UserParking", b =>
+                {
+                    b.HasOne("ParkingApi.Domain.Models.ParkingLot", "ParkingLot")
+                        .WithMany("UserParkings")
+                        .HasForeignKey("ParkingLotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ParkingApi.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ParkingLot");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.UserRole", b =>
                 {
                     b.HasOne("ParkingApi.Domain.Models.User", "ResponsibleUserIdNavigation")
@@ -1458,6 +1557,11 @@ namespace ParkingApi.Infrastructure.Migrations
             modelBuilder.Entity("ParkingApi.Domain.Models.Operation", b =>
                 {
                     b.Navigation("Actions");
+                });
+
+            modelBuilder.Entity("ParkingApi.Domain.Models.ParkingLot", b =>
+                {
+                    b.Navigation("UserParkings");
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.ParkingTicket", b =>

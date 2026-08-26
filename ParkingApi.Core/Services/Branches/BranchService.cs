@@ -57,6 +57,7 @@ public class BranchService : IBranchService
             City = dto.City?.Trim(),
             TotalCapacity = dto.TotalCapacity > 0 ? dto.TotalCapacity : 100,
             Notes = dto.Notes?.Trim(),
+            LogoBase64 = dto.LogoBase64?.Trim(),
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -77,6 +78,10 @@ public class BranchService : IBranchService
         branch.City = dto.City?.Trim();
         branch.TotalCapacity = dto.TotalCapacity > 0 ? dto.TotalCapacity : 100;
         branch.Notes = dto.Notes?.Trim();
+        if (dto.LogoBase64 != null)
+        {
+            branch.LogoBase64 = dto.LogoBase64.Trim();
+        }
         branch.IsActive = dto.IsActive;
         branch.UpdatedAt = DateTime.UtcNow;
 
@@ -146,6 +151,7 @@ public class BranchService : IBranchService
         City = b.City,
         TotalCapacity = b.TotalCapacity,
         Notes = b.Notes,
+        LogoBase64 = b.LogoBase64,
         IsActive = b.IsActive,
         CreatedAt = b.CreatedAt
     };

@@ -24,31 +24,46 @@ public class ShiftRepository : IShiftRepository
         _logger = logger;
     }
 
-    public async Task<WorkShift?> GetActiveShiftByUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<WorkShift?> GetActiveShiftByUserIdAsync(int userId, int? branchId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.WorkShifts
-                .FirstOrDefaultAsync(s => s.UserId == userId && s.Status == ShiftStatus.Open, cancellationToken);
+            var query = _context.WorkShifts
+                .Where(s => s.UserId == userId && s.Status == ShiftStatus.Open);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(s => s.BranchId == branchId.Value);
+            }
+
+            return await query.FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al consultar turno activo para usuario {UserId}", userId);
+            _logger.LogError(ex, "Error al consultar turno activo para usuario {UserId} en sede {BranchId}", userId, branchId);
             return null;
         }
     }
 
-    public async Task<WorkShift?> GetActiveShiftAsync(CancellationToken cancellationToken = default)
+    public async Task<WorkShift?> GetActiveShiftAsync(int? branchId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.WorkShifts
+            var query = _context.WorkShifts
+                .Where(s => s.Status == ShiftStatus.Open);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(s => s.BranchId == branchId.Value);
+            }
+
+            return await query
                 .OrderByDescending(s => s.StartTimeUtc)
-                .FirstOrDefaultAsync(s => s.Status == ShiftStatus.Open, cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al consultar turno activo global");
+            _logger.LogError(ex, "Error al consultar turno activo global en sede {BranchId}", branchId);
             return null;
         }
     }
@@ -67,11 +82,16 @@ public class ShiftRepository : IShiftRepository
         }
     }
 
-    public async Task<IReadOnlyList<WorkShift>> GetHistoryAsync(DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<WorkShift>> GetHistoryAsync(DateTime? fromDate, DateTime? toDate, int? branchId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var query = _context.WorkShifts.AsNoTracking().AsQueryable();
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(s => s.BranchId == branchId.Value);
+            }
 
             if (fromDate.HasValue)
             {
@@ -91,7 +111,7 @@ public class ShiftRepository : IShiftRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al consultar historial de turnos");
+            _logger.LogError(ex, "Error al consultar historial de turnos en sede {BranchId}", branchId);
             return new List<WorkShift>();
         }
     }
@@ -129,18 +149,27 @@ public class ShiftRepository : IShiftRepository
     public async Task<(decimal cash, decimal card, decimal transfer, decimal discounts, int ticketsCompleted, int ticketsEntered)> CalculateShiftMetricsAsync(
         DateTime startTimeUtc,
         DateTime endTimeUtc,
+        int? branchId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var completedTickets = await _context.ParkingTickets
+            var completedQuery = _context.ParkingTickets
                 .AsNoTracking()
-                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc >= startTimeUtc && t.ExitTimeUtc <= endTimeUtc)
-                .ToListAsync(cancellationToken);
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc >= startTimeUtc && t.ExitTimeUtc <= endTimeUtc);
 
-            var enteredTicketsCount = await _context.ParkingTickets
+            var enteredQuery = _context.ParkingTickets
                 .AsNoTracking()
-                .CountAsync(t => t.EntryTimeUtc >= startTimeUtc && t.EntryTimeUtc <= endTimeUtc, cancellationToken);
+                .Where(t => t.EntryTimeUtc >= startTimeUtc && t.EntryTimeUtc <= endTimeUtc);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                completedQuery = completedQuery.Where(t => t.BranchId == branchId.Value);
+                enteredQuery = enteredQuery.Where(t => t.BranchId == branchId.Value);
+            }
+
+            var completedTickets = await completedQuery.ToListAsync(cancellationToken);
+            var enteredTicketsCount = await enteredQuery.CountAsync(cancellationToken);
 
             decimal cash = 0m;
             decimal card = 0m;
@@ -171,7 +200,7 @@ public class ShiftRepository : IShiftRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al calcular métricas de turno");
+            _logger.LogError(ex, "Error al calcular métricas de turno en sede {BranchId}", branchId);
             return (0m, 0m, 0m, 0m, 0, 0);
         }
     }

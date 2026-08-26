@@ -57,7 +57,7 @@ public class ShiftsController : ControllerBase
     }
 
     [HttpGet("active")]
-    public async Task<IActionResult> GetActive([FromQuery] int? userId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetActive([FromQuery] int? userId, [FromQuery] int? branchId, CancellationToken cancellationToken)
     {
         try
         {
@@ -67,7 +67,7 @@ public class ShiftsController : ControllerBase
                 queryUser = parsedId;
             }
 
-            var shift = await _shiftService.GetActiveShiftAsync(queryUser, cancellationToken);
+            var shift = await _shiftService.GetActiveShiftAsync(queryUser, branchId, cancellationToken);
             if (shift == null)
             {
                 return NotFound(new { message = "No hay turno activo para el operador." });
@@ -129,11 +129,11 @@ public class ShiftsController : ControllerBase
     }
 
     [HttpGet("history")]
-    public async Task<IActionResult> GetHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] int? branchId, CancellationToken cancellationToken)
     {
         try
         {
-            var history = await _shiftService.GetHistoryAsync(fromDate, toDate, cancellationToken);
+            var history = await _shiftService.GetHistoryAsync(fromDate, toDate, branchId, cancellationToken);
             return Ok(history);
         }
         catch (Exception ex)
