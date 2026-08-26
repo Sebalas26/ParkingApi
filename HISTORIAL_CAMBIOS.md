@@ -4,6 +4,31 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
+## 📌 Entrada: Erradicación de Roles Quemados y Entrega Dinámica de Permisos RBAC en Login
+- **`💬 Prompt Original del Usuario`**:
+  - *"bueno tengo este problema con los permisos mira que si se asignaron permisos al usuario que tiene el rol 2 pero ingreso en el wpf y me dice que no cuento con los permisos me imagino por que solo ha tomado los datos de la sql lite nada mas pero no ya elimine la db la volvi a mandar a crear y no no sirvio entonces que sucede por que no esta tomando los permisos correctamente ? que sucede hay revisa eso por que administrador si funciona ."*
+  - *"eso esta gravisimo en el sistema no debe a ver nada quemado todo lo que traiga la base de datos si el quisiera crearlo como cajero o cajera o hasta colocar el rol que quisiera desde que tenga los permisos que es lo importante se deberia validar como se te ocurre eso . revisa eso que me acabas de decir esta supremamente mal y eso deberia ir en reglas del agent como colocar eso así eso no es una buena practica"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Backend (ParkingApi)**:
+    - Se incorporó la regla de oro en `AGENTS.md` de prohibición estricta de evaluar nombres de roles mediante texto quemado.
+    - Se agregó `List<string> Permissions` a `AuthResponseDto`.
+    - En `LoginStandardAsync`, se inyectó `IRoleActionRepository` y se consultan dinámicamente los slugs de acciones activas (`ra.ActionName`) asignadas al `user.UserRoleId` en la tabla `RoleAction`, devolviendo la matriz exacta de permisos asignada en la base de datos.
+  - **Cliente WPF (ParkingWpf)**:
+    - `LoginApiResponse` recibe la lista `Permissions`.
+    - `AuthService` elimina por completo listas estáticas y métodos por coincidencia de texto, cargando los permisos reales en memoria tanto en modo Online (desde API) como en modo Offline (desde SQLite `RolePermissions`).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain\Dtos\Auth\AuthResponseDto.cs`
+  - `ParkingApi.Core\Services\Auth\AuthService.cs`
+  - `AGENTS.md`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
+
+---
+
 ## 📌 Entrada: Asignación Explícita de Tipo de Vehículo y Eliminación de Tarifas Vehiculares
 - **`💬 Prompt Original del Usuario`**:
   - *"Quiero que en esta pantalla me permita asignar el tipo de vehiculo en la parametrizacion del parqueadero, no que me lo asigne automaticamente, adicional agregale la opcion de eliminar al tipo de vehiculo"*

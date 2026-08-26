@@ -10,6 +10,7 @@ using ParkingApi.Domain.Dtos.Users;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Login;
 using ParkingApi.Domain.Interfaces.Repositories.PasswordResetToken;
+using ParkingApi.Domain.Interfaces.Repositories.RoleActions;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services.Auth;
 using ParkingApi.Domain.Interfaces.Services.Login;
@@ -25,6 +26,7 @@ public class AuthService : IAuthService
     private readonly IUserService _userService;
     private readonly IUserRepository _userRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IRoleActionRepository _roleActionRepository;
     private readonly ILoginService _loginService;
     private readonly IPasswordResetTokenRepository _resetTokenRepository;
     private readonly JwtOptions _options;
@@ -34,6 +36,7 @@ public class AuthService : IAuthService
         IUserService userService,
         IUserRepository userRepository,
         IBranchRepository branchRepository,
+        IRoleActionRepository roleActionRepository,
         ILoginService loginService,
         IPasswordResetTokenRepository resetTokenRepository,
         IOptions<JwtOptions> options,
@@ -42,6 +45,7 @@ public class AuthService : IAuthService
         _userService = userService;
         _userRepository = userRepository;
         _branchRepository = branchRepository;
+        _roleActionRepository = roleActionRepository;
         _loginService = loginService;
         _resetTokenRepository = resetTokenRepository;
         _options = options.Value;
@@ -182,6 +186,13 @@ public class AuthService : IAuthService
                 CreatedAt = b.CreatedAt
             }).ToList();
 
+            var rolePermissions = isAdmin
+                ? new List<string>()
+                : (await _roleActionRepository.GetActionsByRoleAsync(user.UserRoleId, cancellationToken))
+                    .Where(ra => ra.IsActive && !string.IsNullOrWhiteSpace(ra.ActionName))
+                    .Select(ra => ra.ActionName!)
+                    .ToList();
+
             return new AuthResponseDto
             {
                 Success = true,
@@ -191,7 +202,8 @@ public class AuthService : IAuthService
                 FullName = user.FullName,
                 RoleName = roleName,
                 IsAdmin = isAdmin,
-                Branches = branchDtos
+                Branches = branchDtos,
+                Permissions = rolePermissions
             };
         }
         catch (Exception ex)
