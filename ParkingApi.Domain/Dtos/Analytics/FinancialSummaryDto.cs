@@ -12,4 +12,6 @@ public class FinancialSummaryDto
     public Dictionary<VehicleType, decimal> RevenueByVehicleType { get; set; } = new();
     public Dictionary<VehicleType, int> CountByVehicleType { get; set; } = new();
     public Dictionary<PaymentMethod, decimal> RevenueByPaymentMethod { get; set; } = new();
+    public Dictionary<string, int> CountByResolution { get; set; } = new();
+    public Dictionary<string, decimal> RevenueByResolution { get; set; } = new();
 }

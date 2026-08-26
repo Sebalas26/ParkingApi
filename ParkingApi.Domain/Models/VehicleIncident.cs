@@ -1,0 +1,23 @@
+using System;
+
+namespace ParkingApi.Domain.Models;
+
+public class VehicleIncident
+{
+    public Guid IncidentId { get; set; } = Guid.NewGuid();
+    public string PlateNumber { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
+    public string IncidentType { get; set; } = string.Empty;
+    public bool IsBlocked { get; set; } = false;
+    public string Description { get; set; } = string.Empty;
+    public string ReportedBy { get; set; } = string.Empty;
+    public string? ContactPhone { get; set; }
+    public string Status { get; set; } = "Activa";
+    public string? ResolvedNotes { get; set; }
+    public DateTime? ResolvedAtUtc { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAtUtc { get; set; }
+
+    // Relación opcional con Branch
+    public virtual Branch? Branch { get; set; }
+}

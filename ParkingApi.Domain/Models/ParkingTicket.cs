@@ -27,6 +27,10 @@ public class ParkingTicket
     public TicketStatus Status { get; set; } = TicketStatus.Active;
     public string OperatorName { get; set; } = "Operador General";
     public bool IsSynchronized { get; set; } = true;
+    public Guid? ResolutionId { get; set; }
+    public string? ResolutionName { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public bool IsElectronicInvoice { get; set; } = false;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public virtual Branch? Branch { get; set; }

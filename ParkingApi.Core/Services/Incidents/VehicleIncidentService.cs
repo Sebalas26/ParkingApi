@@ -1,0 +1,163 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using ParkingApi.Domain.Dtos.Incidents;
+using ParkingApi.Domain.Interfaces.Repositories.Incidents;
+using ParkingApi.Domain.Interfaces.Services.Incidents;
+using ParkingApi.Domain.Models;
+
+namespace ParkingApi.Core.Services.Incidents;
+
+public class VehicleIncidentService : IVehicleIncidentService
+{
+    private readonly IVehicleIncidentRepository _repository;
+    private readonly ILogger<VehicleIncidentService> _logger;
+
+    public VehicleIncidentService(IVehicleIncidentRepository repository, ILogger<VehicleIncidentService> logger)
+    {
+        _repository = repository;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<VehicleIncidentDto>> GetAllAsync(int? branchId = null, string? status = null, bool? isBlocked = null, string? search = null, CancellationToken cancellationToken = default)
+    {
+        var list = await _repository.GetAllAsync(branchId, status, isBlocked, search, cancellationToken);
+        return list.Select(MapToDto).ToList();
+    }
+
+    public async Task<VehicleIncidentDto?> GetByIdAsync(Guid incidentId, CancellationToken cancellationToken = default)
+    {
+        var entity = await _repository.GetByIdAsync(incidentId, cancellationToken);
+        return entity != null ? MapToDto(entity) : null;
+    }
+
+    public async Task<IReadOnlyList<VehicleIncidentDto>> GetByPlateAsync(string plateNumber, CancellationToken cancellationToken = default)
+    {
+        var list = await _repository.GetByPlateAsync(plateNumber, cancellationToken);
+        return list.Select(MapToDto).ToList();
+    }
+
+    public async Task<PlateCheckResultDto> CheckPlateAsync(string plateNumber, int? branchId = null, CancellationToken cancellationToken = default)
+    {
+        var cleanPlate = plateNumber.Trim().ToUpper();
+        var blockedIncident = await _repository.GetActiveBlockByPlateAsync(cleanPlate, branchId, cancellationToken);
+
+        if (blockedIncident != null)
+        {
+            return new PlateCheckResultDto
+            {
+                PlateNumber = cleanPlate,
+                HasIncidents = true,
+                IsBlocked = true,
+                Reason = $"VEHÍCULO BLOQUEADO: {blockedIncident.IncidentType}",
+                IncidentType = blockedIncident.IncidentType,
+                Description = blockedIncident.Description,
+                ReportedBy = blockedIncident.ReportedBy,
+                ReportedAtUtc = blockedIncident.CreatedAtUtc,
+                IncidentId = blockedIncident.IncidentId
+            };
+        }
+
+        // Buscar si tiene alguna otra novedad activa no bloqueante
+        var allIncidents = await _repository.GetByPlateAsync(cleanPlate, cancellationToken);
+        var activeIncident = allIncidents.FirstOrDefault(i => i.Status == "Activa");
+
+        if (activeIncident != null)
+        {
+            return new PlateCheckResultDto
+            {
+                PlateNumber = cleanPlate,
+                HasIncidents = true,
+                IsBlocked = false,
+                Reason = $"ALERTA / OBSERVACIÓN: {activeIncident.IncidentType}",
+                IncidentType = activeIncident.IncidentType,
+                Description = activeIncident.Description,
+                ReportedBy = activeIncident.ReportedBy,
+                ReportedAtUtc = activeIncident.CreatedAtUtc,
+                IncidentId = activeIncident.IncidentId
+            };
+        }
+
+        return new PlateCheckResultDto
+        {
+            PlateNumber = cleanPlate,
+            HasIncidents = false,
+            IsBlocked = false,
+            Reason = null
+        };
+    }
+
+    public async Task<VehicleIncidentDto> CreateAsync(SaveVehicleIncidentDto dto, CancellationToken cancellationToken = default)
+    {
+        var entity = new VehicleIncident
+        {
+            IncidentId = dto.IncidentId ?? Guid.NewGuid(),
+            PlateNumber = dto.PlateNumber.Trim().ToUpper(),
+            BranchId = dto.BranchId,
+            IncidentType = dto.IncidentType.Trim(),
+            IsBlocked = dto.IsBlocked,
+            Description = dto.Description.Trim(),
+            ReportedBy = string.IsNullOrWhiteSpace(dto.ReportedBy) ? "Operador" : dto.ReportedBy.Trim(),
+            ContactPhone = dto.ContactPhone?.Trim(),
+            Status = string.IsNullOrWhiteSpace(dto.Status) ? "Activa" : dto.Status.Trim(),
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        var created = await _repository.AddAsync(entity, cancellationToken);
+        return MapToDto(created);
+    }
+
+    public async Task<VehicleIncidentDto?> UpdateAsync(Guid incidentId, SaveVehicleIncidentDto dto, CancellationToken cancellationToken = default)
+    {
+        var entity = new VehicleIncident
+        {
+            IncidentId = incidentId,
+            PlateNumber = dto.PlateNumber.Trim().ToUpper(),
+            BranchId = dto.BranchId,
+            IncidentType = dto.IncidentType.Trim(),
+            IsBlocked = dto.IsBlocked,
+            Description = dto.Description.Trim(),
+            ReportedBy = dto.ReportedBy.Trim(),
+            ContactPhone = dto.ContactPhone?.Trim(),
+            Status = dto.Status.Trim()
+        };
+
+        var updated = await _repository.UpdateAsync(entity, cancellationToken);
+        return updated != null ? MapToDto(updated) : null;
+    }
+
+    public async Task<bool> ResolveAsync(Guid incidentId, ResolveIncidentDto dto, CancellationToken cancellationToken = default)
+    {
+        var notes = string.IsNullOrWhiteSpace(dto.ResolvedNotes) ? "Novedad resuelta y bloqueo levantado." : dto.ResolvedNotes.Trim();
+        return await _repository.ResolveAsync(incidentId, notes, cancellationToken);
+    }
+
+    public async Task<bool> DeleteAsync(Guid incidentId, CancellationToken cancellationToken = default)
+    {
+        return await _repository.DeleteAsync(incidentId, cancellationToken);
+    }
+
+    private static VehicleIncidentDto MapToDto(VehicleIncident i)
+    {
+        return new VehicleIncidentDto
+        {
+            IncidentId = i.IncidentId,
+            PlateNumber = i.PlateNumber,
+            BranchId = i.BranchId,
+            BranchName = i.Branch?.Name,
+            IncidentType = i.IncidentType,
+            IsBlocked = i.IsBlocked,
+            Description = i.Description,
+            ReportedBy = i.ReportedBy,
+            ContactPhone = i.ContactPhone,
+            Status = i.Status,
+            ResolvedNotes = i.ResolvedNotes,
+            ResolvedAtUtc = i.ResolvedAtUtc,
+            CreatedAtUtc = i.CreatedAtUtc,
+            UpdatedAtUtc = i.UpdatedAtUtc
+        };
+    }
+}

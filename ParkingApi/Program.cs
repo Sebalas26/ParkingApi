@@ -118,4 +118,121 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Inicialización automática de esquema y columnas seguras
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+    var conn = db.Database.GetDbConnection();
+    conn.Open();
+    using var cmd = conn.CreateCommand();
+    cmd.CommandText = @"
+        SELECT COUNT(*) FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'CommercialAgreements' 
+          AND COLUMN_NAME = 'ImageUrl';
+    ";
+    var count = Convert.ToInt32(cmd.ExecuteScalar());
+    if (count == 0)
+    {
+        cmd.CommandText = "ALTER TABLE `CommercialAgreements` ADD COLUMN `ImageUrl` LONGTEXT NULL;";
+        cmd.ExecuteNonQuery();
+        Console.WriteLine("[Schema Init] Columna ImageUrl agregada exitosamente a la tabla CommercialAgreements.");
+    }
+
+    cmd.CommandText = @"
+        SELECT COUNT(*) FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'BillingResolutions';
+    ";
+    var tableCount = Convert.ToInt32(cmd.ExecuteScalar());
+    if (tableCount == 0)
+    {
+        cmd.CommandText = @"
+            CREATE TABLE `BillingResolutions` (
+                `ResolutionId` CHAR(36) NOT NULL,
+                `BranchId` INT NULL,
+                `Name` VARCHAR(150) NOT NULL,
+                `DocumentType` VARCHAR(250) NOT NULL,
+                `Prefix` VARCHAR(20) NOT NULL,
+                `ResolutionNumber` VARCHAR(50) NOT NULL,
+                `FromNumber` BIGINT NOT NULL,
+                `ToNumber` BIGINT NOT NULL,
+                `CurrentNumber` BIGINT NOT NULL DEFAULT 0,
+                `ValidFrom` DATETIME NOT NULL,
+                `ValidTo` DATETIME NOT NULL,
+                `TechnicalKey` LONGTEXT NULL,
+                `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+                `CreatedAtUtc` DATETIME NOT NULL,
+                `UpdatedAtUtc` DATETIME NULL,
+                PRIMARY KEY (`ResolutionId`),
+                INDEX `IX_BillingResolutions_BranchId` (`BranchId`),
+                INDEX `IX_BillingResolutions_ResolutionNumber` (`ResolutionNumber`),
+                INDEX `IX_BillingResolutions_Prefix` (`Prefix`),
+                INDEX `IX_BillingResolutions_IsActive` (`IsActive`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ";
+        cmd.ExecuteNonQuery();
+        Console.WriteLine("[Schema Init] Tabla BillingResolutions creada exitosamente en MySQL.");
+    }
+
+    cmd.CommandText = @"
+        SELECT COUNT(*) FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'VehicleIncidents';
+    ";
+    var incidentTableCount = Convert.ToInt32(cmd.ExecuteScalar());
+    if (incidentTableCount == 0)
+    {
+        cmd.CommandText = @"
+            CREATE TABLE `VehicleIncidents` (
+                `IncidentId` CHAR(36) NOT NULL,
+                `PlateNumber` VARCHAR(20) NOT NULL,
+                `BranchId` INT NULL,
+                `IncidentType` VARCHAR(100) NOT NULL,
+                `IsBlocked` TINYINT(1) NOT NULL DEFAULT 0,
+                `Description` LONGTEXT NOT NULL,
+                `ReportedBy` VARCHAR(100) NOT NULL,
+                `ContactPhone` VARCHAR(30) NULL,
+                `Status` VARCHAR(30) NOT NULL DEFAULT 'Activa',
+                `ResolvedNotes` LONGTEXT NULL,
+                `ResolvedAtUtc` DATETIME NULL,
+                `CreatedAtUtc` DATETIME NOT NULL,
+                `UpdatedAtUtc` DATETIME NULL,
+                PRIMARY KEY (`IncidentId`),
+                INDEX `IX_VehicleIncidents_PlateNumber` (`PlateNumber`),
+                INDEX `IX_VehicleIncidents_BranchId` (`BranchId`),
+                INDEX `IX_VehicleIncidents_IsBlocked` (`IsBlocked`),
+                INDEX `IX_VehicleIncidents_Status` (`Status`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ";
+        cmd.ExecuteNonQuery();
+        Console.WriteLine("[Schema Init] Tabla VehicleIncidents creada exitosamente en MySQL.");
+    }
+
+    cmd.CommandText = @"
+        SELECT COUNT(*) FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'ParkingTickets' 
+          AND COLUMN_NAME = 'ResolutionId';
+    ";
+    var resColCount = Convert.ToInt32(cmd.ExecuteScalar());
+    if (resColCount == 0)
+    {
+        cmd.CommandText = @"
+            ALTER TABLE `ParkingTickets` 
+            ADD COLUMN `ResolutionId` CHAR(36) NULL,
+            ADD COLUMN `ResolutionName` VARCHAR(150) NULL,
+            ADD COLUMN `InvoiceNumber` VARCHAR(50) NULL,
+            ADD COLUMN `IsElectronicInvoice` TINYINT(1) NOT NULL DEFAULT 0;
+        ";
+        cmd.ExecuteNonQuery();
+        Console.WriteLine("[Schema Init] Columnas de resolución agregadas a ParkingTickets en MySQL.");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[Schema Init] Advertencia durante verificación de esquema: {ex.Message}");
+}
+
 app.Run();
