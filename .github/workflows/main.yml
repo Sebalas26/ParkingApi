@@ -21,7 +21,7 @@ jobs:
     - name: 3. Restaurar y Compilar la API
       run: |
         dotnet restore
-        dotnet publish ApiTaller.api/ApiTaller.api.csproj -c Release -o ./publish-api
+        dotnet publish ParkingApi/ParkingApi.csproj -c Release -o ./publish-api
 
     # --- PASO CLAVE 1: Subir el apagador ---
     - name: 4. Apagar IIS (Subir app_offline.htm)
