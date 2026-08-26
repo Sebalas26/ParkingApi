@@ -13,11 +13,16 @@ namespace ParkingApi.Controllers;
 public class VehicleIncidentsController : ControllerBase
 {
     private readonly IVehicleIncidentService _incidentService;
+    private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
     private readonly ILogger<VehicleIncidentsController> _logger;
 
-    public VehicleIncidentsController(IVehicleIncidentService incidentService, ILogger<VehicleIncidentsController> logger)
+    public VehicleIncidentsController(
+        IVehicleIncidentService incidentService, 
+        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ILogger<VehicleIncidentsController> logger)
     {
         _incidentService = incidentService;
+        _realtimeNotifier = realtimeNotifier;
         _logger = logger;
     }
 
@@ -106,6 +111,21 @@ public class VehicleIncidentsController : ControllerBase
             }
 
             var created = await _incidentService.CreateAsync(dto, cancellationToken);
+
+            var title = dto.IsBlocked ? "⛔ Vehículo Bloqueado" : "Novedad de Vehículo Registrada";
+            var msg = dto.IsBlocked 
+                ? $"Se ha bloqueado el ingreso de la placa '{dto.PlateNumber}' ({dto.IncidentType})."
+                : $"Se registró una novedad para la placa '{dto.PlateNumber}'.";
+
+            if (dto.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId.Value, title, msg, "IncidentsChanged", cancellationToken);
+            }
+            else
+            {
+                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("IncidentsChanged", title, msg, cancellationToken);
+            }
+
             return CreatedAtAction(nameof(GetById), new { id = created.IncidentId }, created);
         }
         catch (Exception ex)
@@ -131,6 +151,18 @@ public class VehicleIncidentsController : ControllerBase
                 return NotFound(new { message = "Novedad no encontrada para actualizar." });
             }
 
+            var title = dto.IsBlocked ? "⛔ Estado de Bloqueo Actualizado" : "Novedad de Vehículo Modificada";
+            var msg = $"Se actualizaron los datos de la novedad para la placa '{dto.PlateNumber}'.";
+
+            if (dto.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId.Value, title, msg, "IncidentsChanged", cancellationToken);
+            }
+            else
+            {
+                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("IncidentsChanged", title, msg, cancellationToken);
+            }
+
             return Ok(updated);
         }
         catch (Exception ex)
@@ -151,6 +183,8 @@ public class VehicleIncidentsController : ControllerBase
                 return NotFound(new { message = "Novedad no encontrada o no pudo ser resuelta." });
             }
 
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("IncidentsChanged", "Novedad Resuelta", "Se resolvió una novedad / levantó bloqueo de placa.", cancellationToken);
+
             return Ok(new { message = "Novedad resuelta y bloqueo levantado exitosamente." });
         }
         catch (Exception ex)
@@ -170,6 +204,8 @@ public class VehicleIncidentsController : ControllerBase
             {
                 return NotFound(new { message = "Novedad no encontrada o no pudo ser eliminada." });
             }
+
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("IncidentsChanged", "Novedad Eliminada", "Se eliminó un registro de novedad.", cancellationToken);
 
             return Ok(new { message = "Novedad eliminada exitosamente." });
         }

@@ -13,11 +13,16 @@ namespace ParkingApi.Controllers;
 public class ResolutionsController : ControllerBase
 {
     private readonly IBillingResolutionService _resolutionService;
+    private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
     private readonly ILogger<ResolutionsController> _logger;
 
-    public ResolutionsController(IBillingResolutionService resolutionService, ILogger<ResolutionsController> logger)
+    public ResolutionsController(
+        IBillingResolutionService resolutionService, 
+        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ILogger<ResolutionsController> logger)
     {
         _resolutionService = resolutionService;
+        _realtimeNotifier = realtimeNotifier;
         _logger = logger;
     }
 
@@ -101,6 +106,18 @@ public class ResolutionsController : ControllerBase
             }
 
             var created = await _resolutionService.CreateAsync(dto, cancellationToken);
+
+            var title = "Resolución de Facturación Creada";
+            var msg = $"Se registró la resolución '{dto.Name}' (Prefijo {dto.Prefix}).";
+            if (dto.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId.Value, title, msg, "ResolutionsChanged", cancellationToken);
+            }
+            else
+            {
+                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("ResolutionsChanged", title, msg, cancellationToken);
+            }
+
             return CreatedAtAction(nameof(GetById), new { id = created.ResolutionId }, created);
         }
         catch (Exception ex)
@@ -131,6 +148,17 @@ public class ResolutionsController : ControllerBase
                 return NotFound(new { message = "Resolución no encontrada para actualizar." });
             }
 
+            var title = "Resolución de Facturación Actualizada";
+            var msg = $"Se actualizaron los parámetros de la resolución '{dto.Name}'.";
+            if (dto.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId.Value, title, msg, "ResolutionsChanged", cancellationToken);
+            }
+            else
+            {
+                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("ResolutionsChanged", title, msg, cancellationToken);
+            }
+
             return Ok(updated);
         }
         catch (Exception ex)
@@ -150,6 +178,9 @@ public class ResolutionsController : ControllerBase
             {
                 return NotFound(new { message = "Resolución no encontrada o no pudo desactivarse." });
             }
+
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("ResolutionsChanged", "Resolución Inactivada", "Una resolución de facturación fue inactivada.", cancellationToken);
+
             return Ok(new { message = "Resolución desactivada exitosamente." });
         }
         catch (Exception ex)

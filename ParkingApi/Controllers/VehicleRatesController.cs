@@ -13,11 +13,16 @@ namespace ParkingApi.Controllers;
 public class VehicleRatesController : ControllerBase
 {
     private readonly IVehicleRateService _rateService;
+    private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
     private readonly ILogger<VehicleRatesController> _logger;
 
-    public VehicleRatesController(IVehicleRateService rateService, ILogger<VehicleRatesController> logger)
+    public VehicleRatesController(
+        IVehicleRateService rateService, 
+        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ILogger<VehicleRatesController> logger)
     {
         _rateService = rateService;
+        _realtimeNotifier = realtimeNotifier;
         _logger = logger;
     }
 
@@ -61,6 +66,7 @@ public class VehicleRatesController : ControllerBase
         try
         {
             var created = await _rateService.CreateRateAsync(rate, cancellationToken);
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifa de Vehículos Creada", "Se ha agregado una nueva tarifa al sistema.", cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.RateId }, created);
         }
         catch (Exception ex)
@@ -83,6 +89,7 @@ public class VehicleRatesController : ControllerBase
                 rate.GracePeriodMinutes,
                 cancellationToken);
 
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifas Actualizadas", "Se han modificado las tarifas y minutos de gracia en la plataforma.", cancellationToken);
             return Ok(updated);
         }
         catch (Exception ex)

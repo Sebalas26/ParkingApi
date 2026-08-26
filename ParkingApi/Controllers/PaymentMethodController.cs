@@ -16,11 +16,16 @@ public class PaymentMethodController : ControllerBase
 {
     private readonly ILogger<PaymentMethodController> _logger;
     private readonly IPaymentMethodService _paymentMethodService;
+    private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
 
-    public PaymentMethodController(ILogger<PaymentMethodController> logger, IPaymentMethodService paymentMethodService)
+    public PaymentMethodController(
+        ILogger<PaymentMethodController> logger, 
+        IPaymentMethodService paymentMethodService,
+        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier)
     {
         _logger = logger;
         _paymentMethodService = paymentMethodService;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     [HttpGet("GetPaymentMethods")]
@@ -81,6 +86,7 @@ public class PaymentMethodController : ControllerBase
         try
         {
             var result = await _paymentMethodService.CreateOrEditPaymentMethod(value, cancellation);
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("PaymentMethodsChanged", "Medio de Pago Modificado", $"Se actualizó el catálogo de medios de pago ('{value.Name}').", cancellation);
             return Ok(result);
         }
         catch (Exception ex)

@@ -61,6 +61,8 @@ builder.Services.AddDbContext<DataContext>(options =>
 builder.Services.AddRepositories();
 builder.Services.AddServices();
 builder.Services.AddMemoryCache();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService, ParkingApi.Services.Realtime.RealtimeNotificationService>();
 
 // 5. CORS
 builder.Services.AddCors(options =>
@@ -117,6 +119,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ParkingApi.Hubs.ParkingHub>("/hubs/parking");
 
 // Inicialización automática de esquema y columnas seguras
 try
