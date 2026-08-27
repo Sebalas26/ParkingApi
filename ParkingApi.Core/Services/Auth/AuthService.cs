@@ -2,10 +2,12 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ParkingApi.Domain.Dtos.Auth;
 using ParkingApi.Domain.Dtos.Options;
+using ParkingApi.Domain.Dtos.Realtime;
 using ParkingApi.Domain.Dtos.Users;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Login;
@@ -14,6 +16,7 @@ using ParkingApi.Domain.Interfaces.Repositories.RoleActions;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services.Auth;
 using ParkingApi.Domain.Interfaces.Services.Login;
+using ParkingApi.Domain.Interfaces.Services.Realtime;
 using ParkingApi.Domain.Interfaces.Services.Users;
 using ParkingApi.Domain.Models;
 using ParkingApi.Infrastructure.Helpers.Jwt;
@@ -29,6 +32,8 @@ public class AuthService : IAuthService
     private readonly IRoleActionRepository _roleActionRepository;
     private readonly ILoginService _loginService;
     private readonly IPasswordResetTokenRepository _resetTokenRepository;
+    private readonly IRealtimeNotificationService _realtimeNotifier;
+    private readonly IMemoryCache _cache;
     private readonly JwtOptions _options;
     private readonly ILogger<AuthService> _logger;
 
@@ -39,6 +44,8 @@ public class AuthService : IAuthService
         IRoleActionRepository roleActionRepository,
         ILoginService loginService,
         IPasswordResetTokenRepository resetTokenRepository,
+        IRealtimeNotificationService realtimeNotifier,
+        IMemoryCache cache,
         IOptions<JwtOptions> options,
         ILogger<AuthService> logger)
     {
@@ -48,6 +55,8 @@ public class AuthService : IAuthService
         _roleActionRepository = roleActionRepository;
         _loginService = loginService;
         _resetTokenRepository = resetTokenRepository;
+        _realtimeNotifier = realtimeNotifier;
+        _cache = cache;
         _options = options.Value;
         _logger = logger;
     }
@@ -68,11 +77,27 @@ public class AuthService : IAuthService
                 return null;
             }
 
+            var oldToken = user.Token;
             user.Token = jwtResult.Jti;
             user.ExpireToken = _options.AccessTokenMinutes;
 
             await _userService.UpdateUserToken(user, cancellation);
             await _loginService.AddUserLogin(user, cancellation);
+
+            _cache.Set($"ActiveToken_User_{user.Id}", jwtResult.Jti, TimeSpan.FromMinutes(_options.AccessTokenMinutes));
+
+            if (!string.IsNullOrEmpty(oldToken) && !string.Equals(oldToken, jwtResult.Jti, StringComparison.Ordinal))
+            {
+                _ = _realtimeNotifier.NotifyCustomAsync(new ConfigNotificationDto
+                {
+                    EventType = "UserSessionTerminated",
+                    UserId = user.Id,
+                    SessionToken = jwtResult.Jti,
+                    Title = "Sesión Cerrada en Otro Dispositivo",
+                    Message = $"Se ha iniciado una nueva sesión para '{user.UserName}' desde otra ubicación o dispositivo.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellation);
+            }
 
             return new IncomeDto
             {
@@ -103,10 +128,26 @@ public class AuthService : IAuthService
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
             var jwtResult = user.CreateJwt(roleName, _options);
 
+            var oldToken = user.Token;
             user.Token = jwtResult.Jti;
             user.ExpirationDate = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellation);
+
+            _cache.Set($"ActiveToken_User_{user.Id}", jwtResult.Jti, TimeSpan.FromMinutes(_options.AccessTokenMinutes));
+
+            if (!string.IsNullOrEmpty(oldToken) && !string.Equals(oldToken, jwtResult.Jti, StringComparison.Ordinal))
+            {
+                _ = _realtimeNotifier.NotifyCustomAsync(new ConfigNotificationDto
+                {
+                    EventType = "UserSessionTerminated",
+                    UserId = user.Id,
+                    SessionToken = jwtResult.Jti,
+                    Title = "Sesión Cerrada en Otro Dispositivo",
+                    Message = $"Se ha iniciado una nueva sesión para '{user.Username}' desde otra ubicación o dispositivo.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellation);
+            }
 
             var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
             var userBranches = isAdmin
@@ -162,10 +203,26 @@ public class AuthService : IAuthService
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
             var jwtResult = user.CreateJwt(roleName, _options);
 
+            var oldToken = user.Token;
             user.Token = jwtResult.Jti;
             user.ExpirationDate = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellationToken);
+
+            _cache.Set($"ActiveToken_User_{user.Id}", jwtResult.Jti, TimeSpan.FromMinutes(_options.AccessTokenMinutes));
+
+            if (!string.IsNullOrEmpty(oldToken) && !string.Equals(oldToken, jwtResult.Jti, StringComparison.Ordinal))
+            {
+                _ = _realtimeNotifier.NotifyCustomAsync(new ConfigNotificationDto
+                {
+                    EventType = "UserSessionTerminated",
+                    UserId = user.Id,
+                    SessionToken = jwtResult.Jti,
+                    Title = "Sesión Cerrada en Otro Dispositivo",
+                    Message = $"Se ha iniciado una nueva sesión para '{user.Username}' desde otra ubicación o dispositivo.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellationToken);
+            }
 
             var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
             var userBranches = isAdmin

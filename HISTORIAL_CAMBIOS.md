@@ -4,6 +4,45 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
+## 📌 Entrada: Control de Sesión Única Concurrente (Single Active Session per User - JWT + SignalR)
+- **`💬 Prompt Original del Usuario`**:
+  - *"Listo tengo otro ajuste que esta mas complejo pero necesario para cerrar el tema de seguridad completo se necesita que solo 1 usuario se pueda loguear si ya inicio sesión no puede iniciar sesión nuevamente o si lo hace cierra la sesión donde estaba logueado si me hago explicar lo que se requiere en ese tema de seguridad claro se debe validar por el token por el jwt algo que obligue a que se cierre la otra sesion y se abra la nueva me explico ? eso aplica para el wpf y la pwa para los dos."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Arquitectura de Sesión Única Concurrente Multi-Plataforma**:
+    - **Backend (`ParkingApi`)**:
+      - **JTI Único y Estado en Memoria/BD**: Al autenticarse (`Login`, `LoginAsync`, `LoginStandardAsync`), se genera un JWT con identificador `Jti` único, almacenado en `user.Token` (BD) y cacheado en `IMemoryCache` (`ActiveToken_User_{userId}`).
+      - **Validación Estricta en Middleware (`JwtBearerEvents.OnTokenValidated`)**: Cada petición entrante contrasta el claim `jti` contra la sesión activa en BD/Caché. Si el token recibido pertenece a una sesión revocada o anterior, el middleware rechaza con `401 Unauthorized` (`context.Fail`).
+      - **Emisión en Tiempo Real**: Al iniciar una nueva sesión, se emite el evento SignalR `UserSessionTerminated` con `UserId` y `SessionToken` (`newJti`).
+      - **Endpoint de Comprobación**: Se añadió `[Authorize] GET /api/Auth/validate-session` en `AuthController.cs`.
+    - **Cliente Escritorio (`ParkingWpf`)**:
+      - **Suscripción SignalR y 401**: `MainShellViewModel` escucha `UserSessionTerminated` (filtrado por `ServerUserId`) y el evento `SessionTerminated` de `ParkingApiClient`.
+      - **Cierre y Alerta Automática**: Si la sesión es revocada en otra terminal, muestra el modal explicativo: *"⚠️ Tu sesión ha sido cerrada porque se inició sesión desde otro dispositivo o estación de trabajo"*, limpia credenciales en `ISessionService` y `IApiClientService`, y transiciona limpiamente a la ventana de `Login`.
+    - **Aplicación Web Progresiva (`ParkingPwa`)**:
+      - **Interceptor HTTP (`apiClient.ts`)**: Ante cualquier respuesta `401`, almacena el motivo en `sessionStorage` y redirige a `/?expired=concurrent`.
+      - **Banner de Alerta en Login (`Login.tsx`)**: Muestra un banner amarillo ámbar (`ShieldAlert`) indicando que la sesión previa fue finalizada debido a un inicio concurrente.
+      - **Monitor de Latido (`SessionHeartbeat` en `App.tsx`)**: Valida reactivamente el estado de la sesión cada 30 segundos y ante el evento `window.onfocus` para expulsar inmediatamente al usuario si su pestaña estaba en segundo plano.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi.Domain/Dtos/Realtime/ConfigNotificationDto.cs`
+  - `ParkingApi/ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi/ParkingApi/Program.cs`
+  - `ParkingApi/ParkingApi/Controllers/AuthController.cs`
+  - `ParkingWpf/Parking/Models/ApiModels/ConfigNotificationDto.cs`
+  - `ParkingWpf/Parking/Services/Contracts/IApiClientService.cs`
+  - `ParkingWpf/Parking/Services/Implementations/ParkingApiClient.cs`
+  - `ParkingWpf/Parking/ViewModels/MainShellViewModel.cs`
+  - `ParkingPwa/src/shared/api/apiClient.ts`
+  - `ParkingPwa/src/features/auth/ui/Login.tsx`
+  - `ParkingPwa/src/App.tsx`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
+  - `dotnet build ParkingWpf.slnx`: **0 Errores**.
+  - `npm run build` (`ParkingPwa`): **0 Errores**.
+
+---
+
 ## 📌 Entrada: Erradicación de Medios de Pago Mockup y Control RBAC en Retiros de Efectivo (`shift.cash_withdrawal`)
 - **`💬 Prompt Original del Usuario`**:
   - *"si no existe medios de pago por que el sistema trae efectivo si ya habiamos dicho que todo debe ser de la BD nada debe ser quemado ni que se inserte automaticamente si ves no existe nada de eso entonces no debe estar nada mockup debria sair la alerta de que no se puede dar cierre o salida pues no existen medios de pago en la sede si me explico analiza eso que te digo claramente."*

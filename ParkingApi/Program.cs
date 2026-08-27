@@ -13,6 +13,11 @@ using ParkingApi.Domain.Dtos.Options;
 using ParkingApi.Infrastructure.Data;
 using ParkingApi.Infrastructure.Extensions;
 
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.Extensions.Caching.Memory;
+using ParkingApi.Domain.Interfaces.Repositories.Users;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Opciones JWT
@@ -21,7 +26,7 @@ builder.Services.Configure<JwtOptions>(jwtSection);
 var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.JwtSigningKey);
 
-// 2. Autenticación JWT Bearer
+// 2. Autenticación JWT Bearer con Control de Sesión Única Concurrente
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -41,6 +46,36 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtOptions.Audience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userRepo = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+            var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+
+            var sidClaim = context.Principal?.FindFirst(ClaimTypes.Sid)?.Value;
+            var jtiClaim = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+
+            if (int.TryParse(sidClaim, out int userId) && !string.IsNullOrEmpty(jtiClaim))
+            {
+                var cacheKey = $"ActiveToken_User_{userId}";
+                if (!cache.TryGetValue(cacheKey, out string? activeToken))
+                {
+                    var user = await userRepo.GetByIdAsync(userId, context.HttpContext.RequestAborted);
+                    activeToken = user?.Token;
+                    if (user != null && !string.IsNullOrEmpty(activeToken))
+                    {
+                        cache.Set(cacheKey, activeToken, TimeSpan.FromSeconds(10));
+                    }
+                }
+
+                if (string.IsNullOrEmpty(activeToken) || !string.Equals(activeToken, jtiClaim, StringComparison.Ordinal))
+                {
+                    context.Fail("Esta sesión ha sido invalidada porque se inició sesión en otro dispositivo.");
+                }
+            }
+        }
     };
 });
 

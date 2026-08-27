@@ -172,6 +172,21 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("validate-session")]
+    public IActionResult ValidateSession()
+    {
+        var sidClaim = User.FindFirst(ClaimTypes.Sid)?.Value;
+        var nameClaim = User.FindFirst(ClaimTypes.Name)?.Value;
+        return Ok(new
+        {
+            valid = true,
+            userId = sidClaim,
+            username = nameClaim,
+            validatedAtUtc = DateTime.UtcNow
+        });
+    }
+
+    [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellation)
     {
