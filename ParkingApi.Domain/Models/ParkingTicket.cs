@@ -8,6 +8,7 @@ namespace ParkingApi.Domain.Models;
 public class ParkingTicket
 {
     public Guid TicketId { get; set; } = Guid.NewGuid();
+    public int? CompanyId { get; set; }
     public int? BranchId { get; set; }
     public string TicketNumber { get; set; } = string.Empty;
     public string PlateNumber { get; set; } = string.Empty;
@@ -33,6 +34,7 @@ public class ParkingTicket
     public bool IsElectronicInvoice { get; set; } = false;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    public virtual Company? Company { get; set; }
     public virtual Branch? Branch { get; set; }
     public virtual ICollection<TicketDiscount> Discounts { get; set; } = new List<TicketDiscount>();
 }

@@ -5,6 +5,7 @@ namespace ParkingApi.Domain.Models;
 public class BillingResolution
 {
     public Guid ResolutionId { get; set; } = Guid.NewGuid();
+    public int? CompanyId { get; set; }
     public int? BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string DocumentType { get; set; } = string.Empty;
@@ -20,6 +21,6 @@ public class BillingResolution
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
 
-    // Relación opcional con Branch
+    public virtual Company? Company { get; set; }
     public virtual Branch? Branch { get; set; }
 }

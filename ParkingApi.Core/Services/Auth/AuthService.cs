@@ -125,7 +125,15 @@ public class AuthService : IAuthService
                 throw new UnauthorizedAccessException("Correo o contraseña incorrectos.");
             }
 
+            if (user.CompanyId.HasValue && user.Company != null && !user.Company.IsActive)
+            {
+                throw new UnauthorizedAccessException("La suscripción de la empresa se encuentra inactiva o suspendida. Comuníquese con el administrador.");
+            }
+
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
+            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var isAdmin = isSuperAdmin || roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+
             var jwtResult = user.CreateJwt(roleName, _options);
 
             var oldToken = user.Token;
@@ -149,14 +157,25 @@ public class AuthService : IAuthService
                 }, cancellation);
             }
 
-            var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
-            var userBranches = isAdmin
-                ? await _branchRepository.GetActiveAsync(cancellation)
-                : await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellation);
+            IReadOnlyList<Branch> userBranches;
+            if (isSuperAdmin)
+            {
+                userBranches = await _branchRepository.GetActiveAsync(cancellation);
+            }
+            else if (isAdmin && user.CompanyId.HasValue)
+            {
+                userBranches = await _branchRepository.GetBranchesByCompanyIdAsync(user.CompanyId.Value, cancellation);
+            }
+            else
+            {
+                userBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellation);
+            }
 
             var branchDtos = userBranches.Select(b => new Domain.Dtos.Branches.BranchDto
             {
                 Id = b.Id,
+                CompanyId = b.CompanyId,
+                CompanyName = user.Company?.Name,
                 Code = b.Code,
                 Name = b.Name,
                 Address = b.Address,
@@ -175,6 +194,9 @@ public class AuthService : IAuthService
                 MustChangePassword = user.MustChangePassword,
                 UserId = user.Id,
                 FullName = user.FullName,
+                CompanyId = user.CompanyId,
+                CompanyName = user.Company?.Name,
+                IsSuperAdmin = isSuperAdmin,
                 Branches = branchDtos
             };
         }
@@ -200,7 +222,15 @@ public class AuthService : IAuthService
                 return new AuthResponseDto { Success = false, ErrorMessage = "Credenciales incorrectas o usuario inactivo." };
             }
 
+            if (user.CompanyId.HasValue && user.Company != null && !user.Company.IsActive)
+            {
+                return new AuthResponseDto { Success = false, ErrorMessage = "La suscripción de la empresa se encuentra inactiva o suspendida. Comuníquese con el administrador." };
+            }
+
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
+            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var isAdmin = isSuperAdmin || roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+
             var jwtResult = user.CreateJwt(roleName, _options);
 
             var oldToken = user.Token;
@@ -224,14 +254,25 @@ public class AuthService : IAuthService
                 }, cancellationToken);
             }
 
-            var isAdmin = roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
-            var userBranches = isAdmin
-                ? await _branchRepository.GetActiveAsync(cancellationToken)
-                : await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
+            IReadOnlyList<Branch> userBranches;
+            if (isSuperAdmin)
+            {
+                userBranches = await _branchRepository.GetActiveAsync(cancellationToken);
+            }
+            else if (isAdmin && user.CompanyId.HasValue)
+            {
+                userBranches = await _branchRepository.GetBranchesByCompanyIdAsync(user.CompanyId.Value, cancellationToken);
+            }
+            else
+            {
+                userBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
+            }
 
             var branchDtos = userBranches.Select(b => new Domain.Dtos.Branches.BranchDto
             {
                 Id = b.Id,
+                CompanyId = b.CompanyId,
+                CompanyName = user.Company?.Name,
                 Code = b.Code,
                 Name = b.Name,
                 Address = b.Address,
@@ -243,7 +284,7 @@ public class AuthService : IAuthService
                 CreatedAt = b.CreatedAt
             }).ToList();
 
-            var rolePermissions = isAdmin
+            var rolePermissions = isSuperAdmin || isAdmin
                 ? new List<string>()
                 : (await _roleActionRepository.GetActionsByRoleAsync(user.UserRoleId, cancellationToken))
                     .Where(ra => ra.IsActive && !string.IsNullOrWhiteSpace(ra.ActionName))
@@ -260,6 +301,9 @@ public class AuthService : IAuthService
                 RoleName = roleName,
                 RoleId = user.UserRoleId,
                 IsAdmin = isAdmin,
+                IsSuperAdmin = isSuperAdmin,
+                CompanyId = user.CompanyId,
+                CompanyName = user.Company?.Name,
                 Branches = branchDtos,
                 Permissions = rolePermissions
             };

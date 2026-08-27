@@ -2,7 +2,68 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: Arquitectura Relacional Multi-Sede VehicleIncidentBranches y Mapeo EF Core
+## 📌 Entrada: Transición a Plataforma SaaS Multi-Tenant (B2B Multi-Empresa / Multi-Sede)
+- **`💬 Prompt Original del Usuario`**:
+  > *"Tengo una consulta, se penso que el sistema es para venderlo pero es un saas completo entonces necesitamos un super admin que nosotros creemos entremos creemos un administrador y le demos ese usuario al man y que le ingrese cree su parqueadero y sus sedes y si le vendemos el producto a otras personas e igual se les cree su usuario administrador y que ingrese registre su parqueadero y sus sedes si me explico como se quiere manejar antes eso si lo entiendes encesito que revises toda la BD si la logica que tenemos si nos da para eso o que tanto se deberia cambiar ? necesito que revises eso y has un analisis completo y el plan completo que se deberia tomar."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Entidad `Company` (Tenant Maestro)**:
+    - Se creó el modelo `Company` (`ParkingApi.Domain.Models.Company`) con propiedades: `Id`, `Name`, `LegalName`, `Nit`, `Email`, `Phone`, `Address`, `City`, `PlanType`, `MaxBranches`, `IsActive`, `SubscriptionExpiresAt`.
+  - **Discriminador `CompanyId` en Entidades Operativas y de Seguridad**:
+    - `Branch`: `int CompanyId` obligatorio + navegación `Company`.
+    - `User`: `int? CompanyId` (null para SuperAdmin de plataforma) + navegación `Company?`.
+    - `UserRole`: `int? CompanyId` (null para roles del sistema) + navegación `Company?`.
+    - `VehicleRate`, `Store`, `ParkingTicket`, `WorkShift`, `MonthlySubscription`, `BillingResolution`, `VehicleIncident`: `int? CompanyId` + navegación `Company?`.
+  - **Configuraciones Fluent API y DataContext (`EntityConfigurations.cs`, `DataContext.cs`)**:
+    - Se registró `DbSet<Company> Companies` en `DataContext`.
+    - Se configuraron índices y relaciones `OnDelete(DeleteBehavior.Restrict)` para preservar la integridad referencial y evitar borrados accidentales de empresas.
+  - **Seguridad, JWT y Aprovisionamiento (`TokenHelper.cs`, `AuthService.cs`, `CompanyService.cs`)**:
+    - `TokenHelper`: Emisión de claims `company_id`, `company_name` e `is_super_admin`.
+    - `AuthService`: Detección dinámica de SuperAdmin (`!user.CompanyId.HasValue`), verificación de suspensión de empresa (`user.Company.IsActive == false`), y filtrado de sedes asignadas/pertenecientes a la empresa.
+    - `CompanyService`: Transacción completa de aprovisionamiento de empresa: creación de `Company`, creación automática de rol `Administrador` para la empresa, asignación del 100% de módulos/acciones al nuevo rol, y creación del usuario administrador inicial con contraseña hasheada (BCrypt).
+  - **Controlador API y DTOs (`CompaniesController.cs`, `CompanyDtos.cs`)**:
+    - Endpoints CRUD: `GetAll`, `GetActive`, `GetById`, `Create`, `Update`, `ToggleStatus`.
+  - **Scripts de Base de Datos MySQL (`01_Clean_All_Tables.sql`, `02_Init_RBAC_Seed.sql`)**:
+    - `01_Clean_All_Tables.sql`: Agregado `DROP TABLE IF EXISTS Companies;`.
+    - `02_Init_RBAC_Seed.sql`: DDL actualizado con tabla `Companies` y claves foráneas `CompanyId`, inserción de Empresa Matriz (Id: 1), Módulo 16 `Gestión de Empresas SaaS` y 74 Acciones del sistema (incluyendo `companies.view`, `companies.create`, `companies.edit`, `companies.suspend`, `companies.delete`).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/Company.cs` (Nuevo)
+  - `ParkingApi.Domain/Models/Branch.cs`
+  - `ParkingApi.Domain/Models/User.cs`
+  - `ParkingApi.Domain/Models/UserRole.cs`
+  - `ParkingApi.Domain/Models/VehicleRate.cs`
+  - `ParkingApi.Domain/Models/Store.cs`
+  - `ParkingApi.Domain/Models/ParkingTicket.cs`
+  - `ParkingApi.Domain/Models/WorkShift.cs`
+  - `ParkingApi.Domain/Models/MonthlySubscription.cs`
+  - `ParkingApi.Domain/Models/BillingResolution.cs`
+  - `ParkingApi.Domain/Models/VehicleIncident.cs`
+  - `ParkingApi.Domain/Dtos/Companies/CompanyDtos.cs` (Nuevo)
+  - `ParkingApi.Domain/Dtos/Auth/AuthResponseDto.cs`
+  - `ParkingApi.Domain/Dtos/Auth/LoginResponseDto.cs`
+  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/Companies/ICompanyRepository.cs` (Nuevo)
+  - `ParkingApi.Domain/Interfaces/Repositories/Branches/IBranchRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Companies/ICompanyService.cs` (Nuevo)
+  - `ParkingApi.Infrastructure/Data/DataContext.cs`
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Companies/CompanyRepository.cs` (Nuevo)
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Users/UserRepository.cs`
+  - `ParkingApi.Infrastructure/Helpers/Jwt/TokenHelper.cs`
+  - `ParkingApi.Infrastructure/Extensions/RepositoryExtensions.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs` (Nuevo)
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Extensions/ServiceExtensions.cs`
+  - `ParkingApi/Controllers/CompaniesController.cs` (Nuevo)
+  - `ParkingApi/Scripts/01_Clean_All_Tables.sql`
+  - `ParkingApi/Scripts/02_Init_RBAC_Seed.sql`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
 - **`💬 Prompt Original del Usuario`**:
   > *"fui a crear la migración pues como cambiaron cosas y mira lo que me arrojo que paso hay ? (The entity type 'VehicleIncidentBranch' requires a primary key to be defined)"*
 

@@ -280,6 +280,7 @@ public class UserRepository : IUserRepository
         try
         {
             return await _context.User
+                .Include(u => u.Company)
                 .Include(u => u.UserRoleIdNavigation)
                 .Include(u => u.IdentificationTypeIdNavigation)
                 .FirstOrDefaultAsync(u => u.Id == id, cancellation);
@@ -309,6 +310,7 @@ public class UserRepository : IUserRepository
 
             var normalized = identifier.Trim().ToLower();
             return await _context.User
+                .Include(u => u.Company)
                 .Include(u => u.UserRoleIdNavigation)
                 .Include(u => u.IdentificationTypeIdNavigation)
                 .FirstOrDefaultAsync(u => (u.Username.ToLower() == normalized || u.Email.ToLower() == normalized) && u.IsActive, cancellation);

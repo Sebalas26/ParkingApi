@@ -24,6 +24,9 @@ public class DataContext : DbContext
     public DbSet<Login> Login { get; set; }
     public DbSet<PasswordResetToken> PasswordResetToken { get; set; }
 
+    // Módulo Multi-Tenant SaaS
+    public DbSet<Company> Companies { get; set; }
+
     // Módulo Multi-Sede / Multi-Parqueadero
     public DbSet<Branch> Branches { get; set; }
     public DbSet<UserBranch> UserBranches { get; set; }

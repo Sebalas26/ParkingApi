@@ -32,6 +32,13 @@ public class SecurityConfigurations :
         builder.Property(u => u.IdentificationNumber).IsRequired().HasMaxLength(50);
 
         builder.HasIndex(u => u.Username).IsUnique();
+        builder.HasIndex(u => u.CompanyId);
+
+        builder.HasOne(u => u.Company)
+            .WithMany(c => c.Users)
+            .HasForeignKey(u => u.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(u => u.UserRoleIdNavigation)
             .WithMany(r => r.Users)
@@ -49,6 +56,14 @@ public class SecurityConfigurations :
         builder.ToTable("UserRole");
         builder.HasKey(r => r.Id);
         builder.Property(r => r.Role).IsRequired().HasMaxLength(50);
+
+        builder.HasIndex(r => r.CompanyId);
+
+        builder.HasOne(r => r.Company)
+            .WithMany(c => c.UserRoles)
+            .HasForeignKey(r => r.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(r => r.ResponsibleUserIdNavigation)
             .WithMany()
@@ -204,10 +219,35 @@ public class SecurityConfigurations :
 }
 
 public class MultiBranchConfigurations :
+    IEntityTypeConfiguration<Company>,
     IEntityTypeConfiguration<Branch>,
     IEntityTypeConfiguration<UserBranch>,
     IEntityTypeConfiguration<BranchPaymentMethod>
 {
+    public void Configure(EntityTypeBuilder<Company> builder)
+    {
+        builder.ToTable("Companies");
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.Name).IsRequired().HasMaxLength(150);
+        builder.Property(c => c.LegalName).HasMaxLength(150);
+        builder.Property(c => c.Nit).IsRequired().HasMaxLength(50);
+        builder.Property(c => c.Email).IsRequired().HasMaxLength(100);
+        builder.Property(c => c.Phone).HasMaxLength(30);
+        builder.Property(c => c.Address).HasMaxLength(200);
+        builder.Property(c => c.City).HasMaxLength(50);
+        builder.Property(c => c.PlanType).IsRequired().HasMaxLength(50).HasDefaultValue("Basic");
+        builder.Property(c => c.MaxBranches).HasDefaultValue(1);
+        builder.Ignore(c => c.LogoBase64);
+
+        builder.HasIndex(c => c.Nit);
+
+        builder.HasOne(c => c.ResponsibleUserIdNavigation)
+            .WithMany()
+            .HasForeignKey(c => c.ResponsibleUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
     public void Configure(EntityTypeBuilder<Branch> builder)
     {
         builder.ToTable("Branches");
@@ -221,6 +261,12 @@ public class MultiBranchConfigurations :
         builder.Ignore(b => b.LogoBase64);
 
         builder.HasIndex(b => b.Code).IsUnique();
+        builder.HasIndex(b => b.CompanyId);
+
+        builder.HasOne(b => b.Company)
+            .WithMany(c => c.Branches)
+            .HasForeignKey(b => b.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(b => b.ResponsibleUserIdNavigation)
             .WithMany()
@@ -289,6 +335,13 @@ public class ParkingBusinessConfigurations :
         builder.Property(r => r.FullDayRate).HasPrecision(18, 2);
 
         builder.HasIndex(r => r.BranchId);
+        builder.HasIndex(r => r.CompanyId);
+
+        builder.HasOne(r => r.Company)
+            .WithMany(c => c.VehicleRates)
+            .HasForeignKey(r => r.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(r => r.Branch)
             .WithMany(b => b.VehicleRates)
@@ -305,6 +358,13 @@ public class ParkingBusinessConfigurations :
         builder.Property(s => s.TaxId).IsRequired().HasMaxLength(50);
 
         builder.HasIndex(s => s.BranchId);
+        builder.HasIndex(s => s.CompanyId);
+
+        builder.HasOne(s => s.Company)
+            .WithMany(c => c.Stores)
+            .HasForeignKey(s => s.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(s => s.Branch)
             .WithMany(b => b.Stores)
@@ -351,8 +411,15 @@ public class ParkingBusinessConfigurations :
         builder.HasIndex(t => t.PlateNumber);
         builder.HasIndex(t => t.TicketNumber).IsUnique();
         builder.HasIndex(t => t.BranchId);
+        builder.HasIndex(t => t.CompanyId);
         builder.HasIndex(t => t.ResolutionId);
         builder.HasIndex(t => t.IsElectronicInvoice);
+
+        builder.HasOne(t => t.Company)
+            .WithMany(c => c.ParkingTickets)
+            .HasForeignKey(t => t.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(t => t.Branch)
             .WithMany(b => b.ParkingTickets)
@@ -403,6 +470,13 @@ public class ParkingBusinessConfigurations :
         builder.HasIndex(ws => ws.UserId);
         builder.HasIndex(ws => ws.Status);
         builder.HasIndex(ws => ws.BranchId);
+        builder.HasIndex(ws => ws.CompanyId);
+
+        builder.HasOne(ws => ws.Company)
+            .WithMany(c => c.WorkShifts)
+            .HasForeignKey(ws => ws.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(ws => ws.Branch)
             .WithMany(b => b.WorkShifts)
@@ -433,6 +507,13 @@ public class ParkingBusinessConfigurations :
         builder.HasIndex(s => s.PlateNumber);
         builder.HasIndex(s => s.SubscriptionId).IsUnique();
         builder.HasIndex(s => s.BranchId);
+        builder.HasIndex(s => s.CompanyId);
+
+        builder.HasOne(s => s.Company)
+            .WithMany(c => c.MonthlySubscriptions)
+            .HasForeignKey(s => s.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(s => s.Branch)
             .WithMany(b => b.MonthlySubscriptions)
@@ -452,9 +533,16 @@ public class ParkingBusinessConfigurations :
         builder.Property(r => r.TechnicalKey).HasColumnType("longtext");
 
         builder.HasIndex(r => r.BranchId);
+        builder.HasIndex(r => r.CompanyId);
         builder.HasIndex(r => r.ResolutionNumber);
         builder.HasIndex(r => r.Prefix);
         builder.HasIndex(r => r.IsActive);
+
+        builder.HasOne(r => r.Company)
+            .WithMany(c => c.BillingResolutions)
+            .HasForeignKey(r => r.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(r => r.Branch)
             .WithMany()
@@ -477,8 +565,15 @@ public class ParkingBusinessConfigurations :
 
         builder.HasIndex(i => i.PlateNumber);
         builder.HasIndex(i => i.BranchId);
+        builder.HasIndex(i => i.CompanyId);
         builder.HasIndex(i => i.IsBlocked);
         builder.HasIndex(i => i.Status);
+
+        builder.HasOne(i => i.Company)
+            .WithMany(c => c.VehicleIncidents)
+            .HasForeignKey(i => i.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(i => i.Branch)
             .WithMany()

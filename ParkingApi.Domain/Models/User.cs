@@ -6,6 +6,7 @@ namespace ParkingApi.Domain.Models;
 public class User
 {
     public int Id { get; set; }
+    public int? CompanyId { get; set; }
     public int UserRoleId { get; set; }
     public int IdentificationTypeId { get; set; }
     public string IdentificationNumber { get; set; } = string.Empty;
@@ -25,6 +26,7 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
+    public virtual Company? Company { get; set; }
     public virtual UserRole UserRoleIdNavigation { get; set; } = null!;
     public virtual IdentificationType IdentificationTypeIdNavigation { get; set; } = null!;
     public virtual ICollection<Login> Logins { get; set; } = new List<Login>();

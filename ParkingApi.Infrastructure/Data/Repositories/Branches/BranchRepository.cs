@@ -35,6 +35,15 @@ public class BranchRepository : IBranchRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Branch>> GetBranchesByCompanyIdAsync(int companyId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Branches
+            .AsNoTracking()
+            .Where(b => b.CompanyId == companyId && b.IsActive)
+            .OrderBy(b => b.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Branch?> GetByIdAsync(int branchId, CancellationToken cancellationToken = default)
     {
         return await _context.Branches
