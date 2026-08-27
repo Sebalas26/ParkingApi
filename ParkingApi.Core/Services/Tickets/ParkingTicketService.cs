@@ -147,6 +147,11 @@ public class ParkingTicketService : IParkingTicketService
             ticket.Status = TicketStatus.Completed;
             ticket.IsSynchronized = true;
 
+            if (dto.BranchId.HasValue && ticket.BranchId == null)
+            {
+                ticket.BranchId = dto.BranchId.Value;
+            }
+
             if (dto.StoreId.HasValue && dto.AgreementId.HasValue && !string.IsNullOrWhiteSpace(dto.InvoiceNumber) && dto.DiscountAmount > 0)
             {
                 var discount = new TicketDiscount
