@@ -9,6 +9,7 @@ using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
 using ParkingApi.Domain.Interfaces.Repositories.Discounts;
+using ParkingApi.Domain.Interfaces.Repositories.Incidents;
 using ParkingApi.Domain.Interfaces.Repositories.Stores;
 using ParkingApi.Domain.Interfaces.Repositories.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.VehicleRates;
@@ -24,6 +25,7 @@ public class ParkingTicketService : IParkingTicketService
     private readonly IStoreRepository _storeRepository;
     private readonly ICommercialAgreementRepository _agreementRepository;
     private readonly ITicketDiscountRepository _discountRepository;
+    private readonly IVehicleIncidentRepository _incidentRepository;
     private readonly ILogger<ParkingTicketService> _logger;
 
     public ParkingTicketService(
@@ -32,6 +34,7 @@ public class ParkingTicketService : IParkingTicketService
         IStoreRepository storeRepository,
         ICommercialAgreementRepository agreementRepository,
         ITicketDiscountRepository discountRepository,
+        IVehicleIncidentRepository incidentRepository,
         ILogger<ParkingTicketService> logger)
     {
         _ticketRepository = ticketRepository;
@@ -39,6 +42,7 @@ public class ParkingTicketService : IParkingTicketService
         _storeRepository = storeRepository;
         _agreementRepository = agreementRepository;
         _discountRepository = discountRepository;
+        _incidentRepository = incidentRepository;
         _logger = logger;
     }
 
@@ -47,10 +51,19 @@ public class ParkingTicketService : IParkingTicketService
         try
         {
             var normalizedPlate = dto.PlateNumber.Trim().ToUpperInvariant();
+
+            // 1. Validar bloqueo activo por novedad / lista negra (impide ingreso tanto en WPF como API)
+            var blockedIncident = await _incidentRepository.GetActiveBlockByPlateAsync(normalizedPlate, dto.BranchId, cancellationToken);
+            if (blockedIncident != null)
+            {
+                throw new InvalidOperationException($"VEHÍCULO BLOQUEADO: La placa '{normalizedPlate}' tiene un bloqueo activo registrado por novedad: '{blockedIncident.IncidentType}' ({blockedIncident.Description}). No está permitido su ingreso.");
+            }
+
+            // 2. Validar que el vehículo no se encuentre ya adentro
             var active = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, cancellationToken);
             if (active != null)
             {
-                throw new InvalidOperationException($"El veh�culo con placa '{normalizedPlate}' ya se encuentra adentro.");
+                throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
             }
 
             var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, cancellationToken);
@@ -80,6 +93,7 @@ public class ParkingTicketService : IParkingTicketService
             var ticket = new ParkingTicket
             {
                 TicketId = ticketId,
+                BranchId = dto.BranchId,
                 TicketNumber = ticketNumber,
                 PlateNumber = normalizedPlate,
                 VehicleType = dto.VehicleType,

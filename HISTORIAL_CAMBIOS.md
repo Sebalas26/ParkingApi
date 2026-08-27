@@ -2,6 +2,29 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Validación de Bloqueo Activo por Novedad en Ingreso de Vehículos (`CheckInAsync`) y Multi-Sede DTO
+- **`💬 Prompt Original del Usuario`**:
+  - *"Ahora ayudame en poner en ejecucion el modulo de novedades, ayudame a conectarla creacion de la novedad, la cual debe de ir por api hacia a BD, para que luego el wpf pueda identificar que existe una placa con novedad y no permita registarle entrada (no toques el wpf), adicional quiero que el menu desplegable de a izquierda en la web permita ocultarse asi como se hace en la version mobile"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Bloqueo Centralizado de Placas en API (`ParkingTicketService.cs`)**:
+    - Se inyectó `IVehicleIncidentRepository` en `ParkingTicketService`.
+    - En el método `CheckInAsync`, al recibir una placa, se consulta `_incidentRepository.GetActiveBlockByPlateAsync(normalizedPlate, dto.BranchId, cancellationToken)`.
+    - Si existe una novedad activa con `IsBlocked = true`, el servicio interrumpe el flujo arrojando `InvalidOperationException($"VEHÍCULO BLOQUEADO: La placa '{normalizedPlate}' tiene un bloqueo activo registrado por novedad: '{blockedIncident.IncidentType}' ({blockedIncident.Description}). No está permitido su ingreso.")`.
+    - `TicketsController.cs` captura la excepción retornando `400 Bad Request` con el mensaje explícito, garantizando que tanto terminales de escritorio (WPF) como móviles o web vean rechazada la emisión del tiquete para vehículos con bloqueo.
+  - **Soporte Multi-Sede en CheckIn DTO (`CheckInRequestDto.cs`)**:
+    - Se añadió la propiedad `public int? BranchId { get; set; }` a `CheckInRequestDto` y se asignó en la creación de `ParkingTicket`.
+  - **Endpoints de Novedades (`VehicleIncidentsController.cs` & `VehicleIncidentService.cs`)**:
+    - Verificación y conectividad de operaciones CRUD: `GetAll`, `GetById`, `CheckPlate`, `Create`, `Update`, `Resolve`, `Delete`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Tickets/CheckInRequestDto.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**, 4 Advertencias de paquetes estándar.
+
 ---
 
 ## 📌 Entrada: Control de Sesión Única Concurrente (Single Active Session per User - JWT + SignalR)
