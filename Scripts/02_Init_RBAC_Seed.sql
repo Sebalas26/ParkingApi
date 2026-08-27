@@ -378,6 +378,7 @@ CREATE TABLE IF NOT EXISTS `VehicleIncidents` (
     `BranchId` INT NULL,
     `IncidentType` VARCHAR(100) NOT NULL,
     `IsBlocked` TINYINT(1) NOT NULL DEFAULT 0,
+    `IsGlobal` TINYINT(1) NOT NULL DEFAULT 0,
     `Description` LONGTEXT NOT NULL,
     `ReportedBy` VARCHAR(100) NOT NULL,
     `ContactPhone` VARCHAR(30) NULL,
@@ -390,7 +391,18 @@ CREATE TABLE IF NOT EXISTS `VehicleIncidents` (
     KEY `IX_VehicleIncidents_PlateNumber` (`PlateNumber`),
     KEY `IX_VehicleIncidents_BranchId` (`BranchId`),
     KEY `IX_VehicleIncidents_IsBlocked` (`IsBlocked`),
+    KEY `IX_VehicleIncidents_IsGlobal` (`IsGlobal`),
     KEY `IX_VehicleIncidents_Status` (`Status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.22 Sedes Asignadas a Novedades (Multi-Sede Relacional)
+CREATE TABLE IF NOT EXISTS `VehicleIncidentBranches` (
+    `IncidentId` CHAR(36) NOT NULL,
+    `BranchId` INT NOT NULL,
+    PRIMARY KEY (`IncidentId`, `BranchId`),
+    KEY `IX_VehicleIncidentBranches_BranchId` (`BranchId`),
+    CONSTRAINT `FK_VehicleIncidentBranches_VehicleIncidents_IncidentId` FOREIGN KEY (`IncidentId`) REFERENCES `VehicleIncidents` (`IncidentId`) ON DELETE CASCADE,
+    CONSTRAINT `FK_VehicleIncidentBranches_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==================================================================================

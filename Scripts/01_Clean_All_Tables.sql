@@ -2,15 +2,19 @@
 -- SCRIPT: 01_Clean_All_Tables.sql
 -- DESCRIPCIÓN: Limpieza segura de todas las tablas existentes para el servidor MySQL.
 -- NOTA: No ejecuta DROP DATABASE para preservar la base de datos y usuario del hosting.
--- FECHA: 2026-08-25
+-- FECHA: 2026-08-27
 -- ==================================================================================
 
 -- 1. Desactivar validación de claves foráneas temporalmente
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 2. Eliminar tablas de relaciones y transacciones operativas
+-- 2. Eliminar tablas de relaciones, intermedias y transacciones operativas
 DROP TABLE IF EXISTS `BranchPaymentMethods`;
 DROP TABLE IF EXISTS `UserBranches`;
+DROP TABLE IF EXISTS `VehicleIncidentBranches`;
+DROP TABLE IF EXISTS `userparkings`;
+DROP TABLE IF EXISTS `UserParkings`;
+DROP TABLE IF EXISTS `UserParking`;
 DROP TABLE IF EXISTS `TicketDiscounts`;
 DROP TABLE IF EXISTS `CommercialAgreements`;
 DROP TABLE IF EXISTS `Stores`;
@@ -20,6 +24,9 @@ DROP TABLE IF EXISTS `BillingResolutions`;
 DROP TABLE IF EXISTS `VehicleIncidents`;
 DROP TABLE IF EXISTS `MonthlySubscriptions`;
 DROP TABLE IF EXISTS `VehicleRates`;
+DROP TABLE IF EXISTS `parkinglots`;
+DROP TABLE IF EXISTS `ParkingLots`;
+DROP TABLE IF EXISTS `ParkingLot`;
 
 -- 3. Eliminar tablas maestras, seguridad y sedes
 DROP TABLE IF EXISTS `Branches`;

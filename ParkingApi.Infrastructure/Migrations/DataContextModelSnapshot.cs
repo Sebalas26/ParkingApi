@@ -69,6 +69,75 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.ToTable("Action", (string)null);
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.BillingResolution", b =>
+                {
+                    b.Property<Guid>("ResolutionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("CurrentNumber")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<long>("FromNumber")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ResolutionNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("TechnicalKey")
+                        .HasColumnType("longtext");
+
+                    b.Property<long>("ToNumber")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ValidTo")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("ResolutionId");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Prefix");
+
+                    b.HasIndex("ResolutionNumber");
+
+                    b.ToTable("BillingResolutions", (string)null);
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.Branch", b =>
                 {
                     b.Property<int>("Id")
@@ -96,9 +165,6 @@ namespace ParkingApi.Infrastructure.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("LogoBase64")
-                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -192,6 +258,9 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Property<decimal?>("DiscountPercentage")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
@@ -532,6 +601,13 @@ namespace ParkingApi.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("IsElectronicInvoice")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsSynchronized")
                         .HasColumnType("tinyint(1)");
 
@@ -556,6 +632,13 @@ namespace ParkingApi.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<Guid?>("ResolutionId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ResolutionName")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -574,7 +657,11 @@ namespace ParkingApi.Infrastructure.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("IsElectronicInvoice");
+
                     b.HasIndex("PlateNumber");
+
+                    b.HasIndex("ResolutionId");
 
                     b.HasIndex("TicketNumber")
                         .IsUnique();
@@ -1006,6 +1093,89 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.ToTable("UserRoleModule", (string)null);
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.VehicleIncident", b =>
+                {
+                    b.Property<Guid>("IncidentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("IncidentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsGlobal")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PlateNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ReportedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ResolvedNotes")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("IncidentId");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("IsBlocked");
+
+                    b.HasIndex("PlateNumber");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("VehicleIncidents", (string)null);
+                });
+
+            modelBuilder.Entity("ParkingApi.Domain.Models.VehicleIncidentBranch", b =>
+                {
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.HasKey("IncidentId", "BranchId");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("VehicleIncidentBranches", (string)null);
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.VehicleRate", b =>
                 {
                     b.Property<Guid>("RateId")
@@ -1168,6 +1338,16 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Navigation("OperationIdNavigation");
 
                     b.Navigation("ResponsibleUserIdNavigation");
+                });
+
+            modelBuilder.Entity("ParkingApi.Domain.Models.BillingResolution", b =>
+                {
+                    b.HasOne("ParkingApi.Domain.Models.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.Branch", b =>
@@ -1487,6 +1667,35 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Navigation("UserRoleIdNavigation");
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.VehicleIncident", b =>
+                {
+                    b.HasOne("ParkingApi.Domain.Models.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("ParkingApi.Domain.Models.VehicleIncidentBranch", b =>
+                {
+                    b.HasOne("ParkingApi.Domain.Models.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ParkingApi.Domain.Models.VehicleIncident", "VehicleIncident")
+                        .WithMany("IncidentBranches")
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("VehicleIncident");
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.VehicleRate", b =>
                 {
                     b.HasOne("ParkingApi.Domain.Models.Branch", "Branch")
@@ -1592,6 +1801,11 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Navigation("UserRoleModules");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("ParkingApi.Domain.Models.VehicleIncident", b =>
+                {
+                    b.Navigation("IncidentBranches");
                 });
 #pragma warning restore 612, 618
         }

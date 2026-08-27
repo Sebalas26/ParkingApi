@@ -28,11 +28,13 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
             var query = _context.VehicleIncidents
                 .AsNoTracking()
                 .Include(i => i.Branch)
+                .Include(i => i.IncidentBranches)
+                    .ThenInclude(ib => ib.Branch)
                 .AsQueryable();
 
             if (branchId.HasValue && branchId.Value > 0)
             {
-                query = query.Where(i => i.BranchId == branchId || i.BranchId == null);
+                query = query.Where(i => i.IsGlobal || i.BranchId == branchId || i.IncidentBranches.Any(ib => ib.BranchId == branchId.Value));
             }
 
             if (!string.IsNullOrWhiteSpace(status))
@@ -74,6 +76,8 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
         {
             return await _context.VehicleIncidents
                 .Include(i => i.Branch)
+                .Include(i => i.IncidentBranches)
+                    .ThenInclude(ib => ib.Branch)
                 .FirstOrDefaultAsync(i => i.IncidentId == incidentId, cancellationToken);
         }
         catch (Exception ex)
@@ -91,6 +95,8 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
             return await _context.VehicleIncidents
                 .AsNoTracking()
                 .Include(i => i.Branch)
+                .Include(i => i.IncidentBranches)
+                    .ThenInclude(ib => ib.Branch)
                 .Where(i => i.PlateNumber == normalizedPlate)
                 .OrderByDescending(i => i.CreatedAtUtc)
                 .ToListAsync(cancellationToken);
@@ -110,11 +116,12 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
             var query = _context.VehicleIncidents
                 .AsNoTracking()
                 .Include(i => i.Branch)
+                .Include(i => i.IncidentBranches)
                 .Where(i => i.PlateNumber == normalizedPlate && i.IsBlocked && i.Status == "Activa");
 
             if (branchId.HasValue && branchId.Value > 0)
             {
-                query = query.Where(i => i.BranchId == branchId || i.BranchId == null);
+                query = query.Where(i => i.IsGlobal || i.BranchId == branchId || i.IncidentBranches.Any(ib => ib.BranchId == branchId.Value));
             }
 
             return await query.OrderByDescending(i => i.CreatedAtUtc).FirstOrDefaultAsync(cancellationToken);
@@ -147,11 +154,14 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
     {
         try
         {
-            var existing = await _context.VehicleIncidents.FindAsync(new object[] { incident.IncidentId }, cancellationToken);
+            var existing = await _context.VehicleIncidents
+                .Include(i => i.IncidentBranches)
+                .FirstOrDefaultAsync(i => i.IncidentId == incident.IncidentId, cancellationToken);
             if (existing == null) return null;
 
             existing.PlateNumber = incident.PlateNumber.Trim().ToUpper();
             existing.BranchId = incident.BranchId;
+            existing.IsGlobal = incident.IsGlobal;
             existing.IncidentType = incident.IncidentType;
             existing.IsBlocked = incident.IsBlocked;
             existing.Description = incident.Description;
@@ -159,6 +169,20 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
             existing.ContactPhone = incident.ContactPhone;
             existing.Status = incident.Status;
             existing.UpdatedAtUtc = DateTime.UtcNow;
+
+            // Actualizar sedes asignadas relacionalmente
+            existing.IncidentBranches.Clear();
+            if (incident.IncidentBranches != null && incident.IncidentBranches.Any())
+            {
+                foreach (var ib in incident.IncidentBranches)
+                {
+                    existing.IncidentBranches.Add(new VehicleIncidentBranch
+                    {
+                        IncidentId = existing.IncidentId,
+                        BranchId = ib.BranchId
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
             return existing;

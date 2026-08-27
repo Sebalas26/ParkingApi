@@ -97,6 +97,7 @@ public class VehicleIncidentService : IVehicleIncidentService
             IncidentId = dto.IncidentId ?? Guid.NewGuid(),
             PlateNumber = dto.PlateNumber.Trim().ToUpper(),
             BranchId = dto.BranchId,
+            IsGlobal = dto.IsGlobal || (dto.BranchId == null && (dto.BranchIds == null || !dto.BranchIds.Any())),
             IncidentType = dto.IncidentType.Trim(),
             IsBlocked = dto.IsBlocked,
             Description = dto.Description.Trim(),
@@ -105,6 +106,26 @@ public class VehicleIncidentService : IVehicleIncidentService
             Status = string.IsNullOrWhiteSpace(dto.Status) ? "Activa" : dto.Status.Trim(),
             CreatedAtUtc = DateTime.UtcNow
         };
+
+        if (!entity.IsGlobal && dto.BranchIds != null && dto.BranchIds.Any())
+        {
+            foreach (var bId in dto.BranchIds.Distinct())
+            {
+                entity.IncidentBranches.Add(new VehicleIncidentBranch
+                {
+                    IncidentId = entity.IncidentId,
+                    BranchId = bId
+                });
+            }
+        }
+        else if (!entity.IsGlobal && dto.BranchId.HasValue)
+        {
+            entity.IncidentBranches.Add(new VehicleIncidentBranch
+            {
+                IncidentId = entity.IncidentId,
+                BranchId = dto.BranchId.Value
+            });
+        }
 
         var created = await _repository.AddAsync(entity, cancellationToken);
         return MapToDto(created);
@@ -117,6 +138,7 @@ public class VehicleIncidentService : IVehicleIncidentService
             IncidentId = incidentId,
             PlateNumber = dto.PlateNumber.Trim().ToUpper(),
             BranchId = dto.BranchId,
+            IsGlobal = dto.IsGlobal || (dto.BranchId == null && (dto.BranchIds == null || !dto.BranchIds.Any())),
             IncidentType = dto.IncidentType.Trim(),
             IsBlocked = dto.IsBlocked,
             Description = dto.Description.Trim(),
@@ -124,6 +146,26 @@ public class VehicleIncidentService : IVehicleIncidentService
             ContactPhone = dto.ContactPhone?.Trim(),
             Status = dto.Status.Trim()
         };
+
+        if (!entity.IsGlobal && dto.BranchIds != null && dto.BranchIds.Any())
+        {
+            foreach (var bId in dto.BranchIds.Distinct())
+            {
+                entity.IncidentBranches.Add(new VehicleIncidentBranch
+                {
+                    IncidentId = entity.IncidentId,
+                    BranchId = bId
+                });
+            }
+        }
+        else if (!entity.IsGlobal && dto.BranchId.HasValue)
+        {
+            entity.IncidentBranches.Add(new VehicleIncidentBranch
+            {
+                IncidentId = entity.IncidentId,
+                BranchId = dto.BranchId.Value
+            });
+        }
 
         var updated = await _repository.UpdateAsync(entity, cancellationToken);
         return updated != null ? MapToDto(updated) : null;
@@ -142,12 +184,30 @@ public class VehicleIncidentService : IVehicleIncidentService
 
     private static VehicleIncidentDto MapToDto(VehicleIncident i)
     {
+        var branchIds = i.IncidentBranches?.Select(ib => ib.BranchId).ToList() ?? new List<int>();
+        var branchNames = i.IncidentBranches?
+            .Where(ib => ib.Branch != null && !string.IsNullOrWhiteSpace(ib.Branch.Name))
+            .Select(ib => ib.Branch!.Name)
+            .ToList() ?? new List<string>();
+
+        if (!branchIds.Any() && i.BranchId.HasValue)
+        {
+            branchIds.Add(i.BranchId.Value);
+            if (i.Branch != null && !string.IsNullOrWhiteSpace(i.Branch.Name))
+            {
+                branchNames.Add(i.Branch.Name);
+            }
+        }
+
         return new VehicleIncidentDto
         {
             IncidentId = i.IncidentId,
             PlateNumber = i.PlateNumber,
             BranchId = i.BranchId,
             BranchName = i.Branch?.Name,
+            IsGlobal = i.IsGlobal,
+            BranchIds = branchIds,
+            BranchNames = branchNames,
             IncidentType = i.IncidentType,
             IsBlocked = i.IsBlocked,
             Description = i.Description,

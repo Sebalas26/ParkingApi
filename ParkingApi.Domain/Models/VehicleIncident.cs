@@ -9,6 +9,7 @@ public class VehicleIncident
     public int? BranchId { get; set; }
     public string IncidentType { get; set; } = string.Empty;
     public bool IsBlocked { get; set; } = false;
+    public bool IsGlobal { get; set; } = false;
     public string Description { get; set; } = string.Empty;
     public string ReportedBy { get; set; } = string.Empty;
     public string? ContactPhone { get; set; }
@@ -18,6 +19,7 @@ public class VehicleIncident
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
 
-    // Relación opcional con Branch
+    // Relación opcional con Branch legado y tabla intermedia de sedes
     public virtual Branch? Branch { get; set; }
+    public virtual System.Collections.Generic.ICollection<VehicleIncidentBranch> IncidentBranches { get; set; } = new System.Collections.Generic.List<VehicleIncidentBranch>();
 }

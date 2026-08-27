@@ -2,6 +2,31 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Arquitectura Relacional Multi-Sede VehicleIncidentBranches y Mapeo EF Core
+- **`💬 Prompt Original del Usuario`**:
+  > *"fui a crear la migración pues como cambiaron cosas y mira lo que me arrojo que paso hay ? (The entity type 'VehicleIncidentBranch' requires a primary key to be defined)"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Mapeo Fluent API de Clave Primaria Compuesta (`EntityConfigurations.cs`)**:
+    - `ParkingBusinessConfigurations` no incluía la interfaz `IEntityTypeConfiguration<VehicleIncidentBranch>` en su declaración de clase, impidiendo que `modelBuilder.ApplyConfigurationsFromAssembly` invocara el método `Configure(EntityTypeBuilder<VehicleIncidentBranch>)`.
+    - Se agregó `IEntityTypeConfiguration<VehicleIncidentBranch>` a la clase `ParkingBusinessConfigurations`.
+    - La configuración Fluent API define explícitamente:
+      `builder.HasKey(ib => new { ib.IncidentId, ib.BranchId });`
+      `builder.HasOne(ib => ib.VehicleIncident).WithMany(i => i.IncidentBranches).HasForeignKey(ib => ib.IncidentId).OnDelete(DeleteBehavior.Cascade);`
+      `builder.HasOne(ib => ib.Branch).WithMany().HasForeignKey(ib => ib.BranchId).OnDelete(DeleteBehavior.Cascade);`
+    - Con esto, las herramientas de diseño de EF Core (`Add-Migration` / `dotnet ef migrations add`) reconocen correctamente la clave primaria compuesta y permiten generar la migración sin inconvenientes.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+  - `ParkingApi/Scripts/01_Clean_All_Tables.sql`
+  - `ParkingApi/Scripts/02_Init_RBAC_Seed.sql`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
+
+---
+
 ## 📌 Entrada: Validación de Bloqueo Activo por Novedad en Ingreso de Vehículos (`CheckInAsync`) y Multi-Sede DTO
 - **`💬 Prompt Original del Usuario`**:
   - *"Ahora ayudame en poner en ejecucion el modulo de novedades, ayudame a conectarla creacion de la novedad, la cual debe de ir por api hacia a BD, para que luego el wpf pueda identificar que existe una placa con novedad y no permita registarle entrada (no toques el wpf), adicional quiero que el menu desplegable de a izquierda en la web permita ocultarse asi como se hace en la version mobile"*

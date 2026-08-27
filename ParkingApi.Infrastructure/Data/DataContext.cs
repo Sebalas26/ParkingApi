@@ -41,6 +41,7 @@ public class DataContext : DbContext
     public DbSet<MonthlySubscription> MonthlySubscriptions { get; set; }
     public DbSet<BillingResolution> BillingResolutions { get; set; }
     public DbSet<VehicleIncident> VehicleIncidents { get; set; }
+    public DbSet<VehicleIncidentBranch> VehicleIncidentBranches { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

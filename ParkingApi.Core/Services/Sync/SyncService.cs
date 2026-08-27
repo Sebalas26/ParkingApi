@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Sync;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
+using ParkingApi.Domain.Interfaces.Repositories.Incidents;
 using ParkingApi.Domain.Interfaces.Repositories.MonthlySubscriptions;
 using ParkingApi.Domain.Interfaces.Repositories.PaymentMethods;
 using ParkingApi.Domain.Interfaces.Repositories.Shifts;
@@ -31,6 +32,7 @@ public class SyncService : ISyncService
     private readonly IShiftRepository _shiftRepository;
     private readonly IMonthlySubscriptionRepository _monthlySubscriptionRepository;
     private readonly IParkingTicketRepository _ticketRepository;
+    private readonly IVehicleIncidentRepository _incidentRepository;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SyncService> _logger;
 
@@ -44,6 +46,7 @@ public class SyncService : ISyncService
         IShiftRepository shiftRepository,
         IMonthlySubscriptionRepository monthlySubscriptionRepository,
         IParkingTicketRepository ticketRepository,
+        IVehicleIncidentRepository incidentRepository,
         IConfiguration configuration,
         ILogger<SyncService> logger)
     {
@@ -56,6 +59,7 @@ public class SyncService : ISyncService
         _shiftRepository = shiftRepository;
         _monthlySubscriptionRepository = monthlySubscriptionRepository;
         _ticketRepository = ticketRepository;
+        _incidentRepository = incidentRepository;
         _configuration = configuration;
         _logger = logger;
     }
@@ -156,6 +160,11 @@ public class SyncService : ISyncService
                 ? allRecentTickets.Where(t => t.BranchId == branchId.Value).ToList()
                 : allRecentTickets.ToList();
 
+            var allIncidents = await _incidentRepository.GetAllAsync(branchId: null, status: "Activa", isBlocked: null, search: null, cancellationToken: cancellationToken);
+            var incidents = branchId.HasValue
+                ? allIncidents.Where(i => i.IsGlobal || i.BranchId == branchId.Value || i.IncidentBranches.Any(ib => ib.BranchId == branchId.Value)).ToList()
+                : allIncidents.ToList();
+
             return new BootstrapSyncDto
             {
                 ServerTimeUtc = DateTime.UtcNow,
@@ -169,7 +178,8 @@ public class SyncService : ISyncService
                 WorkShifts = shifts,
                 MonthlySubscriptions = subscriptions,
                 ActiveTickets = activeTickets,
-                RecentTickets = recentTickets
+                RecentTickets = recentTickets,
+                Incidents = incidents
             };
         }
         catch (Exception ex)

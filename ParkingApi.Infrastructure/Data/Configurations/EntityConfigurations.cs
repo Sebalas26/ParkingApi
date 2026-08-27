@@ -275,7 +275,8 @@ public class ParkingBusinessConfigurations :
     IEntityTypeConfiguration<WorkShift>,
     IEntityTypeConfiguration<MonthlySubscription>,
     IEntityTypeConfiguration<BillingResolution>,
-    IEntityTypeConfiguration<VehicleIncident>
+    IEntityTypeConfiguration<VehicleIncident>,
+    IEntityTypeConfiguration<VehicleIncidentBranch>
 {
     public void Configure(EntityTypeBuilder<VehicleRate> builder)
     {
@@ -484,5 +485,21 @@ public class ParkingBusinessConfigurations :
             .HasForeignKey(i => i.BranchId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    public void Configure(EntityTypeBuilder<VehicleIncidentBranch> builder)
+    {
+        builder.ToTable("VehicleIncidentBranches");
+        builder.HasKey(ib => new { ib.IncidentId, ib.BranchId });
+
+        builder.HasOne(ib => ib.VehicleIncident)
+            .WithMany(i => i.IncidentBranches)
+            .HasForeignKey(ib => ib.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(ib => ib.Branch)
+            .WithMany()
+            .HasForeignKey(ib => ib.BranchId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
