@@ -506,11 +506,11 @@ ON DUPLICATE KEY UPDATE
     IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
--- 2.2 ROLES DE USUARIO (UserRole) - ROL ADMINISTRADOR GLOBAL (CompanyId NULL)
+-- 2.2 ROLES DE USUARIO (UserRole) - ROL SUPER ADMINISTRADOR GLOBAL SAAS (CompanyId NULL)
 -- ----------------------------------------------------------------------------------
 INSERT INTO UserRole (Id, CompanyId, Role, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
-    (1, NULL, 'Administrador', 1, UTC_TIMESTAMP(), NULL)
+    (1, NULL, 'Super Administrador', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     Role = new_row.Role,
@@ -528,7 +528,7 @@ INSERT INTO User (
 )
 VALUES (
     1, NULL, 1, 1, '1000000000', 
-    'Administrador', '', 'Principal', '', 'Super Administrador SaaS',
+    'Super', 'Admin', 'Global', 'SaaS', 'Super Administrador SaaS',
     'admin', 
     '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
     'admin@parkpoint.local', 

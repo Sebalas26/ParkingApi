@@ -131,7 +131,7 @@ public class AuthService : IAuthService
             }
 
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
-            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("Super Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
             var isAdmin = isSuperAdmin || roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
 
             var jwtResult = user.CreateJwt(roleName, _options);
@@ -228,7 +228,7 @@ public class AuthService : IAuthService
             }
 
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
-            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("Super Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
             var isAdmin = isSuperAdmin || roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
 
             var jwtResult = user.CreateJwt(roleName, _options);

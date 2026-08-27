@@ -2,7 +2,29 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: Transición a Plataforma SaaS Multi-Tenant (B2B Multi-Empresa / Multi-Sede)
+## 📌 Entrada: Formalización de Roles (Super Administrador vs Administrador) y Endpoint GetBranchesByCompanyId
+- **`💬 Prompt Original del Usuario`**:
+  > *"y creo que deberiamos modificar el rol, el rol de creación deberia ser el superadmin no administrador el administrador es para el que le creamos el parqueadero si me explico"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diferenciación Canónica de Roles (`02_Init_RBAC_Seed.sql` & `CompanyService.cs`)**:
+    - **Rol 1 (Plataforma Global)**: Formalizado con el nombre **`Super Administrador`** (`Role = 'Super Administrador'`, `CompanyId = NULL`).
+    - **Rol Cliente (Tenant)**: Creado automáticamente con el nombre **`Administrador`** (`Role = 'Administrador'`, `CompanyId = company.Id`) al registrar una nueva empresa mediante `CompanyService.CreateCompanyAsync`.
+  - **Detección Dinámica en Backend (`AuthService.cs`)**:
+    - Se actualizó la resolución de permisos y claims para reconocer tanto `roleName == "Super Administrador"`, `roleName == "SuperAdmin"`, como `!user.CompanyId.HasValue`.
+  - **Endpoint de Sedes por Empresa (`BranchesController.cs`, `IBranchService.cs`, `BranchService.cs`)**:
+    - Se expuso `GET /api/Branches/company/{companyId}` para permitir la consulta e inspección de sucursales/sedes pertenecientes a un parqueadero cliente desde la PWA.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Services/Branches/IBranchService.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `ParkingApi/Scripts/02_Init_RBAC_Seed.sql`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
 - **`💬 Prompt Original del Usuario`**:
   > *"Tengo una consulta, se penso que el sistema es para venderlo pero es un saas completo entonces necesitamos un super admin que nosotros creemos entremos creemos un administrador y le demos ese usuario al man y que le ingrese cree su parqueadero y sus sedes y si le vendemos el producto a otras personas e igual se les cree su usuario administrador y que ingrese registre su parqueadero y sus sedes si me explico como se quiere manejar antes eso si lo entiendes encesito que revises toda la BD si la logica que tenemos si nos da para eso o que tanto se deberia cambiar ? necesito que revises eso y has un analisis completo y el plan completo que se deberia tomar."*
 

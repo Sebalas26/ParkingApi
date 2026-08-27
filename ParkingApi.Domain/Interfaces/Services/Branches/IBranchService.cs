@@ -11,6 +11,7 @@ public interface IBranchService
     Task<IReadOnlyList<BranchDto>> GetActiveAsync(CancellationToken cancellationToken = default);
     Task<BranchDto?> GetByIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BranchDto>> GetBranchesByUserIdAsync(int userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BranchDto>> GetBranchesByCompanyIdAsync(int companyId, CancellationToken cancellationToken = default);
     Task<BranchDto> CreateAsync(CreateBranchDto dto, CancellationToken cancellationToken = default);
     Task<BranchDto?> UpdateAsync(int branchId, UpdateBranchDto dto, CancellationToken cancellationToken = default);
     Task<bool> AssignUserAsync(AssignUserBranchDto dto, CancellationToken cancellationToken = default);

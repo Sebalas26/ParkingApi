@@ -46,6 +46,12 @@ public class BranchService : IBranchService
         return branches.Select(MapToDto).ToList();
     }
 
+    public async Task<IReadOnlyList<BranchDto>> GetBranchesByCompanyIdAsync(int companyId, CancellationToken cancellationToken = default)
+    {
+        var branches = await _branchRepository.GetBranchesByCompanyIdAsync(companyId, cancellationToken);
+        return branches.Select(MapToDto).ToList();
+    }
+
     public async Task<BranchDto> CreateAsync(CreateBranchDto dto, CancellationToken cancellationToken = default)
     {
         var branch = new Branch

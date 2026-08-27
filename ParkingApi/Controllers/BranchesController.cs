@@ -58,6 +58,13 @@ public class BranchesController : ControllerBase
         return Ok(branches);
     }
 
+    [HttpGet("company/{companyId:int}")]
+    public async Task<IActionResult> GetByCompany(int companyId, CancellationToken cancellationToken)
+    {
+        var branches = await _branchService.GetBranchesByCompanyIdAsync(companyId, cancellationToken);
+        return Ok(branches);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBranchDto dto, CancellationToken cancellationToken)
     {
