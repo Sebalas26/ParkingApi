@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.RoleActions;
+using ParkingApi.Domain.Interfaces.Services.Realtime;
 using ParkingApi.Domain.Interfaces.Services.RoleActions;
 
 namespace ParkingApi.Controllers;
@@ -16,11 +17,16 @@ public class RoleActionsController : ControllerBase
 {
     private readonly ILogger<RoleActionsController> _logger;
     private readonly IRoleActionService _roleActionService;
+    private readonly IRealtimeNotificationService _realtimeNotifier;
 
-    public RoleActionsController(ILogger<RoleActionsController> logger, IRoleActionService roleActionService)
+    public RoleActionsController(
+        ILogger<RoleActionsController> logger,
+        IRoleActionService roleActionService,
+        IRealtimeNotificationService realtimeNotifier)
     {
         _logger = logger;
         _roleActionService = roleActionService;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     [HttpGet("GetRoleActions/{id}")]
@@ -60,6 +66,14 @@ public class RoleActionsController : ControllerBase
         try
         {
             var result = await _roleActionService.AssignRolePermissionsAsync(dto.RoleId, dto.ActionIds, cancellation);
+            if (result)
+            {
+                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync(
+                    "PermissionsChanged",
+                    "Permisos Actualizados",
+                    $"Se actualizaron los permisos asignados al rol con ID {dto.RoleId}.",
+                    cancellation);
+            }
             return Ok(new { success = result, message = result ? "Permisos asignados correctamente." : "Error al asignar permisos." });
         }
         catch (Exception ex)

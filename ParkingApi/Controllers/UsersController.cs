@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Users;
+using ParkingApi.Domain.Interfaces.Services.Realtime;
 using ParkingApi.Domain.Interfaces.Services.Users;
 
 namespace ParkingApi.Controllers;
@@ -16,11 +17,16 @@ public class UsersController : ControllerBase
 {
     private readonly ILogger<UsersController> _logger;
     private readonly IUserService _userService;
+    private readonly IRealtimeNotificationService _realtimeNotifier;
 
-    public UsersController(ILogger<UsersController> logger, IUserService userService)
+    public UsersController(
+        ILogger<UsersController> logger,
+        IUserService userService,
+        IRealtimeNotificationService realtimeNotifier)
     {
         _logger = logger;
         _userService = userService;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     [HttpGet("GetUsers")]
@@ -70,6 +76,13 @@ public class UsersController : ControllerBase
             {
                 return BadRequest(new { message = "No se pudo guardar o editar el usuario." });
             }
+
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync(
+                "UsersChanged",
+                "Usuarios Actualizados",
+                $"Se guardaron los datos del usuario '{getUsersDto.Username}'.",
+                cancellation);
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -85,7 +98,16 @@ public class UsersController : ControllerBase
         try
         {
             var success = await _userService.DeleteUserAsync(id, cancellation);
-            return success ? Ok(new { message = "Usuario eliminado correctamente de la base de datos." }) : NotFound(new { message = "Usuario no encontrado." });
+            if (success)
+            {
+                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync(
+                    "UsersChanged",
+                    "Usuario Eliminado",
+                    $"Se eliminó el usuario con ID {id}.",
+                    cancellation);
+                return Ok(new { message = "Usuario eliminado correctamente de la base de datos." });
+            }
+            return NotFound(new { message = "Usuario no encontrado." });
         }
         catch (Exception ex)
         {

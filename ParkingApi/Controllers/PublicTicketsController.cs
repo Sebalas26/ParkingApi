@@ -109,17 +109,8 @@ public class PublicTicketsController : ControllerBase
             {
                 var rate = await _rateRepository.GetByTypeAsync(foundTicket.VehicleType, cancellationToken);
                 var hourlyRate = rate?.HourRate ?? (foundTicket.HourlyRate > 0 ? foundTicket.HourlyRate : 2000m);
-                var gracePeriod = rate?.GracePeriodMinutes ?? 0;
-
-                if (gracePeriod > 0 && elapsedMinutes <= gracePeriod)
-                {
-                    estimatedAmount = 0m;
-                }
-                else
-                {
-                    var billableHours = (decimal)Math.Max(1.0, Math.Ceiling(Math.Max(0.01, elapsedMinutes) / 60.0));
-                    estimatedAmount = billableHours * hourlyRate;
-                }
+                var billableHours = (decimal)Math.Max(1.0, Math.Ceiling(Math.Max(0.01, elapsedMinutes) / 60.0));
+                estimatedAmount = billableHours * hourlyRate;
             }
 
             var vehicleTypeName = foundTicket.VehicleType switch

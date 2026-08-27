@@ -4,6 +4,66 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
+## 📌 Entrada: Cobro Minuto 1, Periodo de Gracia de Liquidación y Sincronización RBAC Realtime
+- **`💬 Prompt Original del Usuario`**:
+  - *"tengo dos temas que tratar, primero excelente lo del signal R cuando se asignan tarifas medios de pago todo eso pero en la modal no deberia decir signal r eso no le interesa al cliente, otra cosa es los permisos eso cuando la pwa agregue o modifique permisos algun usuario el sistema deberia tener el signal r para que obligue a actualizar el wpf para que los permisos este sincronizados si me explico por que como se le quita permisos a los roles entonces pues debe actualizar si me explico, ese es una. la otra es que no se donde el sistema tiene configurado no se donde o de donde esta tomando que no se le cobre desde el ingreso si ingreso un vehiculo se le cobra desde el primer minuto creo que el esta tomando el periodo de gracia que se le crea a la tarifa como para que inicie el cobro ese periodo de gracia es cuando se quiere liquidar se congele el valor por ese tiempo mientras pues la persona esta reuniendo el dinero si me explico analiza lo que te digo y dime que se debe hacer has el plan analiza bien todo."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Cobro desde el Minuto 1**:
+    - **Diagnóstico**: `EfPricingCalculatorService.cs` (WPF) y `PublicTicketsController.cs` (API) contenían `if (totalMinutes <= rate.GracePeriodMinutes) return 0m;`, provocando que los primeros 15 minutos de estancia fueran gratuitos ($0).
+    - **Corrección**: Se eliminó la exoneración de estancia. Todo vehículo se liquida desde el primer minuto transcurrido (`Math.Max(1, Math.Ceiling(totalMinutes)) * MinuteRate` o fracción hora).
+    - **Redefinición del Periodo de Gracia**: En `CheckOutViewModel.cs` (WPF), el `GracePeriodMinutes` de la tarifa del vehículo se aplica exclusivamente al momento de liquidar en caja, congelando el valor a pagar durante ese lapso (`_currentGracePeriodSeconds`) para permitir el pago y salida antes de recalcular tiempo excedido.
+  - **Eliminación del Término Técnico "SignalR" en UI**:
+    - En `SyncRequiredDialog.xaml`, se reemplazó `"⚡ TIEMPO REAL (SIGNALR)"` por `"⚡ SINCRONIZACIÓN EN TIEMPO REAL"`.
+  - **Sincronización Reactiva de Permisos RBAC en Tiempo Real**:
+    - **Backend (`ParkingApi`)**: `RoleActionsController.cs` y `UsersController.cs` ahora inyectan `IRealtimeNotificationService` y emiten `PermissionsChanged` y `UsersChanged` tras asignaciones de permisos o cambios de usuario.
+    - **Cliente WPF (`ParkingWpf`)**: `IApiClientService` incorpora `GetRolePermissionsAsync(roleId)`. En `MainShellViewModel.cs`, al recibir el evento en tiempo real, se consultan los permisos actualizados del rol del usuario activo y se recarga `_permissionService.LoadPermissions(...)` en caliente, actualizando la botonera y restricciones de inmediato sin cerrar sesión ni reiniciar la aplicación.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi/Controllers/RoleActionsController.cs`
+  - `ParkingApi/ParkingApi/Controllers/UsersController.cs`
+  - `ParkingApi/ParkingApi/Controllers/PublicTicketsController.cs`
+  - `ParkingApi/ParkingApi.Domain/Dtos/Auth/AuthResponseDto.cs`
+  - `ParkingApi/ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingWpf/Parking/Views/SyncRequiredDialog.xaml`
+  - `ParkingWpf/Parking/Services/Implementations/EfPricingCalculatorService.cs`
+  - `ParkingWpf/Parking/ViewModels/CheckOutViewModel.cs`
+  - `ParkingWpf/Parking/ViewModels/MainShellViewModel.cs`
+  - `ParkingWpf/Parking/Services/Contracts/IApiClientService.cs`
+  - `ParkingWpf/Parking/Services/Implementations/ParkingApiClient.cs`
+  - `ParkingWpf/Parking/Services/Implementations/AuthService.cs`
+  - `ParkingWpf/Parking/Models/UserSessionModel.cs`
+  - `ParkingWpf/Parking/Models/ApiModels/TicketApiModels.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
+  - `dotnet build ParkingWpf.slnx`: **0 Errores**.
+
+---
+
+## 📌 Entrada: Corrección Error 404 en F5 / Rutas Limpias en IIS y React PWA (Rama `dev`)
+- **`💬 Prompt Original del Usuario`**:
+  - *"mira esta todo normal cuando me logueo perfecto bien funciona bien, pero tengo el siguiente problema si le doy f5 me sale el 404, creo que el tema de las rutas esta super mal algo sucede enserio no entiendo como funciona ya solucionamos el del login creo que en historial de cambios puedes revisar eso, pero creo que todas las rutas deberian estar definidas como rutas no como si fuera alguna carpeta si me explico ? analiza eso que sucede. para darnos el plan de reparacion para que eso no vuelva a suceder."*
+  - *"Estabamos en la rama que no era ahora necesito que vuelvas a realizar el analisis en esta rama que es la actualizada necesito que verifiques si es que el plan que acabaste de hacer toca aplicarlo a esta rama o no realiza la revision completa"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico en Rama `dev`**: En `dev`, el frontend React (`src/App.tsx`) ya contaba con `RootAuthHandler`, `ProtectedRoute` y rutas anidadas limpias, y `public/web.config` ya tenía la regla `<action type="Rewrite" url="/" />`. Sin embargo, en `.github/workflows/main.yml`, el paso 5 del pipeline ejecutaba `cat << 'EOF' > dist/web.config` y **sobreescribía** el `web.config` compilado por Vite con el texto viejo que contenía `<action type="Rewrite" url="/Parking/index.html" />`. Esto provocaba que en cada despliegue por FTP a producción, IIS recibiera una regla apuntando a una subcarpeta `/Parking/` inexistente en la URL web, arrojando el error `404 - File or directory not found` al recargar (F5).
+  - **Solución Aplicada**:
+    - **Pipeline CI/CD (`.github/workflows/main.yml`)**: Se actualizó el paso 5 para generar la regla limpia con `url="/"`, exclusión de `^/api` y encabezados de seguridad `X-Content-Type-Options: nosniff`.
+    - **Configuración IIS (`public/web.config`)**: Se completaron los tipos MIME para fuentes (`.woff`, `.woff2`) y manifiestos JSON.
+    - **Vite PWA Workbox (`vite.config.ts`)**: Se configuró `navigateFallback: '/'` y `navigateFallbackDenylist: [/^\/api/]` para el soporte offline y recargas en modo PWA.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingPwa/.github/workflows/main.yml`
+  - `ParkingPwa/public/web.config`
+  - `ParkingPwa/vite.config.ts`
+
+- **`✅ Verificación y Compilación`**:
+  - `npm run build`: Compilación exitosa (**0 Errores**). `dist/web.config` y `dist/index.html` generados correctamente con regla de reescritura hacia la raíz `/`.
+  - `npx tsc -b`: **0 Errores** de TypeScript.
+
+---
+
 ## 📌 Entrada: Erradicación de Roles Quemados y Entrega Dinámica de Permisos RBAC en Login
 - **`💬 Prompt Original del Usuario`**:
   - *"bueno tengo este problema con los permisos mira que si se asignaron permisos al usuario que tiene el rol 2 pero ingreso en el wpf y me dice que no cuento con los permisos me imagino por que solo ha tomado los datos de la sql lite nada mas pero no ya elimine la db la volvi a mandar a crear y no no sirvio entonces que sucede por que no esta tomando los permisos correctamente ? que sucede hay revisa eso por que administrador si funciona ."*

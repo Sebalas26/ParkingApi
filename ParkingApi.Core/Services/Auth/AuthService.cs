@@ -201,6 +201,7 @@ public class AuthService : IAuthService
                 Username = user.Username,
                 FullName = user.FullName,
                 RoleName = roleName,
+                RoleId = user.UserRoleId,
                 IsAdmin = isAdmin,
                 Branches = branchDtos,
                 Permissions = rolePermissions
