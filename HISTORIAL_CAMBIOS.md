@@ -4,6 +4,34 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
+## 📌 Entrada: Erradicación de Medios de Pago Mockup y Control RBAC en Retiros de Efectivo (`shift.cash_withdrawal`)
+- **`💬 Prompt Original del Usuario`**:
+  - *"si no existe medios de pago por que el sistema trae efectivo si ya habiamos dicho que todo debe ser de la BD nada debe ser quemado ni que se inserte automaticamente si ves no existe nada de eso entonces no debe estar nada mockup debria sair la alerta de que no se puede dar cierre o salida pues no existen medios de pago en la sede si me explico analiza eso que te digo claramente."*
+  - *"existe otra cosa veo que si existe el permiso de registrar retiros o sangrias pero se inactivo pero creo que no esta asociado en el wpf por que sigue mostrando el boton mira hay te lo anexe. analiza esos datos"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Erradicación de Medios de Pago Mockup / Auto-Insert**:
+    - **Diagnóstico**: En `CheckOutViewModel.cs`, al consultar `db.PaymentMethods.Where(p => p.State)`, si la lista estaba vacía (`!methods.Any()`), se insertaba automáticamente un registro `"Efectivo"` con ID 1 en SQLite.
+    - **Corrección**: Se eliminó totalmente la inserción de fallback. Si la base de datos no tiene medios de pago para la sede, `AvailablePaymentMethods` permanece vacía y `HasPaymentMethods = false`.
+    - **UI y Bloqueo de Seguridad**: En `CheckOutView.xaml` se agregó un banner de advertencia si `HasPaymentMethods == false`. En `CheckOutViewModel.ProcessCheckOutAsync` se bloquea la operación si `!IsMonthlyTicket && (!HasPaymentMethods || SelectedPaymentMethodEntity == null)` mostrando la alerta explicativa de que la sede no tiene medios de pago habilitados.
+  - **Control RBAC Estricto en Retiro de Efectivo / Sangrías de Turno**:
+    - **Diagnóstico**: En `ShiftClosureView.xaml`, el botón *"Registrar Retiro de Efectivo (Recogida)"* condicionaba su visibilidad a `IsShiftOwner` en vez de consultar el permiso relacional `shift.cash_withdrawal`.
+    - **Corrección**: Se inyectó `IPermissionService` en `ShiftClosureViewModel.cs`, se crearon propiedades observables (`CanWithdrawCash`, `CanCloseShift`, `CanHandoverShift`, `CanExportShift`, `CanViewShiftHistory`, `CanOpenShift`) y se enlazó el botón a `CanWithdrawCash`.
+    - **Validación en Comando**: En `OpenCashWithdrawalDialogAsync()`, `OpenShiftAsync()`, `CloseShiftDirectAsync()` y `HandoverShiftAsync()` se agregaron validaciones con alertas de acceso denegado si no se cuenta con el permiso correspondiente.
+    - **Sincronización Reactiva**: Al modificarse permisos en tiempo real vía SignalR (`PermissionsChanged`), `UpdatePermissions()` actualiza al instante la visibilidad y habilitación de los botones en WPF sin necesidad de cerrar sesión.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingWpf/Parking/ViewModels/CheckOutViewModel.cs`
+  - `ParkingWpf/Parking/Views/CheckOutView.xaml`
+  - `ParkingWpf/Parking/ViewModels/ShiftClosureViewModel.cs`
+  - `ParkingWpf/Parking/Views/ShiftClosureView.xaml`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingWpf.slnx`: **0 Errores**.
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
+
+---
+
 ## 📌 Entrada: Cobro Minuto 1, Periodo de Gracia de Liquidación y Sincronización RBAC Realtime
 - **`💬 Prompt Original del Usuario`**:
   - *"tengo dos temas que tratar, primero excelente lo del signal R cuando se asignan tarifas medios de pago todo eso pero en la modal no deberia decir signal r eso no le interesa al cliente, otra cosa es los permisos eso cuando la pwa agregue o modifique permisos algun usuario el sistema deberia tener el signal r para que obligue a actualizar el wpf para que los permisos este sincronizados si me explico por que como se le quita permisos a los roles entonces pues debe actualizar si me explico, ese es una. la otra es que no se donde el sistema tiene configurado no se donde o de donde esta tomando que no se le cobre desde el ingreso si ingreso un vehiculo se le cobra desde el primer minuto creo que el esta tomando el periodo de gracia que se le crea a la tarifa como para que inicie el cobro ese periodo de gracia es cuando se quiere liquidar se congele el valor por ese tiempo mientras pues la persona esta reuniendo el dinero si me explico analiza lo que te digo y dime que se debe hacer has el plan analiza bien todo."*
