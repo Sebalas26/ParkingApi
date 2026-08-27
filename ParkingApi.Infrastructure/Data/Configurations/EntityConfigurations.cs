@@ -218,6 +218,7 @@ public class MultiBranchConfigurations :
         builder.Property(b => b.Phone).HasMaxLength(30);
         builder.Property(b => b.City).HasMaxLength(50);
         builder.Property(b => b.Notes).HasMaxLength(500);
+        builder.Ignore(b => b.LogoBase64);
 
         builder.HasIndex(b => b.Code).IsUnique();
 
@@ -272,7 +273,9 @@ public class ParkingBusinessConfigurations :
     IEntityTypeConfiguration<ParkingTicket>,
     IEntityTypeConfiguration<TicketDiscount>,
     IEntityTypeConfiguration<WorkShift>,
-    IEntityTypeConfiguration<MonthlySubscription>
+    IEntityTypeConfiguration<MonthlySubscription>,
+    IEntityTypeConfiguration<BillingResolution>,
+    IEntityTypeConfiguration<VehicleIncident>
 {
     public void Configure(EntityTypeBuilder<VehicleRate> builder)
     {
@@ -317,6 +320,7 @@ public class ParkingBusinessConfigurations :
         builder.Property(ca => ca.MinPurchaseAmount).HasPrecision(18, 2);
         builder.Property(ca => ca.DiscountPercentage).HasPrecision(5, 2);
         builder.Property(ca => ca.DiscountFixedAmount).HasPrecision(18, 2);
+        builder.Property(ca => ca.ImageUrl).HasColumnType("longtext");
 
         builder.HasOne(ca => ca.Store)
             .WithMany(s => s.Agreements)
@@ -340,9 +344,14 @@ public class ParkingBusinessConfigurations :
         builder.Property(t => t.AmountPaid).HasPrecision(18, 2);
         builder.Property(t => t.ChangeGiven).HasPrecision(18, 2);
 
+        builder.Property(t => t.ResolutionName).HasMaxLength(150);
+        builder.Property(t => t.InvoiceNumber).HasMaxLength(50);
+
         builder.HasIndex(t => t.PlateNumber);
         builder.HasIndex(t => t.TicketNumber).IsUnique();
         builder.HasIndex(t => t.BranchId);
+        builder.HasIndex(t => t.ResolutionId);
+        builder.HasIndex(t => t.IsElectronicInvoice);
 
         builder.HasOne(t => t.Branch)
             .WithMany(b => b.ParkingTickets)
@@ -427,6 +436,52 @@ public class ParkingBusinessConfigurations :
         builder.HasOne(s => s.Branch)
             .WithMany(b => b.MonthlySubscriptions)
             .HasForeignKey(s => s.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    public void Configure(EntityTypeBuilder<BillingResolution> builder)
+    {
+        builder.ToTable("BillingResolutions");
+        builder.HasKey(r => r.ResolutionId);
+        builder.Property(r => r.Name).IsRequired().HasMaxLength(150);
+        builder.Property(r => r.DocumentType).IsRequired().HasMaxLength(250);
+        builder.Property(r => r.Prefix).IsRequired().HasMaxLength(20);
+        builder.Property(r => r.ResolutionNumber).IsRequired().HasMaxLength(50);
+        builder.Property(r => r.TechnicalKey).HasColumnType("longtext");
+
+        builder.HasIndex(r => r.BranchId);
+        builder.HasIndex(r => r.ResolutionNumber);
+        builder.HasIndex(r => r.Prefix);
+        builder.HasIndex(r => r.IsActive);
+
+        builder.HasOne(r => r.Branch)
+            .WithMany()
+            .HasForeignKey(r => r.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    public void Configure(EntityTypeBuilder<VehicleIncident> builder)
+    {
+        builder.ToTable("VehicleIncidents");
+        builder.HasKey(i => i.IncidentId);
+        builder.Property(i => i.PlateNumber).IsRequired().HasMaxLength(20);
+        builder.Property(i => i.IncidentType).IsRequired().HasMaxLength(100);
+        builder.Property(i => i.Description).IsRequired().HasColumnType("longtext");
+        builder.Property(i => i.ReportedBy).IsRequired().HasMaxLength(100);
+        builder.Property(i => i.ContactPhone).HasMaxLength(30);
+        builder.Property(i => i.Status).IsRequired().HasMaxLength(30);
+        builder.Property(i => i.ResolvedNotes).HasColumnType("longtext");
+
+        builder.HasIndex(i => i.PlateNumber);
+        builder.HasIndex(i => i.BranchId);
+        builder.HasIndex(i => i.IsBlocked);
+        builder.HasIndex(i => i.Status);
+
+        builder.HasOne(i => i.Branch)
+            .WithMany()
+            .HasForeignKey(i => i.BranchId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }

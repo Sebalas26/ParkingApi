@@ -1,154 +1,145 @@
-# Historial Oficial de Modificaciones y Control de Cambios (Parking API)
-**Proyecto**: ParkFlow API Central (ASP.NET Core Web API)  
-**Fecha de Creación**: 2026-08-25  
+# 📜 HISTORIAL DE CAMBIOS Y CONTEXTO TÉCNICO MULTI-PC
+
+Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
 ---
 
-## 📌 Protocolo Obligatorio de Registro y Contexto Multi-PC
-> [!IMPORTANT]
-> **PRESERVACIÓN DE CONTEXTO ENTRE COMPUTADORES**: Como el desarrollo se realiza alternando entre diferentes estaciones de trabajo (PCs), este protocolo garantiza que la IA nunca pierda el hilo técnico ni el contexto acumulado.
+## 📌 Entrada: Erradicación de Roles Quemados y Entrega Dinámica de Permisos RBAC en Login
+- **`💬 Prompt Original del Usuario`**:
+  - *"bueno tengo este problema con los permisos mira que si se asignaron permisos al usuario que tiene el rol 2 pero ingreso en el wpf y me dice que no cuento con los permisos me imagino por que solo ha tomado los datos de la sql lite nada mas pero no ya elimine la db la volvi a mandar a crear y no no sirvio entonces que sucede por que no esta tomando los permisos correctamente ? que sucede hay revisa eso por que administrador si funciona ."*
+  - *"eso esta gravisimo en el sistema no debe a ver nada quemado todo lo que traiga la base de datos si el quisiera crearlo como cajero o cajera o hasta colocar el rol que quisiera desde que tenga los permisos que es lo importante se deberia validar como se te ocurre eso . revisa eso que me acabas de decir esta supremamente mal y eso deberia ir en reglas del agent como colocar eso así eso no es una buena practica"*
 
-Cualquier asistente de IA, desarrollador o mantenedor que realice cambios en el código fuente de este proyecto **DEBE** registrar su modificación en este documento antes de finalizar su turno o tarea, incluyendo:
-1. **Fecha y Hora Exacta**.
-2. **Autor / Agente Responsable**.
-3. **`💬 Prompt Original del Usuario`**: Transcripción exacta o requerimiento solicitado por el usuario.
-4. **`🤖 Resumen Técnico para la IA`**: Explicación técnica de arquitectura, contratos de datos modificados, DTOs, entidades, decisiones tomadas, estado del sistema y advertencias relevantes.
-5. **`📦 Componentes Modificados`**: Lista precisa de rutas de archivos modificados, creados o eliminados.
-6. **`✅ Verificación y Compilación`**: Resultado de compilación `dotnet build` (**0 Errores**) y pruebas funcionales.
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Backend (ParkingApi)**:
+    - Se incorporó la regla de oro en `AGENTS.md` de prohibición estricta de evaluar nombres de roles mediante texto quemado.
+    - Se agregó `List<string> Permissions` a `AuthResponseDto`.
+    - En `LoginStandardAsync`, se inyectó `IRoleActionRepository` y se consultan dinámicamente los slugs de acciones activas (`ra.ActionName`) asignadas al `user.UserRoleId` en la tabla `RoleAction`, devolviendo la matriz exacta de permisos asignada en la base de datos.
+  - **Cliente WPF (ParkingWpf)**:
+    - `LoginApiResponse` recibe la lista `Permissions`.
+    - `AuthService` elimina por completo listas estáticas y métodos por coincidencia de texto, cargando los permisos reales en memoria tanto en modo Online (desde API) como en modo Offline (desde SQLite `RolePermissions`).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain\Dtos\Auth\AuthResponseDto.cs`
+  - `ParkingApi.Core\Services\Auth\AuthService.cs`
+  - `AGENTS.md`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
 
 ---
 
-## 📋 Registro Cronológico de Cambios
+## 📌 Entrada: Asignación Explícita de Tipo de Vehículo y Eliminación de Tarifas Vehiculares
+- **`💬 Prompt Original del Usuario`**:
+  - *"Quiero que en esta pantalla me permita asignar el tipo de vehiculo en la parametrizacion del parqueadero, no que me lo asigne automaticamente, adicional agregale la opcion de eliminar al tipo de vehiculo"*
 
-### [2026-08-25 21:45:00] - [FIX] [PERF] [DB] - Optimización de Connection Pooling MySQL y Resolución de Excepción max_user_connections (20)
-- **Autor**: Antigravity AI Assistant & .NET Software Architect
-- **💬 Prompt Original del Usuario**:
-  > *"excelente lo primero funciono perfecto lo de los turnos excelente, pero sabes que no funciono mira esto el tema de las conexión me preocupa eso por que veo que no estas cerrando conexiones estas dejando conexiones abiertas en el backend eso esta gravisimos cuando hace varias operaciones ojo con eso necesito que realices un analisis completo de eso de que sucede con las conexiones."*
-- **🤖 Resumen Técnico para la IA**:
-  1. **Diagnóstico Causa Raíz**:
-     - En hosting compartido (`site4now.net`), MySQL impone una cuota estricta de `max_user_connections = 20` por usuario.
-     - `MySqlConnector` (driver de Pomelo EF Core) maneja por defecto `MaximumPoolSize = 100` y `ConnectionIdleTimeout = 180` segundos (3 minutos).
-     - Al entrar peticiones concurrentes o sincronizaciones periódicas, el pool retenía hasta 20 conexiones TCP abiertas e intentaba abrir conexiones adicionales provocando `MySqlException: User has exceeded the 'max_user_connections' resource (20)`.
-  2. **Configuración de Connection Pooling en `appsettings.json`**:
-     - Se añadió: `Pooling=true;MinimumPoolSize=0;MaximumPoolSize=12;ConnectionIdleTimeout=5;ConnectionTimeout=20;`.
-     - `MaximumPoolSize=12`: Limita el consumo de conexiones del backend a un máximo de 12 (por debajo del límite de 20 del hosting), evitando desbordes.
-     - `ConnectionIdleTimeout=5`: Devuelve y cierra físicamente las conexiones inactivas tras solo 5 segundos (en vez de retenerlas 3 minutos).
-     - `MinimumPoolSize=0`: No pre-aloja conexiones ociosas.
-  3. **Escalabilidad y Planes de Producción**:
-     - Se documentó que al migrar a base de datos dedicada o VPS (AWS RDS, Azure, DigitalOcean), el límite de MySQL suele ser de 150 a 1000+ conexiones (`max_user_connections = 0`), por lo que esta configuración asegura compatibilidad tanto en el plan gratuito como en alta concurrencia productiva.
-- **📦 Componentes Modificados**:
-  - `ParkingApi/appsettings.json`
-  - `HISTORIAL_CAMBIOS.md`
-- **✅ Verificación y Compilación**:
-  - `dotnet build ParkingApi\ParkingApi.csproj` -> **0 Errores** (Compilación Correcta).
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Backend (ParkingApi)**:
+    - Se agregó `Task<bool> DeleteAsync(Guid id)` en `IVehicleRateRepository` y `VehicleRateRepository`.
+    - Se agregó `Task<bool> DeleteRateAsync(Guid rateId)` y sobrecarga completa `UpdateRateAsync(VehicleRate)` en `IVehicleRateService` y `VehicleRateService`.
+    - Se implementó el endpoint `[HttpDelete("{id}")]` y se mejoró `[HttpPut("{id}")]` en `VehicleRatesController` con notificación en tiempo real `RatesChanged`.
+  - **Frontend (ParkingPwa)**:
+    - **Selector Explícito de Tipo de Vehículo**: Se implementó un `<select>` en el modal de tarifas vehiculares de la sede (`ParqueaderosTab.tsx`) y en el catálogo general (`VehiculosConfigTab.tsx`) con los tipos oficiales (`0: Automóvil / Sedán`, `1: Motocicleta`, `2: Camión / Pesado`, `3: Furgón / Van`, `4: Bicicleta`, `5: Camioneta / SUV`) junto con el nombre descriptivo y valores de cobro.
+    - **Acción de Eliminación Reactiva**: Se añadió botón de eliminar (🗑️) en la columna de Acciones de ambas tablas, respaldado por un modal de confirmación temático PWA con alerta, botones secundarios/peligro y spinner de carga, aplicando actualización optimista en el estado de React sin recargar.
+    - **Servicio PWA**: Se añadió `deleteConfig(rateId)` en `vehiculosConfigService.ts`.
 
-### [2026-08-25 21:30:00] - [FEAT] [MULTI-BRANCH] [SECURITY] - Independencia Multi-Sede Estricta de Turnos de Trabajo (WorkShifts), DTOs con BranchId y Filtrado de Métricas en Repositorio
-- **Autor**: Antigravity AI Assistant & .NET Software Architect
-- **💬 Prompt Original del Usuario**:
-  > *"mira como se ve de feo eso, segundo fui a cerrar turno en una sede yo como administrador y mira como salio el error y eso daño todo el sistema. analiza eso y revisa bien como funciona eso por que no esta funcionando completamente bien.*
-  > *tengo otra duda, se supone que los turnos son igual independientes de sedes claro ? eso espero sea claro si ? un turno pertenece a una sede especifica."*
-- **🤖 Resumen Técnico para la IA**:
-  1. **Contratos DTO y Enrutamiento Multi-Sede de Turnos**:
-     - Se enriquecieron `OpenShiftRequestDto`, `ShiftSummaryDto` y `WorkShiftDto` en `ParkingApi.Domain/Dtos/Shifts/ShiftDtos.cs` con la propiedad `public int? BranchId { get; set; }`.
-     - En `IShiftService` y `ShiftService` se incorporó el parámetro `int? branchId` en las operaciones de apertura (`OpenShiftAsync`), consulta de turno activo (`GetActiveShiftAsync`) e historial de turnos (`GetHistoryAsync`).
-     - Al aperturar turno se almacena de forma persistente el `BranchId` en la entidad `WorkShift`.
-  2. **Filtrado Estricto por Sede en Capa de Datos (`ShiftRepository.cs`)**:
-     - En `IShiftRepository` y `ShiftRepository` se actualizaron las consultas EF Core (`GetActiveShiftByUserIdAsync`, `GetActiveShiftAsync`, `GetHistoryAsync`, `CalculateShiftMetricsAsync`) para filtrar las transacciones de parqueadero (`ParkingTickets`) y turnos (`WorkShifts`) exclusivamente por la sede activa (`BranchId == branchId`).
-     - Esto garantiza aislamiento absoluto de métricas, dinero recaudado y liquidación entre distintas sedes para franquicias o sedes simultáneas.
-  3. **Controlador HTTP (`ShiftsController.cs`)**:
-     - Se actualizaron los endpoints `GET /api/shifts/active` y `GET /api/shifts/history` para admitir `[FromQuery] int? branchId` permitiendo a terminales cliente sincronizar y consultar estados de sede específicos.
-- **📦 Componentes Modificados**:
-  - `ParkingApi.Domain/Dtos/Shifts/ShiftDtos.cs`
-  - `ParkingApi.Domain/Interfaces/Repositories/Shifts/IShiftRepository.cs`
-  - `ParkingApi.Infrastructure/Data/Repositories/Shifts/ShiftRepository.cs`
-  - `ParkingApi.Domain/Interfaces/Services/Shifts/IShiftService.cs`
-  - `ParkingApi.Core/Services/Shifts/ShiftService.cs`
-  - `ParkingApi.Core/Services/Sync/SyncService.cs`
-  - `ParkingApi/Controllers/ShiftsController.cs`
-  - `HISTORIAL_CAMBIOS.md`
-- **✅ Verificación y Compilación**:
-  - `dotnet build ParkingApi\ParkingApi.csproj` -> **0 Errores** (Compilación Correcta).
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi.Domain/Interfaces/Repositories/VehicleRates/IVehicleRateRepository.cs`
+  - `ParkingApi/ParkingApi.Infrastructure/Data/Repositories/VehicleRates/VehicleRateRepository.cs`
+  - `ParkingApi/ParkingApi.Domain/Interfaces/Services/VehicleRates/IVehicleRateService.cs`
+  - `ParkingApi/ParkingApi.Core/Services/VehicleRates/VehicleRateService.cs`
+  - `ParkingApi/ParkingApi/Controllers/VehicleRatesController.cs`
+  - `ParkingPwa/src/features/settings/data/vehiculosConfigService.ts`
+  - `ParkingPwa/src/features/settings/ui/ParqueaderosTab.tsx`
+  - `ParkingPwa/src/features/settings/ui/VehiculosConfigTab.tsx`
 
-### [2026-08-25 21:00:00] - [FEAT] [DB] [SYNC] - Soporte de Logo de Sede en Base64 Comprimido en MySQL, DTOs de API y Transporte de Sincronización
-- **Autor**: Antigravity AI Assistant & .NET Software Architect
-- **💬 Prompt Original del Usuario**:
-  > *"Mira en la primera imagen se ve supremamente mal el tema del diseño de la parte de arriba sigue siendo wpf pero sin diseño sin nada eso se ve mal si me explico.*
-  > *en la seguna imagen no tiene logo si revisas el codigo de la PWA ves que cuando crea las sedes debe subir el logo que deberia tener entonces usar un logo sii que sea configurable o que tengamos un logo en el sistema o no se si puedas usar un ico o algo dime que se puede hacer hay pues lo digo por que cada sede tiene un logo.*
-  > *y si ves la 3 imagen no tiene esa columna para el logo entonces eso como se va a subir donde se esta guardando eso deberia guardarse en base 64 comprimido para que se pueda leer desde la bd y sin generar tanto consumo de espacio si analiza eso recuerda que como regla de oro si no esta en el agent deberia estar no vas a tocar el pwa si mi autorizacion."*
-- **🤖 Resumen Técnico para la IA**:
-  1. **Esquema de Base de Datos (MySQL DDL)**:
-     - Se creó el script SQL `ParkingApi/Scripts/04_Add_Branch_LogoBase64.sql` para agregar la columna `LogoBase64 LONGTEXT NULL` después de `Notes` en la tabla `branches`.
-     - Esto permite almacenar logos comprimidos (WebP, PNG, JPEG en Base64 data URI) directamente en la base de datos sin depender de servicios de archivos externos ni sobrecargar la base de datos.
-  2. **Modelo de Dominio y DTOs de Backend**:
-     - En `ParkingApi.Domain/Models/Branch.cs`: Se agregó la propiedad `public string? LogoBase64 { get; set; }`.
-     - En `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`: Se agregó `LogoBase64` a `BranchDto`, `CreateBranchDto` y `UpdateBranchDto`.
-     - En `ParkingApi.Core/Services/Branches/BranchService.cs`: Se incluyó el mapeo bidireccional de `LogoBase64` en creación, actualización y consulta.
-     - En `BootstrapSyncDto` / `SyncDtos.cs`: `Branches` transporta de manera automática el campo `LogoBase64` hacia las terminales WPF clientes.
-  3. **Preservación de la PWA**:
-     - Conforme a la regla estricta del usuario, **no se modificó ningún archivo de `ParkingPwa`**. La API y la base de datos quedan preparadas para que cuando el usuario dé la autorización, la PWA pueda enviar y recibir imágenes de logo en base64 en la creación/edición de sedes.
-- **📦 Componentes Modificados**:
-  - `ParkingApi/Scripts/04_Add_Branch_LogoBase64.sql`
-  - `ParkingApi.Domain/Models/Branch.cs`
-  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
-  - `ParkingApi.Core/Services/Branches/BranchService.cs`
-  - `HISTORIAL_CAMBIOS.md`
-- **✅ Verificación y Compilación**:
-  - `dotnet build ParkingApi.slnx` -> **0 Errores**.
-  - `dotnet build ParkingWpf.slnx` -> **0 Errores**.
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: Compilación exitosa (**0 Errores**).
+  - `npx tsc --noEmit`: Tipado verificado (**0 Errores**).
+  - Ambos servicios en ejecución (`http://localhost:5135` y `http://localhost:5173`).
 
-### [2026-08-25 20:45:00] - [FEAT] [UI/UX] [MULTI-BRANCH] - Sincronización de Capacidad Real de Sede, Escalado Global de Tipografía (+2px), Remoción de Botón X y Banner Amarillo
-- **Autor**: Antigravity AI Assistant & .NET Software Architect
-- **💬 Prompt Original del Usuario**:
-  > *"mira que si esta la capacidad del parqueadero pero veo que el wpf no la trae dice sin configurar esas cosas no deberian salir así. aparte toda la letra del sistema necesito que me le subas 2 px mas a cada letra si alguna tiene 8 pues queda en 10 y la de 10 en 12 si me hago entender , este boton no deberia estar toca quitarlo, este mensaje no deberia ser así de ese color por que no es error es algo informativo deberia ser amarillo. ya con eso procede a crear el plan"*
-- **🤖 Resumen Técnico para la IA**:
-  1. **Capacidad de Parqueadero Multi-Sede y Ocupación en Tiempo Real**:
-     - Se ajustó el servicio de tiquetes y estadísticas en WPF para que la capacidad de parqueadero se derive dinámicamente de la sede activa (`_sessionService.CurrentBranch?.TotalCapacity` o tabla SQLite `Branches` sincronizada desde MySQL), eliminando el estado *"Sin configurar"*.
-     - Se mapearon en `OccupancyStats.cs` las propiedades compatibles `AvailableSlots` y `OccupiedSlots`.
-     - Se validó que el contrato `Branch` y DTOs de sincronización provean `TotalCapacity` a la terminal.
-  2. **Escalado Global de Tipografía (+2px)**:
-     - Se incrementaron en +2px todas las fuentes del sistema en `Typography.xaml`, `Controls.xaml`, `CheckInView.xaml`, `CheckOutView.xaml`, `MainShellWindow.xaml` y `BranchSelectionDialog.xaml`.
-  3. **Limpieza de UI en Salida / Caja**:
-     - Se retiró el botón `✕` (`ClearSearchCommand`) en `CheckOutView.xaml`, dejando un buscador moderno y despejado.
-  4. **Banner Informativo / Advertencia en Amarillo**:
-     - Se cambiaron los colores de advertencia/feedback en `CheckInView.xaml` para usar la paleta institucional amarilla (`BrushWarningBg`, `BrushWarning`, `BrushWarningText`).
-- **📦 Componentes Modificados**:
-  - `Parking (WPF)`: `OccupancyStats.cs`, `EfParkingTicketService.cs`, `TicketApiModels.cs`, `Typography.xaml`, `Controls.xaml`, `CheckOutView.xaml`, `CheckInView.xaml`, `MainShellWindow.xaml`, `BranchSelectionDialog.xaml`, `HISTORIAL_CAMBIOS.md`.
-  - `ParkingApi`: `HISTORIAL_CAMBIOS.md`.
-- **✅ Verificación y Compilación**:
-  - `dotnet build ParkingApi.slnx` -> **0 Errores**.
-  - `dotnet build ParkingWpf.slnx` -> **0 Errores**.
+---
 
-### [2026-08-25 20:15:00] - [FIX] [SYNC] [MULTI-PC] - Corrección de Fallo de Sincronización Bootstrap y Establecimiento de Protocolo de Contexto Multi-PC
-- **Autor**: Antigravity AI Assistant & .NET Software Architect
-- **💬 Prompt Original del Usuario**:
-  > *"oye por que sale que no se tiene el servidor no respondio, pues si arria dice, eso deberia ya estar claro osea que si esta conectada la api osea que paso ? eso lo probe y estaba funcionando ahorita pero ahora no funciona, que suecede sabes que otra 0cosa pasa es que como estoy trabajando en dos lugares entonces creo que se esta perdiendo el contexto y eso esta terrible no sirve necesito que se cree un archivo en ese agent que se creo que son reglas donde diga que cada cambio nuevo o realizado debe crear en un archivo de registros con el promp que se hizo o el resumen que la IA entienda y cuando yo me encuentre en otro pc pues le diga que lo lea y tenga todo entendido lo ultimo que realizamos eso aplica tanto para el wpf y el api si me explico, ya con esto crea un plan completo y detallado."*
-- **🤖 Resumen Técnico para la IA**:
-  1. **Causa del Fallo de Sincronización**:
-     - El indicador superior en la app WPF se mostraba *"API Central Online • Sincronizado"* porque `PingAsync()` contra `/api/health` respondía `200 OK`.
-     - Sin embargo, la sincronización fallaba en el Paso 3 (`/api/sync/bootstrap`) debido a una discrepancia en los contratos de serialización: la API serializaba `WorkShift.Status` como string (`"Open"`/`"Closed"`) vía `JsonStringEnumConverter`, mientras que WPF lo esperaba como `int`, además de pequeñas discrepancias en nombres de propiedades de medios de pago y tipos de enums.
-     - En el cliente WPF, `ParkingApiClient.GetBootstrapAsync()` capturaba silenciosamente la excepción devolviendo `null`, lo que disparaba la advertencia *"El servidor no respondió con los datos de sincronización"*.
-  2. **Arquitectura y Solución Aplicada**:
-     - En el backend API se verificó que `SyncService.cs` y `SyncController.cs` entreguen el 100% de los datos de todas las entidades (Sedes, Usuarios, Medios de pago, Tarifas, Comercios, Convenios, Turnos, Suscripciones y Tiquetes).
-     - En WPF se implementaron DTOs resilientes desacoplados con normalizadores inteligentes para convertir tipos de forma segura sin excepciones.
-  3. **Protocolo Multi-PC**:
-     - Se crearon y alinearon las reglas en `AGENTS.md` y `HISTORIAL_CAMBIOS.md` en ambos repositorios (`ParkingApi` y `ParkingWpf`) estipulando que cada tarea registre el prompt original + resumen técnico estructurado para la IA.
-     - **Directiva de Reanudación**: Cuando el usuario cambie de PC y diga *"Lee el historial de cambios / contexto"*, la IA leerá este archivo de inmediato para recuperar todo el contexto del proyecto.
-- **📦 Módulos Modificados**:
-  - `AGENTS.md`: Reglas obligatorias de planificación y protocolo de contexto multi-PC.
-  - `HISTORIAL_CAMBIOS.md`: Historial oficial y contexto técnico para la IA.
-- **✅ Verificación y Compilación**:
-  - `dotnet build ParkingApi.slnx` -> **0 Errores**.
-  - `dotnet build ParkingWpf.slnx` -> **0 Errores**.
+## 📌 Entrada: Conexión 100% Dinámica de Medios de Pago y Resoluciones en Dashboard
+- **`💬 Prompt Original del Usuario`**:
+  - *"Veo , que en dashboard de nuevo esta cargando de nuevo esto que te señale, pero el debe esta conectado a los medios de pago que se encuentren creados en la Bd y api"*
 
-### [2026-08-25 17:34:00] - [FEAT] [MULTI-BRANCH] [AUTH] - Retorno Global de Sedes para Administradores y Endpoint de Operadores por Sede
-- **Autor**: Antigravity AI Assistant & .NET Software Architect
-- **💬 Requerimiento**: Acceso multi-sede global para administradores y filtrado de operadores vinculados a sedes.
-- **🤖 Resumen Técnico para la IA**:
-  - En `AuthService.cs` y `BranchService.cs`, los administradores (`UserRoleId == 1`) obtienen siempre el 100% de las sedes activas vía `_branchRepository.GetActiveAsync()`.
-  - Se creó el endpoint `GET /api/branches/{id}/users` en `BranchesController.cs` para obtener usuarios asignados en `UserBranches` para una sede específica.
-- **📦 Módulos Modificados**:
-  - `ParkingApi.Core`: `AuthService.cs`, `BranchService.cs`
-  - `ParkingApi.Domain`: `IBranchRepository.cs`, `IBranchService.cs`
-  - `ParkingApi.Infrastructure`: `BranchRepository.cs`
-  - `ParkingApi`: `BranchesController.cs`
-- **✅ Verificación**: `dotnet build ParkingApi.slnx` -> **0 Errores**.
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico**: En `Dashboard.tsx`, las gráficas de dona de "Distribución por Métodos de Pago" y "Resoluciones de Facturación" tenían arrays con valores hardcodeados por defecto (`Efectivo, Tarjeta, Transferencia / Factura POS`) cuando la lista de la BD no estaba cargada o como fallback, violando el principio Zero-Data y no reflejando los métodos creados por el usuario (ej: `Nequi`).
+  - **Solución Aplicada**:
+    - Se eliminaron completamente todos los fallbacks estáticos en `paymentDonutData` y `resolutionsDonutData`.
+    - La gráfica ahora se construye **estrictamente con los medios de pago activos consultados a la API y base de datos** (`mediosPagoService.getPaymentMethods()`).
+    - Si no existen medios de pago o resoluciones creadas en la base de datos, se muestra un estado vacío elegante invitando a crearlos en Configuración.
+    - Se mapearon dinámicamente sus iconos, nombres y recaudaciones reales.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingPwa/src/features/dashboard/ui/Dashboard.tsx`
+
+- **`✅ Verificación y Compilación`**:
+  - `npx tsc --noEmit`: Tipado verificado (**0 Errores**).
+
+---
+
+## 📌 Entrada: Corrección Error 500 en GET /api/branches y Resoluciones
+- **`💬 Prompt Original del Usuario`**:
+  - *"http://localhost:5135/api/branches erorr 500"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico**: La entidad `Branch` incluía la propiedad `LogoBase64` que no existe como columna física en la tabla `Branches` de MySQL, provocando que EF Core generara `SELECT b.LogoBase64 ...` fallando con excepción `MySqlException: Unknown column 'b.LogoBase64' in 'field list'` en consultas directas a `/api/branches` y en consultas con JOIN como `/api/BillingResolutions`.
+  - **Solución Aplicada**:
+    - Se decoró la propiedad `LogoBase64` con `[NotMapped]` en `ParkingApi.Domain/Models/Branch.cs`.
+    - Se agregó `builder.Ignore(b => b.LogoBase64);` en `MultiBranchConfigurations` dentro de `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`.
+  - **Resultado**: `GET /api/branches` responde con status **200 OK** correctamente.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi.Domain/Models/Branch.cs`
+  - `ParkingApi/ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: Compilación exitosa (**0 Errores**).
+  - Petición verificada con `Invoke-RestMethod` a `http://localhost:5135/api/branches` (**200 OK**).
+
+---
+
+## 📌 Entrada: Eliminación Definitiva de Usuarios, Loaders y Mejoras en PWA
+- **`💬 Prompt Original del Usuario`**:
+  - *"Noto que tambien al eliminar usuario, me lo deja es inactivo, pero quiero es eliminarlo, adicional eliminarlo desde la BD"*
+  - *"en esta pantalla, las esquinas no se ven curveadas por el scrollbar, ajustalos , adicioal la lista de los parqueaderos muestramelo en una lista donde pueda escribir y me salga en busqueda"*
+  - *"Cuando elimine el usuario, quiero que sea reactivo porque no me limpio la lista cuando elimine , tuve que refrescar la pantallla"*
+  - *"Arreglame porque permite dar click como si fuera a escribir en esta pantalla"*
+  - *"Perfecto, ahora agregale un loader cuando se cree el usuario, adicional que me muesre un dialog al estilo del pwa para confirmar la eliiminacion del usuario y lo mismo, agregale loader"*
+  - *"Faltan que los botones que digan cancelar en los dialog ajustalos en cuanto a diseño"*
+  - *"ejecuta el api y pwa"*
+  - *"trata de que las opciones se vean se vean proporcionales lo que te señale en rojo"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Backend (ParkingApi)**:
+    - Se implementó `DeleteUser(userId)` en `UserRepository` y `DeleteUserAsync(userId)` en `UserService`.
+    - Se desvinculan primero las asociaciones en `UserBranches` para prevenir errores de integridad referencial antes de realizar el borrado físico (`_context.User.Remove(user)`).
+    - `UsersController` `[HttpDelete("{id}")]` ahora ejecuta `DeleteUserAsync` con respuesta `200 OK`.
+  - **Frontend (ParkingPwa)**:
+    - **Optimistic UI Reactivo**: En `UsuariosTab.tsx`, al confirmar la eliminación, el usuario es filtrado instantáneamente del estado local sin requerir recargar la página.
+    - **Modal de Confirmación Moderno**: Reemplazo de alertas nativas con un diálogo estilizado al tema PWA (`AlertTriangle`, texto claro, advertencia de irreversibilidad y botones secundarios/peligro).
+    - **Loaders y Spinners**: Animación `@keyframes spin` y `<Loader2>` dentro de botones al crear/editar usuario (`Creando...`/`Guardando...`) y al eliminar (`Eliminando...`), desactivando los botones para prevenir peticiones duplicadas.
+    - **Scrollbar y Esquinas Redondeadas**: Ajuste en `Settings.css` (`overflow: hidden` en el modal y `overflow-y: auto` en `.modal-body` con `::-webkit-scrollbar` personalizado) para evitar que la barra de scroll recorte las esquinas curvas `border-radius: 20px`.
+    - **Buscador Dinámico de Sedes**: En la sección "4. Sedes Autorizadas (Parqueaderos)", se agregó input de búsqueda en tiempo real, botones de selección masiva y contador de sedes seleccionadas.
+    - **Control de Caret / Selección**: Se aplicó `user-select: none; cursor: default;` en fondos, títulos y etiquetas para evitar que aparezca el cursor de escritura al hacer clic en espacios vacíos.
+    - **Estilos de Botones Cancelar**: Se estandarizó `.btn-secondary` en `Settings.css` e `index.css` con esquinas redondeadas (`10px`), microinteracciones hover/active y contraste suave.
+    - **Navegación de Pestañas Proporcional**: Se ajustó `.settings-nav-tabs` con `grid-template-columns: repeat(auto-fit, minmax(130px, 1fr))` para que todas las pestañas de configuración mantengan el mismo ancho proporcional en una sola línea.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi.Domain/Interfaces/Repositories/Users/IUserRepository.cs`
+  - `ParkingApi/ParkingApi.Infrastructure/Data/Repositories/Users/UserRepository.cs`
+  - `ParkingApi/ParkingApi.Domain/Interfaces/Services/Users/IUserService.cs`
+  - `ParkingApi/ParkingApi.Core/Services/Users/UserService.cs`
+  - `ParkingApi/ParkingApi/Controllers/UsersController.cs`
+  - `ParkingPwa/src/features/settings/data/usuariosService.ts`
+  - `ParkingPwa/src/features/settings/ui/UsuariosTab.tsx`
+  - `ParkingPwa/src/features/settings/ui/Settings.css`
+  - `ParkingPwa/src/index.css`
+  - `ParkingPwa/src/features/settings/ui/RolesTab.tsx`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: Compilación exitosa (**0 Errores**).
+  - `npx tsc --noEmit`: Tipado verificado (**0 Errores**).
+  - Ambos servicios en ejecución (`http://localhost:5135` y `http://localhost:5173`).

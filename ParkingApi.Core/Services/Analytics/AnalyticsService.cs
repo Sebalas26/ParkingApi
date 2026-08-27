@@ -52,6 +52,16 @@ public class AnalyticsService : IAnalyticsService
                 .GroupBy(t => t.PaymentMethod!.Value)
                 .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
 
+            var countByResolution = todayTickets
+                .Where(t => !string.IsNullOrWhiteSpace(t.ResolutionName) || t.ResolutionId.HasValue)
+                .GroupBy(t => !string.IsNullOrWhiteSpace(t.ResolutionName) ? t.ResolutionName! : t.ResolutionId.ToString()!)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var revenueByResolution = todayTickets
+                .Where(t => !string.IsNullOrWhiteSpace(t.ResolutionName) || t.ResolutionId.HasValue)
+                .GroupBy(t => !string.IsNullOrWhiteSpace(t.ResolutionName) ? t.ResolutionName! : t.ResolutionId.ToString()!)
+                .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
+
             return new FinancialSummaryDto
             {
                 TotalRevenueToday = totalRevenue,
@@ -60,7 +70,9 @@ public class AnalyticsService : IAnalyticsService
                 AverageDurationMinutes = Math.Round(avgDuration, 1),
                 RevenueByVehicleType = revenueByType,
                 CountByVehicleType = countByType,
-                RevenueByPaymentMethod = revenueByPayment
+                RevenueByPaymentMethod = revenueByPayment,
+                CountByResolution = countByResolution,
+                RevenueByResolution = revenueByResolution
             };
         }
         catch (Exception ex)

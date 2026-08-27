@@ -15,4 +15,5 @@ public class AuthResponseDto
     public string RoleName { get; set; } = string.Empty;
     public bool IsAdmin { get; set; }
     public List<BranchDto> Branches { get; set; } = new();
+    public List<string> Permissions { get; set; } = new();
 }

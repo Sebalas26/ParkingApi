@@ -15,11 +15,16 @@ namespace ParkingApi.Controllers;
 public class BranchesController : ControllerBase
 {
     private readonly IBranchService _branchService;
+    private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
     private readonly ILogger<BranchesController> _logger;
 
-    public BranchesController(IBranchService branchService, ILogger<BranchesController> logger)
+    public BranchesController(
+        IBranchService branchService, 
+        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ILogger<BranchesController> logger)
     {
         _branchService = branchService;
+        _realtimeNotifier = realtimeNotifier;
         _logger = logger;
     }
 
@@ -64,6 +69,7 @@ public class BranchesController : ControllerBase
         try
         {
             var created = await _branchService.CreateAsync(dto, cancellationToken);
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("BranchCreated", "Nueva Sede Creada", $"Se ha registrado la sede '{created.Name}'.", cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (Exception ex)
@@ -80,6 +86,8 @@ public class BranchesController : ControllerBase
         {
             var updated = await _branchService.UpdateAsync(id, dto, cancellationToken);
             if (updated == null) return NotFound(new { message = $"Sede con Id {id} no encontrada." });
+
+            _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(id, "Sede Actualizada", $"Se actualizaron los datos y configuración de la sede '{updated.Name}'.", "BranchConfigChanged", cancellationToken);
             return Ok(updated);
         }
         catch (Exception ex)
@@ -116,7 +124,11 @@ public class BranchesController : ControllerBase
     public async Task<IActionResult> ConfigurePaymentMethods([FromBody] ConfigureBranchPaymentMethodsDto dto, CancellationToken cancellationToken)
     {
         var success = await _branchService.ConfigurePaymentMethodsAsync(dto, cancellationToken);
-        if (success) return Ok(new { message = "Medios de pago configurados correctamente para la sede." });
+        if (success)
+        {
+            _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId, "Medios de Pago Actualizados", "Se actualizaron los medios de pago disponibles para la sede.", "PaymentMethodsChanged", cancellationToken);
+            return Ok(new { message = "Medios de pago configurados correctamente para la sede." });
+        }
         return BadRequest(new { message = "No se pudieron configurar los medios de pago para la sede." });
     }
 

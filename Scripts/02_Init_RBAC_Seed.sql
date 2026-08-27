@@ -1,21 +1,404 @@
 -- ==================================================================================
 -- SCRIPT: 02_Init_RBAC_Seed.sql
--- DESCRIPCIÓN: Script Oficial y Completo de Inicialización RBAC (WPF & PWA).
+-- DESCRIPCIÓN: Script Oficial y Completo de Inicialización de Esquema y RBAC Seed.
 -- MOTOR: MySQL 8.x / MariaDB
 -- REGLAS DE NEGOCIO:
---   1. Cero precarga de Sedes/Parqueaderos, Medios de Pago, Tarifas o Transacciones.
---   2. Inicializa Tipos de Identificación, Roles, Usuario Admin Inicial ('admin').
---   3. Catálogo completo de 13 Módulos funcionales (Terminal WPF y Administración PWA).
---   4. Catálogo de 7 Operaciones estándar del sistema.
---   5. Catálogo de 48 Acciones y Slugs reales del sistema.
---   6. Asigna el 100% de Módulos y Acciones (Full Access) al Rol Administrador (Id 1).
---   7. Asigna Módulos y Acciones operativas al Rol Operador (Id 2).
+--   1. Aprovisionamiento seguro DDL (CREATE TABLE IF NOT EXISTS) para base de datos vacía.
+--   2. Cero precarga de Sedes/Parqueaderos, Medios de Pago, Tarifas o Transacciones.
+--   3. Inicializa Tipos de Identificación estándar (CC, CE, NIT, PAS, PEP).
+--   4. Inicializa ÚNICAMENTE el Rol 'Administrador' (Id 1). No se crean roles secundarios.
+--   5. Inicializa el Usuario 'admin' con Rol Administrador.
+--   6. Catálogo de los 15 Módulos del sistema (Terminal WPF y Administración PWA).
+--   7. Catálogo de 7 Operaciones estándar del sistema.
+--   8. Catálogo completo de 69 Acciones y Slugs reales del sistema (sin system.theme).
+--   9. Asigna el 100% de los 15 Módulos y el 100% de las 69 Acciones al Rol Administrador.
 -- ==================================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- ==================================================================================
+-- FASE 1: DDL SEGURO - CREACIÓN DE TABLAS (SI NO EXISTEN)
+-- ==================================================================================
+
+-- 1.1 Tipos de Identificación
+CREATE TABLE IF NOT EXISTS `IdentificationType` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Identification` VARCHAR(50) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.2 Roles de Usuario
+CREATE TABLE IF NOT EXISTS `UserRole` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Role` VARCHAR(50) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.3 Usuarios
+CREATE TABLE IF NOT EXISTS `User` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `UserRoleId` INT NOT NULL,
+    `IdentificationTypeId` INT NOT NULL,
+    `IdentificationNumber` VARCHAR(50) NOT NULL,
+    `FirstName` VARCHAR(50) NOT NULL DEFAULT '',
+    `MiddleName` VARCHAR(50) NULL DEFAULT '',
+    `FirstSurname` VARCHAR(50) NOT NULL DEFAULT '',
+    `SecondLastName` VARCHAR(50) NULL DEFAULT '',
+    `FullName` VARCHAR(150) NOT NULL,
+    `Username` VARCHAR(50) NOT NULL,
+    `Password` VARCHAR(255) NOT NULL,
+    `Email` VARCHAR(100) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `MustChangePassword` TINYINT(1) NOT NULL DEFAULT 0,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_User_Username` (`Username`),
+    KEY `IX_User_UserRoleId` (`UserRoleId`),
+    KEY `IX_User_IdentificationTypeId` (`IdentificationTypeId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.4 Módulos
+CREATE TABLE IF NOT EXISTS `Module` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Name` VARCHAR(100) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.5 Operaciones
+CREATE TABLE IF NOT EXISTS `Operation` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Name` VARCHAR(100) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.6 Acciones y Permisos
+CREATE TABLE IF NOT EXISTS `Action` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `ModuleId` INT NOT NULL,
+    `OperationId` INT NOT NULL,
+    `Name` VARCHAR(100) NOT NULL,
+    `Slug` VARCHAR(100) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_Action_Slug` (`Slug`),
+    KEY `IX_Action_ModuleId` (`ModuleId`),
+    KEY `IX_Action_OperationId` (`OperationId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.7 Relación Rol - Acciones (Permisos)
+CREATE TABLE IF NOT EXISTS `RoleAction` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `RoleId` INT NOT NULL,
+    `ActionId` INT NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_RoleAction_Role_Action` (`RoleId`, `ActionId`),
+    KEY `IX_RoleAction_ActionId` (`ActionId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.8 Relación Rol - Módulos
+CREATE TABLE IF NOT EXISTS `UserRoleModule` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `UserRoleId` INT NOT NULL,
+    `ModulesRoleId` INT NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_UserRoleModule_Role_Module` (`UserRoleId`, `ModulesRoleId`),
+    KEY `IX_UserRoleModule_ModulesRoleId` (`ModulesRoleId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.9 Medios de Pago Maestros
+CREATE TABLE IF NOT EXISTS `PaymentMethod` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Name` VARCHAR(50) NOT NULL,
+    `Icon` VARCHAR(50) NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.10 Sedes / Parqueaderos
+CREATE TABLE IF NOT EXISTS `Branches` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Code` VARCHAR(20) NOT NULL,
+    `Name` VARCHAR(100) NOT NULL,
+    `Address` VARCHAR(200) NOT NULL,
+    `Phone` VARCHAR(30) NULL,
+    `City` VARCHAR(50) NULL,
+    `TotalCapacity` INT NOT NULL DEFAULT 100,
+    `Notes` VARCHAR(500) NULL,
+    `LogoBase64` LONGTEXT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_Branches_Code` (`Code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.11 Asignación Usuario - Sedes
+CREATE TABLE IF NOT EXISTS `UserBranches` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `UserId` INT NOT NULL,
+    `BranchId` INT NOT NULL,
+    `IsDefault` TINYINT(1) NOT NULL DEFAULT 0,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_UserBranches_User_Branch` (`UserId`, `BranchId`),
+    KEY `IX_UserBranches_BranchId` (`BranchId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.12 Medios de Pago por Sede
+CREATE TABLE IF NOT EXISTS `BranchPaymentMethods` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `BranchId` INT NOT NULL,
+    `PaymentMethodId` INT NOT NULL,
+    `RequiresCashTender` TINYINT(1) NOT NULL DEFAULT 0,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_BranchPaymentMethods_Branch_PaymentMethod` (`BranchId`, `PaymentMethodId`),
+    KEY `IX_BranchPaymentMethods_PaymentMethodId` (`PaymentMethodId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.13 Tarifas de Vehículos
+CREATE TABLE IF NOT EXISTS `VehicleRates` (
+    `RateId` CHAR(36) NOT NULL,
+    `BranchId` INT NULL,
+    `DisplayName` VARCHAR(50) NOT NULL,
+    `IconKey` VARCHAR(50) NULL,
+    `HourRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `MinuteRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `FullDayRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `GracePeriodMinutes` INT NOT NULL DEFAULT 15,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    PRIMARY KEY (`RateId`),
+    KEY `IX_VehicleRates_BranchId` (`BranchId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.14 Comercios Aliados
+CREATE TABLE IF NOT EXISTS `Stores` (
+    `StoreId` CHAR(36) NOT NULL,
+    `BranchId` INT NULL,
+    `Name` VARCHAR(100) NOT NULL,
+    `TaxId` VARCHAR(50) NULL,
+    `Phone` VARCHAR(30) NULL,
+    `ContactPerson` VARCHAR(100) NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    PRIMARY KEY (`StoreId`),
+    KEY `IX_Stores_BranchId` (`BranchId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.15 Convenios Comerciales
+CREATE TABLE IF NOT EXISTS `CommercialAgreements` (
+    `AgreementId` CHAR(36) NOT NULL,
+    `StoreId` CHAR(36) NOT NULL,
+    `Name` VARCHAR(100) NOT NULL,
+    `MinPurchaseAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `DiscountPercentage` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `DiscountFixedAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `DiscountType` VARCHAR(50) NOT NULL DEFAULT 'Percentage',
+    `MaxHours` INT NULL,
+    `ImageUrl` LONGTEXT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    PRIMARY KEY (`AgreementId`),
+    KEY `IX_CommercialAgreements_StoreId` (`StoreId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.16 Tiquetes de Parqueadero
+CREATE TABLE IF NOT EXISTS `ParkingTickets` (
+    `TicketId` CHAR(36) NOT NULL,
+    `BranchId` INT NULL,
+    `TicketNumber` VARCHAR(50) NOT NULL,
+    `PlateNumber` VARCHAR(20) NOT NULL,
+    `VehicleType` VARCHAR(50) NOT NULL,
+    `CustomerPhone` VARCHAR(30) NULL,
+    `Notes` VARCHAR(500) NULL,
+    `EntryTime` DATETIME(6) NOT NULL,
+    `ExitTime` DATETIME(6) NULL,
+    `OperatorName` VARCHAR(100) NOT NULL,
+    `HourlyRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `GrossAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `DiscountAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `NetAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `AmountPaid` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `ChangeGiven` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `PaymentMethod` VARCHAR(50) NULL,
+    `Status` VARCHAR(50) NOT NULL DEFAULT 'Active',
+    `IsPrepaid` TINYINT(1) NOT NULL DEFAULT 0,
+    `ResolutionId` CHAR(36) NULL,
+    `ResolutionName` VARCHAR(150) NULL,
+    `InvoiceNumber` VARCHAR(50) NULL,
+    `IsElectronicInvoice` TINYINT(1) NOT NULL DEFAULT 0,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    PRIMARY KEY (`TicketId`),
+    UNIQUE KEY `UX_ParkingTickets_TicketNumber` (`TicketNumber`),
+    KEY `IX_ParkingTickets_PlateNumber` (`PlateNumber`),
+    KEY `IX_ParkingTickets_BranchId` (`BranchId`),
+    KEY `IX_ParkingTickets_ResolutionId` (`ResolutionId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.17 Descuentos de Tiquetes
+CREATE TABLE IF NOT EXISTS `TicketDiscounts` (
+    `TicketDiscountId` CHAR(36) NOT NULL,
+    `TicketId` CHAR(36) NOT NULL,
+    `StoreId` CHAR(36) NOT NULL,
+    `AgreementId` CHAR(36) NOT NULL,
+    `InvoiceNumber` VARCHAR(50) NOT NULL,
+    `PurchaseAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `AppliedDiscountAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`TicketDiscountId`),
+    KEY `IX_TicketDiscounts_TicketId` (`TicketId`),
+    KEY `IX_TicketDiscounts_StoreId` (`StoreId`),
+    KEY `IX_TicketDiscounts_AgreementId` (`AgreementId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.18 Turnos de Trabajo (Caja)
+CREATE TABLE IF NOT EXISTS `WorkShifts` (
+    `ShiftId` CHAR(36) NOT NULL,
+    `BranchId` INT NULL,
+    `UserId` INT NOT NULL,
+    `OperatorName` VARCHAR(100) NOT NULL,
+    `StartTime` DATETIME(6) NOT NULL,
+    `EndTime` DATETIME(6) NULL,
+    `BaseAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalCashCollected` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalCardCollected` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalTransferCollected` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalDiscounts` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `ExpectedCash` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `ActualCashCounted` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `CashDifference` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `Notes` VARCHAR(500) NULL,
+    `Status` VARCHAR(50) NOT NULL DEFAULT 'Open',
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    PRIMARY KEY (`ShiftId`),
+    KEY `IX_WorkShifts_BranchId` (`BranchId`),
+    KEY `IX_WorkShifts_UserId` (`UserId`),
+    KEY `IX_WorkShifts_Status` (`Status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.19 Mensualidades y Suscripciones
+CREATE TABLE IF NOT EXISTS `MonthlySubscriptions` (
+    `Id` CHAR(36) NOT NULL,
+    `SubscriptionId` CHAR(36) NOT NULL,
+    `BranchId` INT NULL,
+    `CustomerName` VARCHAR(150) NOT NULL,
+    `CustomerDocument` VARCHAR(50) NOT NULL,
+    `CustomerPhone` VARCHAR(30) NOT NULL,
+    `CustomerEmail` VARCHAR(100) NULL,
+    `PlateNumber` VARCHAR(20) NOT NULL,
+    `VehicleType` VARCHAR(50) NOT NULL,
+    `StartDate` DATETIME(6) NOT NULL,
+    `EndDate` DATETIME(6) NOT NULL,
+    `MonthlyFee` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `AmountPaid` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `PaymentMethod` VARCHAR(50) NULL,
+    `Notes` VARCHAR(500) NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_MonthlySubscriptions_SubscriptionId` (`SubscriptionId`),
+    KEY `IX_MonthlySubscriptions_PlateNumber` (`PlateNumber`),
+    KEY `IX_MonthlySubscriptions_BranchId` (`BranchId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.20 Resoluciones de Facturación (DIAN / POS)
+CREATE TABLE IF NOT EXISTS `BillingResolutions` (
+    `ResolutionId` CHAR(36) NOT NULL,
+    `BranchId` INT NULL,
+    `Name` VARCHAR(150) NOT NULL,
+    `DocumentType` VARCHAR(250) NOT NULL,
+    `Prefix` VARCHAR(20) NOT NULL,
+    `ResolutionNumber` VARCHAR(50) NOT NULL,
+    `FromNumber` BIGINT NOT NULL DEFAULT 1,
+    `ToNumber` BIGINT NOT NULL DEFAULT 999999,
+    `CurrentNumber` BIGINT NOT NULL DEFAULT 0,
+    `ValidFrom` DATETIME NOT NULL,
+    `ValidTo` DATETIME NOT NULL,
+    `TechnicalKey` LONGTEXT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAtUtc` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAtUtc` DATETIME NULL,
+    PRIMARY KEY (`ResolutionId`),
+    KEY `IX_BillingResolutions_BranchId` (`BranchId`),
+    KEY `IX_BillingResolutions_ResolutionNumber` (`ResolutionNumber`),
+    KEY `IX_BillingResolutions_Prefix` (`Prefix`),
+    KEY `IX_BillingResolutions_IsActive` (`IsActive`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.21 Novedades y Bloqueo de Placas (Incidencias)
+CREATE TABLE IF NOT EXISTS `VehicleIncidents` (
+    `IncidentId` CHAR(36) NOT NULL,
+    `PlateNumber` VARCHAR(20) NOT NULL,
+    `BranchId` INT NULL,
+    `IncidentType` VARCHAR(100) NOT NULL,
+    `IsBlocked` TINYINT(1) NOT NULL DEFAULT 0,
+    `Description` LONGTEXT NOT NULL,
+    `ReportedBy` VARCHAR(100) NOT NULL,
+    `ContactPhone` VARCHAR(30) NULL,
+    `Status` VARCHAR(30) NOT NULL DEFAULT 'Activa',
+    `ResolvedNotes` LONGTEXT NULL,
+    `ResolvedAtUtc` DATETIME NULL,
+    `CreatedAtUtc` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAtUtc` DATETIME NULL,
+    PRIMARY KEY (`IncidentId`),
+    KEY `IX_VehicleIncidents_PlateNumber` (`PlateNumber`),
+    KEY `IX_VehicleIncidents_BranchId` (`BranchId`),
+    KEY `IX_VehicleIncidents_IsBlocked` (`IsBlocked`),
+    KEY `IX_VehicleIncidents_Status` (`Status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ==================================================================================
+-- FASE 2: INSERCIÓN DE DATOS SEMILLA (SEEDS)
+-- ==================================================================================
+
 -- ----------------------------------------------------------------------------------
--- 1. TIPOS DE IDENTIFICACIÓN (IdentificationType)
+-- 2.1 TIPOS DE IDENTIFICACIÓN (IdentificationType)
 -- ----------------------------------------------------------------------------------
 INSERT INTO IdentificationType (Id, Identification, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
@@ -30,21 +413,19 @@ ON DUPLICATE KEY UPDATE
     IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
--- 2. ROLES DE USUARIO (UserRole)
+-- 2.2 ROLES DE USUARIO (UserRole) - ÚNICAMENTE ROL ADMINISTRADOR
 -- ----------------------------------------------------------------------------------
 INSERT INTO UserRole (Id, Role, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
-    (1, 'Administrador', 1, UTC_TIMESTAMP(), NULL),
-    (2, 'Operador',      1, UTC_TIMESTAMP(), NULL),
-    (3, 'Supervisor',    1, UTC_TIMESTAMP(), NULL)
+    (1, 'Administrador', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     Role = new_row.Role, 
     IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
--- 3. USUARIO ADMINISTRADOR PRINCIPAL (User)
--- Contraseña generada con BCrypt para 'Admin2026*'
+-- 2.3 USUARIO ADMINISTRADOR PRINCIPAL (User)
+-- Contraseña por defecto: 'Admin2026*' (BCrypt) o clave de pruebas
 -- ----------------------------------------------------------------------------------
 INSERT INTO User (
     Id, UserRoleId, IdentificationTypeId, IdentificationNumber, 
@@ -55,8 +436,8 @@ VALUES (
     1, 1, 1, '1000000000', 
     'Administrador', '', 'Principal', '', 'Administrador del Sistema',
     'admin', 
-    '$2a$11$eA8b7w9H4W5nN8u9o3r0ueLd3eGf6h8j0k1l2m3n4o5p6q7r8s9t0', -- Admin2026*
-    'admin@parkflow.local', 
+    '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    'admin@parkpoint.local', 
     1, 0, UTC_TIMESTAMP()
 )
 AS new_row
@@ -70,33 +451,35 @@ ON DUPLICATE KEY UPDATE
     IsActive = 1;
 
 -- ----------------------------------------------------------------------------------
--- 4. MÓDULOS DEL SISTEMA (Module) - 13 Módulos (WPF & PWA)
+-- 2.4 CATÁLOGO COMPLETO DE 15 MÓDULOS (Module)
 -- ----------------------------------------------------------------------------------
 INSERT INTO Module (Id, Name, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
     -- Módulos Operativos (WPF / PWA)
-    (1,  'Ingreso de Vehículos (CheckIn)',    1, UTC_TIMESTAMP(), NULL),
-    (2,  'Salida y Cobro (CheckOut)',         1, UTC_TIMESTAMP(), NULL),
-    (3,  'Mensualidades y Abonados',          1, UTC_TIMESTAMP(), NULL),
-    (4,  'Vehículos en Patio y Monitoreo',    1, UTC_TIMESTAMP(), NULL),
-    (5,  'Control de Turnos y Caja',          1, UTC_TIMESTAMP(), NULL),
-    (6,  'Analítica, Métricas y Finanzas',    1, UTC_TIMESTAMP(), NULL),
+    (1,  'Ingreso de Vehículos (CheckIn)',      1, UTC_TIMESTAMP(), NULL),
+    (2,  'Salida y Cobro (CheckOut)',           1, UTC_TIMESTAMP(), NULL),
+    (3,  'Mensualidades y Abonados',            1, UTC_TIMESTAMP(), NULL),
+    (4,  'Vehículos en Patio y Monitoreo',      1, UTC_TIMESTAMP(), NULL),
+    (5,  'Control de Turnos y Caja',            1, UTC_TIMESTAMP(), NULL),
+    (6,  'Analítica, Métricas y Finanzas',      1, UTC_TIMESTAMP(), NULL),
 
-    -- Módulos Administrativos y Parametría (PWA / Panel Central)
-    (7,  'Gestión de Sedes y Parqueaderos',   1, UTC_TIMESTAMP(), NULL),
-    (8,  'Gestión de Tarifas y Vehículos',    1, UTC_TIMESTAMP(), NULL),
-    (9,  'Medios de Pago Maestros',           1, UTC_TIMESTAMP(), NULL),
-    (10, 'Convenios y Comercios Aliados',     1, UTC_TIMESTAMP(), NULL),
-    (11, 'Seguridad, Usuarios y Roles',       1, UTC_TIMESTAMP(), NULL),
-    (12, 'Matriz de Permisos RBAC',           1, UTC_TIMESTAMP(), NULL),
-    (13, 'Configuración y Sistema',           1, UTC_TIMESTAMP(), NULL)
+    -- Módulos Administrativos y Configuración (PWA / Panel Central)
+    (7,  'Gestión de Sedes y Parqueaderos',     1, UTC_TIMESTAMP(), NULL),
+    (8,  'Gestión de Tarifas y Vehículos',      1, UTC_TIMESTAMP(), NULL),
+    (9,  'Medios de Pago Maestros',             1, UTC_TIMESTAMP(), NULL),
+    (10, 'Convenios y Comercios Aliados',       1, UTC_TIMESTAMP(), NULL),
+    (11, 'Seguridad, Usuarios y Roles',         1, UTC_TIMESTAMP(), NULL),
+    (12, 'Matriz de Permisos RBAC',             1, UTC_TIMESTAMP(), NULL),
+    (13, 'Configuración y Sistema',             1, UTC_TIMESTAMP(), NULL),
+    (14, 'Resoluciones de Facturación',         1, UTC_TIMESTAMP(), NULL),
+    (15, 'Novedades y Bloqueo de Placas',       1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     Name = new_row.Name, 
     IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
--- 5. OPERACIONES BASE (Operation) - 7 Operaciones Estándar
+-- 2.5 OPERACIONES BASE (Operation) - 7 Operaciones Estándar
 -- ----------------------------------------------------------------------------------
 INSERT INTO Operation (Id, Name, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
@@ -113,19 +496,19 @@ ON DUPLICATE KEY UPDATE
     IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
--- 6. ACCIONES Y SLUGS REALES DEL SISTEMA (Action) - 48 Acciones
+-- 2.6 ACCIONES Y SLUGS REALES DEL SISTEMA (Action) - Total: 69 Acciones
 -- ----------------------------------------------------------------------------------
 INSERT INTO Action (Id, ModuleId, OperationId, Name, Slug, IsActive, CreatedAt, ResponsibleUserId)
 VALUES
     -- ==============================================================================
-    -- MÓDULO 1: INGRESO DE VEHÍCULOS (CheckIn)
+    -- MÓDULO 1: INGRESO DE VEHÍCULOS (CheckIn - WPF & PWA)
     -- ==============================================================================
     (1,  1, 1, 'Ver módulo de ingreso', 'checkin.view', 1, UTC_TIMESTAMP(), NULL),
     (2,  1, 2, 'Generar e imprimir tiquete de ingreso', 'checkin.create', 1, UTC_TIMESTAMP(), NULL),
     (3,  1, 6, 'Reimprimir tiquete de ingreso', 'checkin.reprint', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
-    -- MÓDULO 2: SALIDA Y COBRO / CAJA (CheckOut)
+    -- MÓDULO 2: SALIDA Y COBRO / CAJA (CheckOut - WPF & PWA)
     -- ==============================================================================
     (4,  2, 1, 'Ver módulo de cobro y liquidación', 'checkout.view', 1, UTC_TIMESTAMP(), NULL),
     (5,  2, 1, 'Buscar tiquete por placa o código de barras', 'checkout.search', 1, UTC_TIMESTAMP(), NULL),
@@ -136,7 +519,7 @@ VALUES
     (10, 2, 5, 'Apertura manual de talanquera / salida contingente', 'checkout.manual_barrier_open', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
-    -- MÓDULO 3: MENSUALIDADES Y ABONADOS (Subscriptions)
+    -- MÓDULO 3: MENSUALIDADES Y ABONADOS (Subscriptions - WPF & PWA)
     -- ==============================================================================
     (11, 3, 1, 'Ver módulo de mensualidades y abonados', 'subscriptions.view', 1, UTC_TIMESTAMP(), NULL),
     (12, 3, 2, 'Crear nueva suscripción de mensualidad', 'subscriptions.create', 1, UTC_TIMESTAMP(), NULL),
@@ -145,14 +528,14 @@ VALUES
     (15, 3, 4, 'Cancelar / dar de baja mensualidad', 'subscriptions.cancel', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
-    -- MÓDULO 4: VEHÍCULOS EN PATIO Y MONITOREO (RecentEntries)
+    -- MÓDULO 4: VEHÍCULOS EN PATIO Y MONITOREO (RecentEntries - WPF & PWA)
     -- ==============================================================================
     (16, 4, 1, 'Ver listado de vehículos en patio y recientes', 'recent_entries.view', 1, UTC_TIMESTAMP(), NULL),
     (17, 4, 6, 'Reimprimir tiquete desde patio', 'recent_entries.reprint', 1, UTC_TIMESTAMP(), NULL),
     (18, 4, 6, 'Exportar listado de vehículos en patio', 'recent_entries.export', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
-    -- MÓDULO 5: CONTROL DE TURNOS Y CAJA (Shifts)
+    -- MÓDULO 5: CONTROL DE TURNOS Y CAJA (Shifts - WPF & PWA)
     -- ==============================================================================
     (19, 5, 1, 'Ver balance de turno y arqueo de caja', 'shift.view', 1, UTC_TIMESTAMP(), NULL),
     (20, 5, 2, 'Apertura de turno operativo con base inicial', 'shift.open', 1, UTC_TIMESTAMP(), NULL),
@@ -163,70 +546,88 @@ VALUES
     (25, 5, 6, 'Imprimir comprobante de cierre / Reporte Z', 'shift.export', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
-    -- MÓDULO 6: ANALÍTICA, MÉTRICAS Y FINANZAS (Analytics)
+    -- MÓDULO 6: ANALÍTICA, MÉTRICAS Y FINANZAS (Analytics & Reports - PWA & WPF)
     -- ==============================================================================
     (26, 6, 1, 'Ver dashboard financiero y analítica', 'analytics.view', 1, UTC_TIMESTAMP(), NULL),
     (27, 6, 1, 'Consultar métricas de ocupación e ingresos', 'analytics.metrics', 1, UTC_TIMESTAMP(), NULL),
     (28, 6, 6, 'Exportar informes contables y balances', 'analytics.export', 1, UTC_TIMESTAMP(), NULL),
+    (29, 6, 1, 'Ver módulo de reportes consolidados', 'reports.view', 1, UTC_TIMESTAMP(), NULL),
+    (30, 6, 6, 'Exportar reportes consolidados a Excel', 'reports.export', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
     -- MÓDULO 7: GESTIÓN DE SEDES Y PARQUEADEROS (Branches - PWA)
     -- ==============================================================================
-    (29, 7, 1, 'Ver catálogo de sedes y parqueaderos', 'branches.view', 1, UTC_TIMESTAMP(), NULL),
-    (30, 7, 2, 'Crear nueva sede de parqueadero', 'branches.create', 1, UTC_TIMESTAMP(), NULL),
-    (31, 7, 3, 'Editar información de sede (capacidad, dirección, notas)', 'branches.edit', 1, UTC_TIMESTAMP(), NULL),
-    (32, 7, 4, 'Inactivar sede de parqueadero', 'branches.delete', 1, UTC_TIMESTAMP(), NULL),
-    (33, 7, 7, 'Asignar operadores y administradores a sedes', 'branches.assign_users', 1, UTC_TIMESTAMP(), NULL),
-    (34, 7, 7, 'Configurar medios de pago por sede', 'branches.configure_payments', 1, UTC_TIMESTAMP(), NULL),
+    (31, 7, 1, 'Ver catálogo de sedes y parqueaderos', 'branches.view', 1, UTC_TIMESTAMP(), NULL),
+    (32, 7, 2, 'Crear nueva sede de parqueadero', 'branches.create', 1, UTC_TIMESTAMP(), NULL),
+    (33, 7, 3, 'Editar información de sede (capacidad, dirección, notas)', 'branches.edit', 1, UTC_TIMESTAMP(), NULL),
+    (34, 7, 4, 'Inactivar sede de parqueadero', 'branches.delete', 1, UTC_TIMESTAMP(), NULL),
+    (35, 7, 7, 'Asignar operadores y administradores a sedes', 'branches.assign_users', 1, UTC_TIMESTAMP(), NULL),
+    (36, 7, 7, 'Configurar medios de pago por sede', 'branches.configure_payments', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
     -- MÓDULO 8: GESTIÓN DE TARIFAS Y VEHÍCULOS (Rates - PWA)
     -- ==============================================================================
-    (35, 8, 1, 'Ver catálogo de tarifas vehiculares', 'rates.view', 1, UTC_TIMESTAMP(), NULL),
-    (36, 8, 2, 'Crear nueva tarifa vehicular por sede', 'rates.create', 1, UTC_TIMESTAMP(), NULL),
-    (37, 8, 3, 'Editar y parametrizar tarifas y tiempos de gracia', 'rates.edit', 1, UTC_TIMESTAMP(), NULL),
-    (38, 8, 4, 'Inactivar tarifa vehicular', 'rates.delete', 1, UTC_TIMESTAMP(), NULL),
+    (37, 8, 1, 'Ver catálogo de tarifas vehiculares', 'rates.view', 1, UTC_TIMESTAMP(), NULL),
+    (38, 8, 2, 'Crear nueva tarifa vehicular por sede', 'rates.create', 1, UTC_TIMESTAMP(), NULL),
+    (39, 8, 3, 'Editar y parametrizar tarifas y tiempos de gracia', 'rates.edit', 1, UTC_TIMESTAMP(), NULL),
+    (40, 8, 4, 'Inactivar tarifa vehicular', 'rates.delete', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
     -- MÓDULO 9: MEDIOS DE PAGO MAESTROS (PaymentMethods - PWA)
     -- ==============================================================================
-    (39, 9, 1, 'Ver catálogo maestro de medios de pago', 'payment_methods.view', 1, UTC_TIMESTAMP(), NULL),
-    (40, 9, 2, 'Crear nuevo medio de pago en el sistema', 'payment_methods.create', 1, UTC_TIMESTAMP(), NULL),
-    (41, 9, 3, 'Editar medio de pago (nombre, icono)', 'payment_methods.edit', 1, UTC_TIMESTAMP(), NULL),
-    (42, 9, 4, 'Inactivar medio de pago maestro', 'payment_methods.delete', 1, UTC_TIMESTAMP(), NULL),
+    (41, 9, 1, 'Ver catálogo maestro de medios de pago', 'payment_methods.view', 1, UTC_TIMESTAMP(), NULL),
+    (42, 9, 2, 'Crear nuevo medio de pago en el sistema', 'payment_methods.create', 1, UTC_TIMESTAMP(), NULL),
+    (43, 9, 3, 'Editar medio de pago (nombre, icono)', 'payment_methods.edit', 1, UTC_TIMESTAMP(), NULL),
+    (44, 9, 4, 'Inactivar medio de pago maestro', 'payment_methods.delete', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
     -- MÓDULO 10: CONVENIOS Y COMERCIOS ALIADOS (Agreements - PWA)
     -- ==============================================================================
-    (43, 10, 1, 'Ver convenios comerciales y comercios afiliados', 'agreements.view', 1, UTC_TIMESTAMP(), NULL),
-    (44, 10, 2, 'Crear nuevo comercio y convenio comercial', 'agreements.create', 1, UTC_TIMESTAMP(), NULL),
-    (45, 10, 3, 'Editar condiciones de descuento y montos mínimos', 'agreements.edit', 1, UTC_TIMESTAMP(), NULL),
-    (46, 10, 4, 'Inactivar convenio o comercio', 'agreements.delete', 1, UTC_TIMESTAMP(), NULL),
+    (45, 10, 1, 'Ver convenios comerciales y comercios afiliados', 'agreements.view', 1, UTC_TIMESTAMP(), NULL),
+    (46, 10, 2, 'Crear nuevo comercio y convenio comercial', 'agreements.create', 1, UTC_TIMESTAMP(), NULL),
+    (47, 10, 3, 'Editar condiciones de descuento y montos mínimos', 'agreements.edit', 1, UTC_TIMESTAMP(), NULL),
+    (48, 10, 4, 'Inactivar convenio o comercio', 'agreements.delete', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
     -- MÓDULO 11: SEGURIDAD, USUARIOS Y ROLES (Users & Roles - PWA)
     -- ==============================================================================
-    (47, 11, 1, 'Ver usuarios y roles del sistema', 'users.view', 1, UTC_TIMESTAMP(), NULL),
-    (48, 11, 2, 'Crear nuevo usuario operador / administrador', 'users.create', 1, UTC_TIMESTAMP(), NULL),
-    (49, 11, 3, 'Editar datos de usuario y restablecer contraseñas', 'users.edit', 1, UTC_TIMESTAMP(), NULL),
-    (50, 11, 4, 'Inactivar usuario del sistema', 'users.delete', 1, UTC_TIMESTAMP(), NULL),
-    (51, 11, 1, 'Ver catálogo de roles de usuario', 'roles.view', 1, UTC_TIMESTAMP(), NULL),
-    (52, 11, 2, 'Crear nuevo rol de usuario', 'roles.create', 1, UTC_TIMESTAMP(), NULL),
-    (53, 11, 3, 'Editar nombre y estado de rol', 'roles.edit', 1, UTC_TIMESTAMP(), NULL),
-    (54, 11, 4, 'Inactivar rol de usuario', 'roles.delete', 1, UTC_TIMESTAMP(), NULL),
+    (49, 11, 1, 'Ver usuarios del sistema', 'users.view', 1, UTC_TIMESTAMP(), NULL),
+    (50, 11, 2, 'Crear nuevo usuario operador / administrador', 'users.create', 1, UTC_TIMESTAMP(), NULL),
+    (51, 11, 3, 'Editar datos de usuario y restablecer contraseñas', 'users.edit', 1, UTC_TIMESTAMP(), NULL),
+    (52, 11, 4, 'Inactivar usuario del sistema', 'users.delete', 1, UTC_TIMESTAMP(), NULL),
+    (53, 11, 1, 'Ver catálogo de roles de usuario', 'roles.view', 1, UTC_TIMESTAMP(), NULL),
+    (54, 11, 2, 'Crear nuevo rol de usuario', 'roles.create', 1, UTC_TIMESTAMP(), NULL),
+    (55, 11, 3, 'Editar nombre y estado de rol', 'roles.edit', 1, UTC_TIMESTAMP(), NULL),
+    (56, 11, 4, 'Inactivar rol de usuario', 'roles.delete', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
     -- MÓDULO 12: MATRIZ DE PERMISOS RBAC (Permissions - PWA)
     -- ==============================================================================
-    (55, 12, 1, 'Ver matriz de permisos por rol', 'permissions.view', 1, UTC_TIMESTAMP(), NULL),
-    (56, 12, 7, 'Asignar y revocar acciones y módulos a roles', 'permissions.assign', 1, UTC_TIMESTAMP(), NULL),
+    (57, 12, 1, 'Ver matriz de permisos por rol', 'permissions.view', 1, UTC_TIMESTAMP(), NULL),
+    (58, 12, 7, 'Asignar y revocar acciones y módulos a roles', 'permissions.assign', 1, UTC_TIMESTAMP(), NULL),
 
     -- ==============================================================================
     -- MÓDULO 13: CONFIGURACIÓN Y SISTEMA (System - WPF & PWA)
     -- ==============================================================================
-    (57, 13, 5, 'Ejecutar sincronización manual en caliente', 'system.sync', 1, UTC_TIMESTAMP(), NULL),
-    (58, 13, 5, 'Limpiar caché local y forzar resincronización', 'system.clean_cache', 1, UTC_TIMESTAMP(), NULL),
-    (59, 13, 3, 'Cambiar tema visual de la interfaz', 'system.theme', 1, UTC_TIMESTAMP(), NULL)
+    (59, 13, 5, 'Ejecutar sincronización manual en caliente', 'system.sync', 1, UTC_TIMESTAMP(), NULL),
+    (60, 13, 5, 'Limpiar caché local y forzar resincronización', 'system.clean_cache', 1, UTC_TIMESTAMP(), NULL),
+
+    -- ==============================================================================
+    -- MÓDULO 14: RESOLUCIONES DE FACTURACIÓN (Resolutions - DIAN / POS - PWA)
+    -- ==============================================================================
+    (61, 14, 1, 'Ver catálogo de resoluciones de facturación', 'resolutions.view', 1, UTC_TIMESTAMP(), NULL),
+    (62, 14, 2, 'Crear nueva resolución de facturación DIAN / POS', 'resolutions.create', 1, UTC_TIMESTAMP(), NULL),
+    (63, 14, 3, 'Editar rangos, prefijos y vigencias de resolución', 'resolutions.edit', 1, UTC_TIMESTAMP(), NULL),
+    (64, 14, 4, 'Inactivar resolución de facturación', 'resolutions.delete', 1, UTC_TIMESTAMP(), NULL),
+
+    -- ==============================================================================
+    -- MÓDULO 15: NOVEDADES Y BLOQUEO DE PLACAS (Incidents & Blacklist - PWA & WPF)
+    -- ==============================================================================
+    (65, 15, 1, 'Ver novedades e incidencias de vehículos', 'novedades.view', 1, UTC_TIMESTAMP(), NULL),
+    (66, 15, 2, 'Registrar novedad o bloqueo restrictivo de placa', 'novedades.create', 1, UTC_TIMESTAMP(), NULL),
+    (67, 15, 3, 'Editar observaciones y contacto de novedad', 'novedades.edit', 1, UTC_TIMESTAMP(), NULL),
+    (68, 15, 5, 'Resolver novedad y levantar restricción de placa', 'novedades.resolve', 1, UTC_TIMESTAMP(), NULL),
+    (69, 15, 4, 'Eliminar registro de novedad', 'novedades.delete', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     ModuleId = new_row.ModuleId,
@@ -236,49 +637,28 @@ ON DUPLICATE KEY UPDATE
     IsActive = new_row.IsActive;
 
 -- ----------------------------------------------------------------------------------
--- 7. MATRIZ DE MÓDULOS POR ROL (UserRoleModule)
--- Asignación del 100% de los 13 Módulos al Rol 1 (Administrador)
+-- 2.7 MATRIZ DE MÓDULOS POR ROL (UserRoleModule)
+-- Asignación del 100% de los 15 Módulos ÚNICAMENTE al Rol 1 (Administrador)
 -- ----------------------------------------------------------------------------------
-DELETE FROM UserRoleModule WHERE UserRoleId = 1;
+DELETE FROM `UserRoleModule` WHERE `UserRoleId` = 1;
 
 INSERT INTO `UserRoleModule` (`UserRoleId`, `ModulesRoleId`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
 SELECT 1, `Id`, 1, UTC_TIMESTAMP(), 1 FROM `Module`;
 
--- Asignación de Módulos Operativos al Rol 2 (Operador)
-DELETE FROM `UserRoleModule` WHERE `UserRoleId` = 2;
-
-INSERT INTO `UserRoleModule` (`UserRoleId`, `ModulesRoleId`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
-SELECT 2, `Id`, 1, UTC_TIMESTAMP(), 1 FROM `Module` WHERE `Id` IN (1, 2, 3, 4, 5, 6, 13);
-
 -- ----------------------------------------------------------------------------------
--- 8. MATRIZ DE PERMISOS: ROL ACCIONES (RoleAction)
--- Asignación del 100% de las Acciones al Rol 1 (Administrador) - FULL ACCESS
+-- 2.8 MATRIZ DE PERMISOS: ROL ACCIONES (RoleAction)
+-- Asignación del 100% de las 69 Acciones ÚNICAMENTE al Rol 1 (Administrador) - FULL ACCESS
 -- ----------------------------------------------------------------------------------
 DELETE FROM `RoleAction` WHERE `RoleId` = 1;
 
 INSERT INTO `RoleAction` (`RoleId`, `ActionId`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
 SELECT 1, `Id`, 1, UTC_TIMESTAMP(), 1 FROM `Action`;
 
--- Asignación de Acciones Operativas al Rol 2 (Operador)
-DELETE FROM `RoleAction` WHERE `RoleId` = 2;
-
-INSERT INTO `RoleAction` (`RoleId`, `ActionId`, `IsActive`, `CreatedAt`, `ResponsibleUserId`)
-SELECT 2, `Id`, 1, UTC_TIMESTAMP(), 1 FROM `Action`
-WHERE `Slug` IN (
-    'checkin.view', 'checkin.create', 'checkin.reprint',
-    'checkout.view', 'checkout.search', 'checkout.apply_discount', 'checkout.process_payment', 'checkout.reprint_receipt',
-    'subscriptions.view', 'subscriptions.create', 'subscriptions.renew',
-    'recent_entries.view', 'recent_entries.reprint',
-    'shift.view', 'shift.open', 'shift.cash_withdrawal', 'shift.close', 'shift.handover', 'shift.history', 'shift.export',
-    'analytics.view',
-    'system.sync', 'system.theme'
-);
-
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ----------------------------------------------------------------------------------
--- 9. VERIFICACIÓN Y AUDITORÍA DE PERMISOS ASIGNADOS AL ADMINISTRADOR
--- ----------------------------------------------------------------------------------
+-- ==================================================================================
+-- FASE 3: VERIFICACIÓN Y AUDITORÍA FINAL
+-- ==================================================================================
 SELECT 
     u.Id AS UsuarioId,
     u.Username AS Usuario,
@@ -292,19 +672,3 @@ LEFT JOIN UserRoleModule urm ON urm.UserRoleId = r.Id AND urm.IsActive = 1
 LEFT JOIN RoleAction ra ON ra.RoleId = r.Id AND ra.IsActive = 1
 WHERE u.Username = 'admin'
 GROUP BY u.Id, u.Username, u.FullName, r.Role;
-
--- Listado detallado de todas las acciones asignadas al Administrador
-SELECT 
-    m.Name AS Modulo,
-    o.Name AS Operacion,
-    a.Name AS Accion,
-    a.Slug AS CodigoPermiso,
-    ra.IsActive AS AsignadoActivo
-FROM User u
-INNER JOIN UserRole r ON u.UserRoleId = r.Id
-INNER JOIN RoleAction ra ON ra.RoleId = r.Id
-INNER JOIN Action a ON ra.ActionId = a.Id
-INNER JOIN Module m ON a.ModuleId = m.Id
-INNER JOIN Operation o ON a.OperationId = o.Id
-WHERE u.Username = 'admin'
-ORDER BY m.Id, o.Id, a.Id;

@@ -60,52 +60,121 @@ public class SyncService : ISyncService
         _logger = logger;
     }
 
-    public async Task<BootstrapSyncDto> GetBootstrapDataAsync(CancellationToken cancellationToken = default)
+    public async Task<BootstrapSyncDto> GetBootstrapDataAsync(int? branchId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var branches = await _branchRepository.GetActiveAsync(cancellationToken);
-            var users = await _userRepository.GetAllActiveUsersAsync(cancellationToken);
-            var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(cancellationToken);
-            var rates = await _rateRepository.GetAllAsync(cancellationToken);
-            var stores = await _storeRepository.GetAllAsync(cancellationToken);
-            var agreements = await _agreementRepository.GetAllAsync(cancellationToken);
-            var shifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, null, cancellationToken);
-            var subscriptions = await _monthlySubscriptionRepository.GetAllAsync(cancellationToken);
-            var activeTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
-            var recentTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
-
             var totalCapacity = int.TryParse(_configuration["ParkingSettings:TotalCapacity"], out var cap) ? cap : 100;
+            List<Branch> branches;
+            List<User> users;
+            List<PaymentMethod> paymentMethods;
 
-            var paymentMethods = paymentMethodsDtos.Select(dto => new PaymentMethod
+            if (branchId.HasValue)
             {
-                Id = dto.Id,
-                Name = dto.Name,
-                Icon = dto.Icon,
-                IsActive = dto.IsActive,
-                CreatedAt = dto.CreatedAt ?? DateTime.UtcNow,
-                UpdatedAt = dto.UpdatedAt
-            }).ToList();
+                var branch = await _branchRepository.GetByIdAsync(branchId.Value, cancellationToken);
+                branches = branch != null ? new List<Branch> { branch } : (await _branchRepository.GetActiveAsync(cancellationToken)).ToList();
+                if (branch != null)
+                {
+                    totalCapacity = branch.TotalCapacity;
+                }
+
+                users = (await _branchRepository.GetUsersByBranchIdAsync(branchId.Value, cancellationToken)).ToList();
+
+                var branchPms = await _branchRepository.GetPaymentMethodsByBranchIdAsync(branchId.Value, cancellationToken);
+                if (branchPms.Any())
+                {
+                    paymentMethods = branchPms.Select(bpm => new PaymentMethod
+                    {
+                        Id = bpm.PaymentMethod.Id,
+                        Name = bpm.PaymentMethod.Name,
+                        Icon = bpm.PaymentMethod.Icon,
+                        IsActive = bpm.PaymentMethod.IsActive && bpm.IsActive,
+                        CreatedAt = bpm.PaymentMethod.CreatedAt,
+                        UpdatedAt = bpm.PaymentMethod.UpdatedAt
+                    }).ToList();
+                }
+                else
+                {
+                    var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(cancellationToken);
+                    paymentMethods = paymentMethodsDtos.Select(dto => new PaymentMethod
+                    {
+                        Id = dto.Id,
+                        Name = dto.Name,
+                        Icon = dto.Icon,
+                        IsActive = dto.IsActive,
+                        CreatedAt = dto.CreatedAt ?? DateTime.UtcNow,
+                        UpdatedAt = dto.UpdatedAt
+                    }).ToList();
+                }
+            }
+            else
+            {
+                branches = (await _branchRepository.GetActiveAsync(cancellationToken)).ToList();
+                users = (await _userRepository.GetAllActiveUsersAsync(cancellationToken)).ToList();
+                var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(cancellationToken);
+                paymentMethods = paymentMethodsDtos.Select(dto => new PaymentMethod
+                {
+                    Id = dto.Id,
+                    Name = dto.Name,
+                    Icon = dto.Icon,
+                    IsActive = dto.IsActive,
+                    CreatedAt = dto.CreatedAt ?? DateTime.UtcNow,
+                    UpdatedAt = dto.UpdatedAt
+                }).ToList();
+            }
+
+            var allRates = await _rateRepository.GetAllAsync(cancellationToken);
+            var rates = branchId.HasValue
+                ? allRates.Where(r => r.IsActive && r.BranchId == branchId.Value).ToList()
+                : allRates.Where(r => r.IsActive).ToList();
+
+            var allStores = await _storeRepository.GetAllAsync(cancellationToken);
+            var allAgreements = await _agreementRepository.GetAllAsync(cancellationToken);
+            var stores = branchId.HasValue
+                ? allStores.Where(s => s.IsActive && s.BranchId == branchId.Value).ToList()
+                : allStores.Where(s => s.IsActive).ToList();
+
+            var storeIds = stores.Select(s => s.StoreId).ToHashSet();
+            var agreements = allAgreements.Where(a => a.IsActive && storeIds.Contains(a.StoreId)).ToList();
+
+            var allShifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, null, cancellationToken);
+            var shifts = branchId.HasValue
+                ? allShifts.Where(ws => ws.BranchId == branchId.Value).ToList()
+                : allShifts.ToList();
+
+            var allSubs = await _monthlySubscriptionRepository.GetAllAsync(cancellationToken);
+            var subscriptions = branchId.HasValue
+                ? allSubs.Where(s => s.IsActive && s.BranchId == branchId.Value).ToList()
+                : allSubs.Where(s => s.IsActive).ToList();
+
+            var allActiveTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
+            var allRecentTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
+            var activeTickets = branchId.HasValue
+                ? allActiveTickets.Where(t => t.BranchId == branchId.Value).ToList()
+                : allActiveTickets.ToList();
+            var recentTickets = branchId.HasValue
+                ? allRecentTickets.Where(t => t.BranchId == branchId.Value).ToList()
+                : allRecentTickets.ToList();
 
             return new BootstrapSyncDto
             {
                 ServerTimeUtc = DateTime.UtcNow,
                 TotalCapacity = totalCapacity,
-                Branches = branches.ToList(),
-                Users = users.ToList(),
+                Branches = branches,
+                Users = users,
                 PaymentMethods = paymentMethods,
-                Rates = rates.ToList(),
-                Stores = stores.ToList(),
-                Agreements = agreements.ToList(),
-                WorkShifts = shifts.ToList(),
-                MonthlySubscriptions = subscriptions.ToList(),
-                ActiveTickets = activeTickets.ToList(),
-                RecentTickets = recentTickets.ToList()
+                Rates = rates,
+                Stores = stores,
+                Agreements = agreements,
+                WorkShifts = shifts,
+                MonthlySubscriptions = subscriptions,
+                ActiveTickets = activeTickets,
+                RecentTickets = recentTickets
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al generar datos de sincronización inicial (bootstrap)");
+            _logger.LogError(ex, "Error al generar datos de sincronización inicial (bootstrap) para sede {BranchId}", branchId);
             return new BootstrapSyncDto();
         }
     }

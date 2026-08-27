@@ -21,16 +21,16 @@ public class SyncController : ControllerBase
     }
 
     [HttpGet("bootstrap")]
-    public async Task<IActionResult> GetBootstrap(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetBootstrap([FromQuery] int? branchId, CancellationToken cancellationToken)
     {
         try
         {
-            var data = await _syncService.GetBootstrapDataAsync(cancellationToken);
+            var data = await _syncService.GetBootstrapDataAsync(branchId, cancellationToken);
             return Ok(data);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener datos de bootstrap de sincronización");
+            _logger.LogError(ex, "Error al obtener datos de bootstrap de sincronización para sede {BranchId}", branchId);
             return StatusCode(500, new { message = "Error interno al sincronizar datos." });
         }
     }

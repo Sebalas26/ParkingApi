@@ -98,4 +98,24 @@ public class VehicleRateRepository : IVehicleRateRepository
             return false;
         }
     }
+
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var rate = await _context.VehicleRates.FirstOrDefaultAsync(r => r.RateId == id, cancellationToken);
+            if (rate == null)
+            {
+                return false;
+            }
+
+            _context.VehicleRates.Remove(rate);
+            return await _context.SaveChangesAsync(cancellationToken) > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al eliminar tarifa {Id}", Constants.RateError, id);
+            return false;
+        }
+    }
 }

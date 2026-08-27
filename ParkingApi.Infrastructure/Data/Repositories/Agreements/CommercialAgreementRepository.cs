@@ -100,6 +100,7 @@ public class CommercialAgreementRepository : ICommercialAgreementRepository
             existing.DiscountFixedAmount = agreement.DiscountFixedAmount;
             existing.MaxHoursApplicable = agreement.MaxHoursApplicable;
             existing.IsActive = agreement.IsActive;
+            existing.ImageUrl = agreement.ImageUrl;
 
             return await _context.SaveChangesAsync(cancellationToken) > 0;
         }

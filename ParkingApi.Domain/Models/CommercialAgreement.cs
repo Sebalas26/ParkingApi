@@ -14,6 +14,7 @@ public class CommercialAgreement
     public int? MaxHoursApplicable { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public string? ImageUrl { get; set; }
 
     public virtual Store? Store { get; set; }
     public virtual ICollection<TicketDiscount> TicketDiscounts { get; set; } = new List<TicketDiscount>();
