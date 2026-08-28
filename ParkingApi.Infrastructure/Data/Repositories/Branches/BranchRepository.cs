@@ -170,6 +170,9 @@ public class BranchRepository : IBranchRepository
 
     public async Task<IReadOnlyList<User>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)
     {
+        var branch = await _context.Branches.AsNoTracking().FirstOrDefaultAsync(b => b.Id == branchId, cancellationToken);
+        var targetCompanyId = branch?.CompanyId;
+
         var branchUsers = await _context.UserBranches
             .AsNoTracking()
             .Where(ub => ub.BranchId == branchId && ub.IsActive && ub.User.IsActive)
@@ -178,11 +181,13 @@ public class BranchRepository : IBranchRepository
             .Select(ub => ub.User)
             .ToListAsync(cancellationToken);
 
-        var adminUsers = await _context.User
-            .AsNoTracking()
-            .Include(u => u.UserRoleIdNavigation)
-            .Where(u => u.IsActive && u.UserRoleIdNavigation != null && (u.UserRoleIdNavigation.Role == "Administrador" || u.UserRoleIdNavigation.Role == "Admin"))
-            .ToListAsync(cancellationToken);
+        var adminUsers = targetCompanyId.HasValue
+            ? await _context.User
+                .AsNoTracking()
+                .Include(u => u.UserRoleIdNavigation)
+                .Where(u => u.IsActive && u.CompanyId == targetCompanyId.Value && u.UserRoleIdNavigation != null && (u.UserRoleIdNavigation.Role == "Administrador" || u.UserRoleIdNavigation.Role == "Admin"))
+                .ToListAsync(cancellationToken)
+            : new List<User>();
 
         var combined = branchUsers.Concat(adminUsers)
             .GroupBy(u => u.Id)

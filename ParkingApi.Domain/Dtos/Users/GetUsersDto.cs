@@ -7,6 +7,7 @@ namespace ParkingApi.Domain.Dtos.Users;
 public class GetUsersDto
 {
     public int Id { get; set; }
+    public int? CompanyId { get; set; }
     public int UserRoleId { get; set; }
     public int IdentificationTypeId { get; set; }
     public string IdentificationNumber { get; set; } = string.Empty;

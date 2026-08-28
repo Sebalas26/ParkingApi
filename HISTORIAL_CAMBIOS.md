@@ -2,7 +2,36 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: Formalización de Roles (Super Administrador vs Administrador) y Endpoint GetBranchesByCompanyId
+## 📌 Entrada: Aislamiento Estricto de SuperAdmin vs Administrador Tenant y Erradicación Total de Roles Quemados (RBAC 100% Basado en Datos)
+- **`💬 Prompt Original del Usuario`**:
+  > *"Listo sucede que el superadmin accede y super bien accede al perfil de eso pero cree un administrador y tambien accede al portal del superadmin y eso no deberia ser así creo que esta algo quemado en codigo que sea administrador aparte necesito que revises todo el codigo de todos los 3 proyectos que no tenga cosas quemadas que no deberian estar . analiza completamente todo el desarrollo"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Aislamiento de Multi-Tenant SuperAdmin vs Administrador Tenant (`AuthService.cs`, `CompanyService.cs`, `UserService.cs`)**:
+    - **Diagnóstico**: La evaluación `!user.CompanyId.HasValue || ...` causaba que cualquier usuario sin empresa o con rol administrador fuera promovido a Super Administrador global. Además, `UserService.CreateOrEditUser` omitía propagar `CompanyId`, dejando a los administradores recién creados como SuperAdmins de plataforma. `CompanyService.CreateCompanyAsync` asignaba el Módulo 16 (`companies.*`) a los administradores de parqueaderos clientes.
+    - **Solución Aplicada**:
+      - `isSuperAdmin` ahora evalúa estrictamente: `!user.CompanyId.HasValue && (user.UserRoleId == 1 || roleName.Equals("Super Administrador", ...))`.
+      - `isAdmin` evalúa: `isSuperAdmin || (user.CompanyId.HasValue && roleName.Equals("Administrador", ...))`.
+      - En `CompanyService.CreateCompanyAsync`, se excluye expresamente el Módulo 16 y acciones con slug `companies.*` al aprovisionar el rol de Administrador de una nueva empresa tenant.
+      - En `UserService.CreateOrEditUser`, se asigna y persiste `user.CompanyId` correctamente.
+      - En `GetUsersDto` y `UserRepository.cs`, se incluyó y mapeó `CompanyId`.
+      - En `BranchRepository.GetUsersByBranchIdAsync`, los administradores retornados son estrictamente aquellos que pertenecen a la misma empresa de la sede (`u.CompanyId == branch.CompanyId`).
+  - **Entrega de Permisos Dinámica (`AuthService.cs`)**:
+    - Si el usuario no es SuperAdmin, los permisos se consultan en tiempo de ejecución desde la base de datos (`_roleActionRepository.GetActionsByRoleAsync(user.UserRoleId)`), garantizando que los administradores de inquilinos sólo tengan acceso a los módulos operativos y administrativos de su parqueadero.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Users/GetUsersDto.cs`
+  - `ParkingApi.Core/Services/Users/UserService.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Users/UserRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: **0 Errores**.
+
+---
 - **`💬 Prompt Original del Usuario`**:
   > *"y creo que deberiamos modificar el rol, el rol de creación deberia ser el superadmin no administrador el administrador es para el que le creamos el parqueadero si me explico"*
 

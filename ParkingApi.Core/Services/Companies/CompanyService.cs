@@ -98,9 +98,11 @@ public class CompanyService : ICompanyService
         _context.UserRole.Add(adminRole);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // 5. Asignar todos los módulos y acciones al nuevo rol de Administrador de la empresa
-        var allModules = await _context.Module.Where(m => m.IsActive).ToListAsync(cancellationToken);
-        foreach (var mod in allModules)
+        // 5. Asignar módulos y acciones operativas y administrativas al nuevo rol de Administrador de la empresa (Excluyendo Módulo 16 SaaS Global)
+        var tenantModules = await _context.Module
+            .Where(m => m.IsActive && m.Id != 16 && !m.Name.Contains("SaaS", StringComparison.OrdinalIgnoreCase))
+            .ToListAsync(cancellationToken);
+        foreach (var mod in tenantModules)
         {
             _context.UserRoleModule.Add(new UserRoleModule
             {
@@ -112,8 +114,10 @@ public class CompanyService : ICompanyService
             });
         }
 
-        var allActions = await _context.Action.Where(a => a.IsActive).ToListAsync(cancellationToken);
-        foreach (var act in allActions)
+        var tenantActions = await _context.Action
+            .Where(a => a.IsActive && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
+            .ToListAsync(cancellationToken);
+        foreach (var act in tenantActions)
         {
             _context.RoleAction.Add(new RoleAction
             {

@@ -72,6 +72,7 @@ public class UserService : IUserService
             {
                 var newUser = new User
                 {
+                    CompanyId = userDto.CompanyId,
                     UserRoleId = userDto.UserRoleId,
                     IdentificationTypeId = userDto.IdentificationTypeId,
                     IdentificationNumber = userDto.IdentificationNumber.Trim(),
@@ -97,6 +98,10 @@ public class UserService : IUserService
                 var existingUser = await _userRepository.GetByIdAsync(userDto.Id, cancellation);
                 if (existingUser == null) return null;
 
+                if (userDto.CompanyId.HasValue)
+                {
+                    existingUser.CompanyId = userDto.CompanyId.Value;
+                }
                 existingUser.UserRoleId = userDto.UserRoleId;
                 existingUser.IdentificationTypeId = userDto.IdentificationTypeId;
                 existingUser.IdentificationNumber = userDto.IdentificationNumber.Trim();

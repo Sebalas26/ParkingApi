@@ -131,8 +131,8 @@ public class AuthService : IAuthService
             }
 
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
-            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("Super Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
-            var isAdmin = isSuperAdmin || roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            var isSuperAdmin = !user.CompanyId.HasValue && (user.UserRoleId == 1 || roleName.Equals("Super Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase));
+            var isAdmin = isSuperAdmin || (user.CompanyId.HasValue && (roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)));
 
             var jwtResult = user.CreateJwt(roleName, _options);
 
@@ -228,8 +228,8 @@ public class AuthService : IAuthService
             }
 
             var roleName = user.UserRoleIdNavigation?.Role ?? "Operador";
-            var isSuperAdmin = !user.CompanyId.HasValue || roleName.Equals("Super Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
-            var isAdmin = isSuperAdmin || roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            var isSuperAdmin = !user.CompanyId.HasValue && (user.UserRoleId == 1 || roleName.Equals("Super Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase));
+            var isAdmin = isSuperAdmin || (user.CompanyId.HasValue && (roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)));
 
             var jwtResult = user.CreateJwt(roleName, _options);
 
@@ -284,8 +284,11 @@ public class AuthService : IAuthService
                 CreatedAt = b.CreatedAt
             }).ToList();
 
-            var rolePermissions = isSuperAdmin || isAdmin
-                ? new List<string>()
+            var rolePermissions = isSuperAdmin
+                ? (await _roleActionRepository.GetActionsByRoleAsync(1, cancellationToken))
+                    .Where(ra => ra.IsActive && !string.IsNullOrWhiteSpace(ra.ActionName))
+                    .Select(ra => ra.ActionName!)
+                    .ToList()
                 : (await _roleActionRepository.GetActionsByRoleAsync(user.UserRoleId, cancellationToken))
                     .Where(ra => ra.IsActive && !string.IsNullOrWhiteSpace(ra.ActionName))
                     .Select(ra => ra.ActionName!)
