@@ -13,7 +13,6 @@ public class Branch : GeneralEntity
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
 
-    [NotMapped]
     public string? LogoBase64 { get; set; }
 
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();

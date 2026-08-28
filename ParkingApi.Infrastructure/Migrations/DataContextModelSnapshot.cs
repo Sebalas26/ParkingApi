@@ -556,7 +556,7 @@ namespace ParkingApi.Infrastructure.Migrations
 
                     b.HasIndex("ResponsibleUserIdNavigationId");
 
-                    b.ToTable("ParkingLots");
+                    b.ToTable("ParkingLots", (string)null);
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.ParkingTicket", b =>
@@ -1021,7 +1021,7 @@ namespace ParkingApi.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserParkings");
+                    b.ToTable("UserParkings", (string)null);
                 });
 
             modelBuilder.Entity("ParkingApi.Domain.Models.UserRole", b =>
