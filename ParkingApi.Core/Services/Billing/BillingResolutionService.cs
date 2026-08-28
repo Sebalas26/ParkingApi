@@ -45,6 +45,7 @@ public class BillingResolutionService : IBillingResolutionService
         var entity = new BillingResolution
         {
             ResolutionId = dto.ResolutionId ?? Guid.NewGuid(),
+            CompanyId = dto.CompanyId,
             BranchId = dto.BranchId,
             Name = dto.Name.Trim(),
             DocumentType = dto.DocumentType.Trim(),
@@ -69,6 +70,7 @@ public class BillingResolutionService : IBillingResolutionService
         var entity = new BillingResolution
         {
             ResolutionId = resolutionId,
+            CompanyId = dto.CompanyId,
             BranchId = dto.BranchId,
             Name = dto.Name.Trim(),
             DocumentType = dto.DocumentType.Trim(),
@@ -97,6 +99,7 @@ public class BillingResolutionService : IBillingResolutionService
         return new BillingResolutionDto
         {
             ResolutionId = r.ResolutionId,
+            CompanyId = r.CompanyId,
             BranchId = r.BranchId,
             BranchName = r.Branch?.Name,
             Name = r.Name,

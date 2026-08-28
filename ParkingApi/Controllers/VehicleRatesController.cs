@@ -65,6 +65,15 @@ public class VehicleRatesController : ControllerBase
     {
         try
         {
+            if (!rate.CompanyId.HasValue || rate.CompanyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    rate.CompanyId = cid;
+                }
+            }
+
             var created = await _rateService.CreateRateAsync(rate, cancellationToken);
             _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifa de Vehículos Creada", "Se ha agregado una nueva tarifa al sistema.", cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.RateId }, created);

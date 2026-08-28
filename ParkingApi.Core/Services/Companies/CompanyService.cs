@@ -129,7 +129,25 @@ public class CompanyService : ICompanyService
             });
         }
 
-        // 6. Crear Usuario Administrador de la Empresa
+        // 6. Crear Sede Inicial Obligatoria para la Empresa
+        var defaultBranch = new Branch
+        {
+            CompanyId = company.Id,
+            Code = "SEDE-01",
+            Name = "Sede Principal",
+            Address = string.IsNullOrWhiteSpace(company.Address) ? "Calle Principal # 1-01" : company.Address.Trim(),
+            Phone = company.Phone?.Trim(),
+            City = string.IsNullOrWhiteSpace(company.City) ? "Ciudad Principal" : company.City.Trim(),
+            TotalCapacity = 100,
+            Notes = $"Sede principal de operaciones de {company.Name}",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Branches.Add(defaultBranch);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // 7. Crear Usuario Administrador de la Empresa
         var hashedPassword = PasswordHasher.HashPassword(dto.AdminPassword.Trim());
         var user = new User
         {
@@ -150,7 +168,64 @@ public class CompanyService : ICompanyService
         _context.User.Add(user);
         await _context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) creada exitosamente con administrador '{Username}'", company.Name, company.Id, user.Username);
+        // 8. Vincular al Administrador con la Sede Inicial (UserBranches)
+        _context.UserBranches.Add(new UserBranch
+        {
+            UserId = user.Id,
+            BranchId = defaultBranch.Id,
+            IsDefault = true,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            ResponsibleUserId = responsibleUserId
+        });
+
+        // 9. Sembrar Catálogo Inicial de Tarifas de Vehículos para la Empresa (CompanyId)
+        var defaultRates = new List<VehicleRate>
+        {
+            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Car, DisplayName = "Automóvil / Sedán", HourRate = 3000, MinuteRate = 50, FullDayRate = 25000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Motorcycle, DisplayName = "Motocicleta", HourRate = 1500, MinuteRate = 25, FullDayRate = 12000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Suv, DisplayName = "Camioneta / SUV", HourRate = 3500, MinuteRate = 60, FullDayRate = 30000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Truck, DisplayName = "Vehículo Pesado / Camión", HourRate = 5000, MinuteRate = 90, FullDayRate = 45000, GracePeriodMinutes = 15, IconKey = "IconTruck", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Bicycle, DisplayName = "Bicicleta", HourRate = 1000, MinuteRate = 15, FullDayRate = 8000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow }
+        };
+        _context.VehicleRates.AddRange(defaultRates);
+
+        // 10. Sembrar Resolución de Facturación Inicial para la Empresa (CompanyId)
+        var defaultResolution = new BillingResolution
+        {
+            CompanyId = company.Id,
+            BranchId = defaultBranch.Id,
+            Name = "Resolución POS Inicial",
+            DocumentType = "Documento equivalente electrónico del tiquete de máquina registradora con sistema P.O.S.",
+            Prefix = "POS",
+            ResolutionNumber = "18764000001",
+            FromNumber = 1,
+            ToNumber = 100000,
+            CurrentNumber = 1,
+            ValidFrom = DateTime.UtcNow.Date,
+            ValidTo = DateTime.UtcNow.Date.AddYears(2),
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        _context.BillingResolutions.Add(defaultResolution);
+
+        // 11. Habilitar Medios de Pago Activos para la Sede Inicial
+        var activePaymentMethods = await _context.PaymentMethod.Where(p => p.IsActive).ToListAsync(cancellationToken);
+        foreach (var pm in activePaymentMethods)
+        {
+            _context.BranchPaymentMethods.Add(new BranchPaymentMethod
+            {
+                BranchId = defaultBranch.Id,
+                PaymentMethodId = pm.Id,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                ResponsibleUserId = responsibleUserId
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) aprovisionada exitosamente con sede '{BranchCode}' y administrador '{Username}'", company.Name, company.Id, defaultBranch.Code, user.Username);
 
         return MapToDto(company);
     }

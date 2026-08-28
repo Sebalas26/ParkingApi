@@ -5,6 +5,7 @@ namespace ParkingApi.Domain.Dtos.Billing;
 public class BillingResolutionDto
 {
     public Guid ResolutionId { get; set; }
+    public int? CompanyId { get; set; }
     public int? BranchId { get; set; }
     public string? BranchName { get; set; }
     public string Name { get; set; } = string.Empty;

@@ -71,6 +71,15 @@ public class UsersController : ControllerBase
     {
         try
         {
+            if (!getUsersDto.CompanyId.HasValue || getUsersDto.CompanyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    getUsersDto.CompanyId = cid;
+                }
+            }
+
             var result = await _userService.CreateOrEditUser(getUsersDto, cancellation);
             if (result == null)
             {

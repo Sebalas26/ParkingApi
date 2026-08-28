@@ -2,6 +2,43 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Aprovisionamiento Automático de Organización Tenant y Persistencia Integral de CompanyId (SaaS Multi-Tenant)
+- **`💬 Prompt Original del Usuario`**:
+  > *"Verificar que cuando se cree la compañia se guarde en la base de datos el companyid por que no se esta guardando entonces eso no va a generara el desacoplamiento que se necesita para cuadno creemos varias organizaciones por que es la idea del saas multitenat"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Aprovisionamiento Integral en `CompanyService.CreateCompanyAsync`**:
+    - Al crear una nueva empresa (`POST /api/Companies`), se generan automáticamente:
+      1. Entidad `Company` (generando su `Id` numérico).
+      2. `UserRole` ("Administrador") con `CompanyId = company.Id`, asignando módulos y acciones permitidos (excluyendo Módulo 16 SaaS).
+      3. `Branch` inicial obligatoria (`SEDE-01 - Sede Principal`) con `CompanyId = company.Id` y datos de contacto de la empresa.
+      4. `User` administrador inicial con `CompanyId = company.Id`.
+      5. Vinculación en `UserBranches` (`UserId = user.Id, BranchId = defaultBranch.Id, IsDefault = true`).
+      6. Catálogo inicial de tarifas vehiculares (`VehicleRates`) para la empresa (`CompanyId = company.Id, BranchId = null`).
+      7. Resolución de facturación inicial de prueba (`BillingResolutions`) para la empresa y sede (`CompanyId = company.Id, BranchId = defaultBranch.Id`).
+      8. Medios de pago activos vinculados a la sede (`BranchPaymentMethods`).
+  - **Erradicación del Fallback Quemado `CompanyId ?? 1` en `BranchService.cs`**:
+    - Se removió la asignación forzada a empresa 1 en `BranchService.CreateAsync`.
+    - `BranchesController.Create` ahora extrae el `company_id` de los claims del JWT si el DTO no lo provee explícitamente.
+  - **Persistencia de `CompanyId` en Todos los Controladores y Servicios**:
+    - `UsersController.cs`: Asigna `CompanyId` desde claims del usuario autenticado si viene nulo.
+    - `VehicleRatesController.cs`: Asigna `CompanyId` desde claims.
+    - `ResolutionsController.cs` & `BillingResolutionService.cs`: Mapeo y persistencia de `CompanyId` en `SaveBillingResolutionDto` y `BillingResolutionDto`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Services/Billing/BillingResolutionService.cs`
+  - `ParkingApi.Domain/Dtos/Billing/BillingResolutionDto.cs`
+  - `ParkingApi.Domain/Dtos/Billing/SaveBillingResolutionDto.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `ParkingApi/Controllers/UsersController.cs`
+  - `ParkingApi/Controllers/VehicleRatesController.cs`
+  - `ParkingApi/Controllers/ResolutionsController.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` ejecutado en `ParkingApi` con resultado exitoso (**0 Errores**).
+
 ## 📌 Entrada: Aislamiento Estricto de SuperAdmin vs Administrador Tenant y Erradicación Total de Roles Quemados (RBAC 100% Basado en Datos)
 - **`💬 Prompt Original del Usuario`**:
   > *"Listo sucede que el superadmin accede y super bien accede al perfil de eso pero cree un administrador y tambien accede al portal del superadmin y eso no deberia ser así creo que esta algo quemado en codigo que sea administrador aparte necesito que revises todo el codigo de todos los 3 proyectos que no tenga cosas quemadas que no deberian estar . analiza completamente todo el desarrollo"*

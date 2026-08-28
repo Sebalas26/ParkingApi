@@ -75,6 +75,20 @@ public class BranchesController : ControllerBase
 
         try
         {
+            if (!dto.CompanyId.HasValue || dto.CompanyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    dto.CompanyId = cid;
+                }
+            }
+
+            if (!dto.CompanyId.HasValue || dto.CompanyId.Value <= 0)
+            {
+                return BadRequest(new { message = "Se requiere identificar la empresa (CompanyId) para registrar la sede." });
+            }
+
             var created = await _branchService.CreateAsync(dto, cancellationToken);
             _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("BranchCreated", "Nueva Sede Creada", $"Se ha registrado la sede '{created.Name}'.", cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);

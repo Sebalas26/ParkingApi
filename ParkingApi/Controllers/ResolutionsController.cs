@@ -105,6 +105,15 @@ public class ResolutionsController : ControllerBase
                 return BadRequest(new { message = "El rango inicial ('Desde') no puede ser mayor al rango final ('Hasta')." });
             }
 
+            if (!dto.CompanyId.HasValue || dto.CompanyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    dto.CompanyId = cid;
+                }
+            }
+
             var created = await _resolutionService.CreateAsync(dto, cancellationToken);
 
             var title = "Resolución de Facturación Creada";

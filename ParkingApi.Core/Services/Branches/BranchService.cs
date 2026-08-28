@@ -54,9 +54,14 @@ public class BranchService : IBranchService
 
     public async Task<BranchDto> CreateAsync(CreateBranchDto dto, CancellationToken cancellationToken = default)
     {
+        if (!dto.CompanyId.HasValue || dto.CompanyId.Value <= 0)
+        {
+            throw new InvalidOperationException("La sede debe estar asociada a una empresa válida (CompanyId requerido).");
+        }
+
         var branch = new Branch
         {
-            CompanyId = dto.CompanyId ?? 1,
+            CompanyId = dto.CompanyId.Value,
             Code = dto.Code.Trim().ToUpperInvariant(),
             Name = dto.Name.Trim(),
             Address = dto.Address.Trim(),
