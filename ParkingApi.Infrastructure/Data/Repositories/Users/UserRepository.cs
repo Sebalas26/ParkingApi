@@ -36,6 +36,7 @@ public class UserRepository : IUserRepository
                 .Select(x => new GetUsersDto
                 {
                     Id = x.Id,
+                    CompanyId = x.CompanyId,
                     UserRoleId = x.UserRoleId,
                     IdentificationTypeId = x.IdentificationTypeId,
                     IdentificationNumber = x.IdentificationNumber,
@@ -84,6 +85,7 @@ public class UserRepository : IUserRepository
                 .Select(x => new GetUsersDto
                 {
                     Id = x.Id,
+                    CompanyId = x.CompanyId,
                     UserRoleId = x.UserRoleId,
                     IdentificationTypeId = x.IdentificationTypeId,
                     IdentificationNumber = x.IdentificationNumber,
@@ -169,6 +171,7 @@ public class UserRepository : IUserRepository
             var existing = await _context.User.FirstOrDefaultAsync(u => u.Id == user.Id, cancellation);
             if (existing == null) return false;
 
+            existing.CompanyId = user.CompanyId ?? existing.CompanyId;
             existing.UserRoleId = user.UserRoleId;
             existing.IdentificationTypeId = user.IdentificationTypeId;
             existing.IdentificationNumber = user.IdentificationNumber;
@@ -253,6 +256,7 @@ public class UserRepository : IUserRepository
                 .Select(x => new GetUsersDto
                 {
                     Id = x.Id,
+                    CompanyId = x.CompanyId,
                     UserRoleId = x.UserRoleId,
                     IdentificationTypeId = x.IdentificationTypeId,
                     IdentificationNumber = x.IdentificationNumber,
@@ -280,6 +284,7 @@ public class UserRepository : IUserRepository
         try
         {
             return await _context.User
+                .Include(u => u.Company)
                 .Include(u => u.UserRoleIdNavigation)
                 .Include(u => u.IdentificationTypeIdNavigation)
                 .FirstOrDefaultAsync(u => u.Id == id, cancellation);
@@ -309,6 +314,7 @@ public class UserRepository : IUserRepository
 
             var normalized = identifier.Trim().ToLower();
             return await _context.User
+                .Include(u => u.Company)
                 .Include(u => u.UserRoleIdNavigation)
                 .Include(u => u.IdentificationTypeIdNavigation)
                 .FirstOrDefaultAsync(u => (u.Username.ToLower() == normalized || u.Email.ToLower() == normalized) && u.IsActive, cancellation);

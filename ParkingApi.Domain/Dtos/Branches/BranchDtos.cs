@@ -6,6 +6,8 @@ namespace ParkingApi.Domain.Dtos.Branches;
 public class BranchDto
 {
     public int Id { get; set; }
+    public int CompanyId { get; set; }
+    public string? CompanyName { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
@@ -21,6 +23,7 @@ public class BranchDto
 
 public class CreateBranchDto
 {
+    public int? CompanyId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;

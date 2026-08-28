@@ -61,8 +61,18 @@ public static class TokenHelper
             new("fullName", user.FullName),
             new("email", user.Email),
             new("mustChangePassword", user.MustChangePassword.ToString().ToLower()),
+            new("is_super_admin", (!user.CompanyId.HasValue).ToString().ToLower()),
             new(JwtRegisteredClaimNames.Jti, jti)
         };
+
+        if (user.CompanyId.HasValue)
+        {
+            claims.Add(new Claim("company_id", user.CompanyId.Value.ToString()));
+            if (user.Company != null && !string.IsNullOrEmpty(user.Company.Name))
+            {
+                claims.Add(new Claim("company_name", user.Company.Name));
+            }
+        }
 
         var token = new JwtSecurityToken(
             issuer: options.Issuer,

@@ -9,6 +9,7 @@ public interface IBranchRepository
 {
     Task<IReadOnlyList<Branch>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Branch>> GetActiveAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Branch>> GetBranchesByCompanyIdAsync(int companyId, CancellationToken cancellationToken = default);
     Task<Branch?> GetByIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<Branch?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Branch>> GetBranchesByUserIdAsync(int userId, CancellationToken cancellationToken = default);

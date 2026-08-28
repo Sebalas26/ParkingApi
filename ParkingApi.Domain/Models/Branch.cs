@@ -5,6 +5,7 @@ namespace ParkingApi.Domain.Models;
 
 public class Branch : GeneralEntity
 {
+    public int CompanyId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
@@ -12,6 +13,8 @@ public class Branch : GeneralEntity
     public string? City { get; set; }
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
+
+    public virtual Company Company { get; set; } = null!;
 
     public string? LogoBase64 { get; set; }
 

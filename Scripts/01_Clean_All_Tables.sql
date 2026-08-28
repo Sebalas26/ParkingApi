@@ -28,8 +28,10 @@ DROP TABLE IF EXISTS `parkinglots`;
 DROP TABLE IF EXISTS `ParkingLots`;
 DROP TABLE IF EXISTS `ParkingLot`;
 
--- 3. Eliminar tablas maestras, seguridad y sedes
+-- 3. Eliminar tablas maestras, seguridad, sedes y empresas
 DROP TABLE IF EXISTS `Branches`;
+DROP TABLE IF EXISTS `Companies`;
+DROP TABLE IF EXISTS `Company`;
 DROP TABLE IF EXISTS `PasswordResetToken`;
 DROP TABLE IF EXISTS `Login`;
 DROP TABLE IF EXISTS `RoleAction`;

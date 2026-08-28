@@ -30,12 +30,12 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var result = await _authService.Login(auth, cancellation);
-            if (result == null)
+            var response = await _authService.LoginStandardAsync(new LoginDto { Username = auth.Username, Password = auth.Password }, cancellation);
+            if (!response.Success)
             {
-                return Unauthorized(new { message = "Credenciales inválidas. Por favor, inténtalo de nuevo." });
+                return Unauthorized(new { message = response.ErrorMessage ?? "Credenciales inválidas. Por favor, inténtalo de nuevo." });
             }
-            return Ok(result);
+            return Ok(response);
         }
         catch (Exception ex)
         {
