@@ -143,7 +143,18 @@ public class ParkingTicketService : IParkingTicketService
             ticket.NetAmount = net;
             ticket.AmountPaid = dto.AmountPaid;
             ticket.ChangeGiven = Math.Max(0m, dto.AmountPaid - net);
-            ticket.PaymentMethod = dto.PaymentMethod;
+            int rawMethod = (int)dto.PaymentMethod;
+            Domain.Common.Enums.PaymentMethod mappedMethod = rawMethod switch
+            {
+              1 => Domain.Common.Enums.PaymentMethod.Cash,
+              2 => Domain.Common.Enums.PaymentMethod.CreditCard,
+              3 => Domain.Common.Enums.PaymentMethod.DebitCard,
+              4 => Domain.Common.Enums.PaymentMethod.Transfer,
+              0 => Domain.Common.Enums.PaymentMethod.Cash,
+              _ => dto.PaymentMethod
+            };
+
+            ticket.PaymentMethod = mappedMethod;
             ticket.Status = TicketStatus.Completed;
             ticket.IsSynchronized = true;
 
