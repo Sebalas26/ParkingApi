@@ -83,4 +83,28 @@ public class UserRoleController : ControllerBase
             return StatusCode(500, new { message = "Error interno al guardar rol." });
         }
     }
+
+    [HttpDelete("DeleteUserRole/{id}")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUserRole(int id, CancellationToken cancellation)
+    {
+        try
+        {
+            var result = await _userRoleService.DeleteUserRole(id, cancellation);
+            if (!result)
+            {
+                return NotFound(new { message = "Rol no encontrado o no se pudo eliminar." });
+            }
+            return Ok(new { success = true, message = "Rol eliminado exitosamente." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar el rol #{Id}", id);
+            return StatusCode(500, new { message = "Error interno al eliminar el rol." });
+        }
+    }
 }

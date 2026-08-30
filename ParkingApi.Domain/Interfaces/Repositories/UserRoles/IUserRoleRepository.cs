@@ -13,4 +13,5 @@ public interface IUserRoleRepository
     Task<GetUserRoleDto?> GetUserRoleName(string nameRol, CancellationToken cancellation = default);
     Task<bool> SaveUserRole(UserRole userRole, CancellationToken cancellation = default);
     Task<bool> UpdateUserRole(UserRole userRole, CancellationToken cancellation = default);
+    Task<bool> DeleteUserRole(int id, CancellationToken cancellation = default);
 }

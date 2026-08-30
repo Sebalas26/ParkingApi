@@ -134,4 +134,27 @@ public class UserRoleRepository : IUserRoleRepository
             return false;
         }
     }
+
+    public async Task<bool> DeleteUserRole(int id, CancellationToken cancellation = default)
+    {
+        try
+        {
+            var role = await _context.UserRole.FirstOrDefaultAsync(r => r.Id == id, cancellation);
+            if (role == null) return false;
+
+            var normalizedRole = (role.Role ?? string.Empty).Trim().ToLower();
+            if (role.Id == 1 || normalizedRole == "super administrador" || normalizedRole == "superadmin" || normalizedRole == "super admin")
+            {
+                throw new InvalidOperationException("No está permitido eliminar el rol Super Administrador del sistema.");
+            }
+
+            _context.UserRole.Remove(role);
+            return await _context.SaveChangesAsync(cancellation) > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar rol de usuario #{Id}", id);
+            throw;
+        }
+    }
 }

@@ -81,6 +81,19 @@ public class UserRoleService : IUserRoleService
         return data;
     }
 
+    public async Task<bool> DeleteUserRole(int id, CancellationToken cancellation = default)
+    {
+        try
+        {
+            return await _userRoleRepository.DeleteUserRole(id, cancellation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar el rol #{Id}", id);
+            throw;
+        }
+    }
+
     private async Task<bool> ValidateRole(string roleName, CancellationToken cancellation = default)
     {
         try
