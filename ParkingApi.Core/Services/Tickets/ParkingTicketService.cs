@@ -148,10 +148,8 @@ public class ParkingTicketService : IParkingTicketService
             {
               1 => Domain.Common.Enums.PaymentMethod.Cash,
               2 => Domain.Common.Enums.PaymentMethod.CreditCard,
-              3 => Domain.Common.Enums.PaymentMethod.DebitCard,
-              4 => Domain.Common.Enums.PaymentMethod.Transfer,
               0 => Domain.Common.Enums.PaymentMethod.Cash,
-              _ => dto.PaymentMethod
+              _ => (Domain.Common.Enums.PaymentMethod)rawMethod
             };
 
             ticket.PaymentMethod = mappedMethod;
