@@ -52,6 +52,11 @@ public class AnalyticsService : IAnalyticsService
                 .GroupBy(t => t.PaymentMethod!.Value)
                 .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
 
+            var countByPayment = todayTickets
+                .Where(t => t.PaymentMethod.HasValue)
+                .GroupBy(t => ((int)t.PaymentMethod!.Value).ToString())
+                .ToDictionary(g => g.Key, g => g.Count());
+
             var countByResolution = todayTickets
                 .Where(t => !string.IsNullOrWhiteSpace(t.ResolutionName) || t.ResolutionId.HasValue)
                 .GroupBy(t => !string.IsNullOrWhiteSpace(t.ResolutionName) ? t.ResolutionName! : t.ResolutionId.ToString()!)
@@ -71,6 +76,7 @@ public class AnalyticsService : IAnalyticsService
                 RevenueByVehicleType = revenueByType,
                 CountByVehicleType = countByType,
                 RevenueByPaymentMethod = revenueByPayment,
+                CountByPaymentMethod = countByPayment,
                 CountByResolution = countByResolution,
                 RevenueByResolution = revenueByResolution
             };
