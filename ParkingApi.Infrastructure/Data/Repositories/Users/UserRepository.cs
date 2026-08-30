@@ -32,7 +32,8 @@ public class UserRepository : IUserRepository
             var query = _context.User.AsNoTracking();
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(x => x.CompanyId == companyId.Value);
+                var cid = companyId.Value;
+                query = query.Where(x => x.CompanyId == cid || x.UserBranches.Any(ub => ub.Branch.CompanyId == cid));
             }
             return await query
                 .Include(x => x.UserRoleIdNavigation)
