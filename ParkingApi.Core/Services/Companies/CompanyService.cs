@@ -269,6 +269,163 @@ public class CompanyService : ICompanyService
         return true;
     }
 
+    public async Task<bool> DeleteCompanyAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var company = await _context.Companies
+                .Include(c => c.Branches)
+                .Include(c => c.Users)
+                .Include(c => c.UserRoles)
+                .Include(c => c.VehicleRates)
+                .Include(c => c.Stores)
+                .Include(c => c.BillingResolutions)
+                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+            if (company == null) return false;
+
+            var branchIds = company.Branches.Select(b => b.Id).ToList();
+            var userIds = company.Users.Select(u => u.Id).ToList();
+
+            // 1. Eliminar Tickets y sus descuentos
+            var tickets = await _context.ParkingTickets
+                .Where(t => t.BranchId.HasValue && branchIds.Contains(t.BranchId.Value))
+                .ToListAsync(cancellationToken);
+            if (tickets.Any())
+            {
+                var ticketIds = tickets.Select(t => t.TicketId).ToList();
+                var discounts = await _context.TicketDiscounts
+                    .Where(d => ticketIds.Contains(d.TicketId))
+                    .ToListAsync(cancellationToken);
+                _context.TicketDiscounts.RemoveRange(discounts);
+                _context.ParkingTickets.RemoveRange(tickets);
+            }
+
+            // 2. Eliminar incidentes y sus relaciones
+            var incidentBranches = await _context.VehicleIncidentBranches
+                .Where(ib => branchIds.Contains(ib.BranchId))
+                .ToListAsync(cancellationToken);
+            _context.VehicleIncidentBranches.RemoveRange(incidentBranches);
+
+            var incidents = await _context.VehicleIncidents
+                .Where(i => i.CompanyId == id || (i.BranchId.HasValue && branchIds.Contains(i.BranchId.Value)))
+                .ToListAsync(cancellationToken);
+            _context.VehicleIncidents.RemoveRange(incidents);
+
+            // 3. Eliminar Turnos de trabajo (WorkShifts)
+            var shifts = await _context.WorkShifts
+                .Where(s => (s.BranchId.HasValue && branchIds.Contains(s.BranchId.Value)) || userIds.Contains(s.UserId))
+                .ToListAsync(cancellationToken);
+            _context.WorkShifts.RemoveRange(shifts);
+
+            // 4. Eliminar resoluciones DIAN
+            var resolutions = await _context.BillingResolutions
+                .Where(r => r.CompanyId == id || (r.BranchId.HasValue && branchIds.Contains(r.BranchId.Value)))
+                .ToListAsync(cancellationToken);
+            _context.BillingResolutions.RemoveRange(resolutions);
+
+            // 5. Eliminar medios de pago específicos de sedes
+            var branchPaymentMethods = await _context.BranchPaymentMethods
+                .Where(bpm => branchIds.Contains(bpm.BranchId))
+                .ToListAsync(cancellationToken);
+            _context.BranchPaymentMethods.RemoveRange(branchPaymentMethods);
+
+            // 6. Eliminar UserBranches
+            var userBranches = await _context.UserBranches
+                .Where(ub => branchIds.Contains(ub.BranchId) || userIds.Contains(ub.UserId))
+                .ToListAsync(cancellationToken);
+            _context.UserBranches.RemoveRange(userBranches);
+
+            // 7. Eliminar Convenios Comerciales y Aliados (Stores)
+            var agreements = await _context.CommercialAgreements
+                .Where(a => a.Store.CompanyId == id || branchIds.Contains(a.Store.BranchId ?? 0))
+                .ToListAsync(cancellationToken);
+            _context.CommercialAgreements.RemoveRange(agreements);
+
+            var stores = await _context.Stores
+                .Where(s => s.CompanyId == id || (s.BranchId.HasValue && branchIds.Contains(s.BranchId.Value)))
+                .ToListAsync(cancellationToken);
+            _context.Stores.RemoveRange(stores);
+
+            // 8. Eliminar Tarifas de vehículos (VehicleRates)
+            var rates = await _context.VehicleRates
+                .Where(r => r.CompanyId == id || (r.BranchId.HasValue && branchIds.Contains(r.BranchId.Value)))
+                .ToListAsync(cancellationToken);
+            _context.VehicleRates.RemoveRange(rates);
+
+            // 9. Eliminar Mensualidades (MonthlySubscriptions)
+            var subs = await _context.MonthlySubscriptions
+                .Where(s => s.CompanyId == id || (s.BranchId.HasValue && branchIds.Contains(s.BranchId.Value)))
+                .ToListAsync(cancellationToken);
+            _context.MonthlySubscriptions.RemoveRange(subs);
+
+            // 10. Eliminar Medios de Pago propios de la compañía
+            var methods = await _context.PaymentMethod
+                .Where(m => m.CompanyId == id)
+                .ToListAsync(cancellationToken);
+            _context.PaymentMethod.RemoveRange(methods);
+
+            // 11. Eliminar Logins y Tokens de los usuarios
+            var userLogins = await _context.Login
+                .Where(l => userIds.Contains(l.UserId))
+                .ToListAsync(cancellationToken);
+            _context.Login.RemoveRange(userLogins);
+
+            var userResetTokens = await _context.PasswordResetToken
+                .Where(t => userIds.Contains(t.UserId))
+                .ToListAsync(cancellationToken);
+            _context.PasswordResetToken.RemoveRange(userResetTokens);
+
+            // 12. Eliminar Roles de Usuario
+            var roles = await _context.UserRole
+                .Where(r => r.CompanyId == id)
+                .ToListAsync(cancellationToken);
+            
+            // Eliminar RoleActions
+            if (roles.Any())
+            {
+                var roleIds = roles.Select(r => r.Id).ToList();
+                var roleActions = await _context.RoleAction
+                    .Where(ra => roleIds.Contains(ra.RoleId))
+                    .ToListAsync(cancellationToken);
+                _context.RoleAction.RemoveRange(roleActions);
+
+                var roleModules = await _context.UserRoleModule
+                    .Where(rm => roleIds.Contains(rm.UserRoleId))
+                    .ToListAsync(cancellationToken);
+                _context.UserRoleModule.RemoveRange(roleModules);
+            }
+
+            // 13. Eliminar Usuarios
+            var users = await _context.User
+                .Where(u => u.CompanyId == id)
+                .ToListAsync(cancellationToken);
+            _context.User.RemoveRange(users);
+
+            // 14. Eliminar Sedes (Branches)
+            _context.Branches.RemoveRange(company.Branches);
+
+            // 15. Eliminar Roles
+            _context.UserRole.RemoveRange(roles);
+
+            // 16. Eliminar la propia compañía
+            _context.Companies.Remove(company);
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Empresa con ID {CompanyId} y todos sus datos relacionados eliminados permanentemente", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error al eliminar permanentemente la empresa con ID {CompanyId} en cascada", id);
+            throw;
+        }
+    }
+
     private static CompanyDto MapToDto(Company c)
     {
         return new CompanyDto

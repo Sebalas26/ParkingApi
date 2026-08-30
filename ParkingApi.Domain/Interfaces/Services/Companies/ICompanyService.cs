@@ -13,4 +13,5 @@ public interface ICompanyService
     Task<CompanyDto> CreateCompanyAsync(CreateCompanyDto dto, int? responsibleUserId = null, CancellationToken cancellationToken = default);
     Task<CompanyDto> UpdateCompanyAsync(int id, UpdateCompanyDto dto, int? responsibleUserId = null, CancellationToken cancellationToken = default);
     Task<bool> ToggleCompanyStatusAsync(int id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteCompanyAsync(int id, CancellationToken cancellationToken = default);
 }

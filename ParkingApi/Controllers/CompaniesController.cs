@@ -147,4 +147,22 @@ public class CompaniesController : ControllerBase
             return StatusCode(500, new { message = "Error interno al alternar estado." });
         }
     }
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var success = await _companyService.DeleteCompanyAsync(id, cancellationToken);
+            if (!success)
+            {
+                return NotFound(new { message = $"Empresa con ID {id} no encontrada." });
+            }
+            return Ok(new { message = "Empresa y todos sus datos asociados eliminados exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar la empresa {Id}", id);
+            return StatusCode(500, new { message = "Error interno al eliminar la empresa." });
+        }
+    }
 }

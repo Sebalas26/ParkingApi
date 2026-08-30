@@ -70,8 +70,7 @@ public class CompanyRepository : ICompanyRepository
         var existing = await _context.Companies.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (existing != null)
         {
-            existing.IsActive = false;
-            existing.UpdatedAt = DateTime.UtcNow;
+            _context.Companies.Remove(existing);
             await _context.SaveChangesAsync(cancellationToken);
             return true;
         }
