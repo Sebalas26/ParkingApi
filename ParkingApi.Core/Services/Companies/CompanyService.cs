@@ -397,7 +397,12 @@ public class CompanyService : ICompanyService
                 _context.UserRoleModule.RemoveRange(roleModules);
             }
 
-            // 13. Eliminar Usuarios
+            // 13. Eliminar Usuarios y UserParkings asociados
+            var userParkings = await _context.UserParkings
+                .Where(up => userIds.Contains(up.UserId))
+                .ToListAsync(cancellationToken);
+            _context.UserParkings.RemoveRange(userParkings);
+
             var users = await _context.User
                 .Where(u => u.CompanyId == id)
                 .ToListAsync(cancellationToken);
