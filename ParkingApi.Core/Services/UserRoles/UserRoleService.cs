@@ -55,6 +55,7 @@ public class UserRoleService : IUserRoleService
             var saveData = new UserRole
             {
                 Id = userRole.IdUserRol,
+                CompanyId = userRole.CompanyId,
                 Role = userRole.RoleName.Trim(),
                 IsActive = userRole.IsActive,
                 CreatedAt = userRole.CreatedAt ?? DateTime.UtcNow

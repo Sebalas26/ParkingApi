@@ -27,34 +27,101 @@ public class UserRoleRepository : IUserRoleRepository
     {
         try
         {
-            var query = _context.UserRole.AsNoTracking();
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(x => x.CompanyId == companyId.Value || x.CompanyId == null);
-            }
-
-            var rawRoles = await query.ToListAsync(cancellation);
-
-            var resultRoles = rawRoles
-                .GroupBy(r => (r.Role ?? "").Trim().ToLowerInvariant())
-                .Select(g => g.OrderByDescending(r => r.CompanyId.HasValue && companyId.HasValue && r.CompanyId == companyId.Value ? 1 : 0).ThenBy(r => r.Id).First())
-                .Select(x => new GetUserRoleDto
+                bool hasCompanyRoles = await _context.UserRole.AnyAsync(x => x.CompanyId == companyId.Value, cancellation);
+                if (!hasCompanyRoles)
                 {
-                    IdUserRol = x.Id,
-                    RoleName = (x.Id == 1 && (x.Role == "Administrador" || x.Role == "Admin")) ? "Super Administrador" : x.Role,
-                    IsActive = x.IsActive,
-                    CreatedAt = x.CreatedAt,
-                    UpdatedAt = x.UpdatedAt
-                })
-                .OrderBy(x => x.RoleName)
-                .ToList();
+                    await AutoProvisionCompanyAdminRoleAsync(companyId.Value, cancellation);
+                }
 
-            return resultRoles;
+                return await _context.UserRole
+                    .AsNoTracking()
+                    .Where(x => x.CompanyId == companyId.Value)
+                    .Select(x => new GetUserRoleDto
+                    {
+                        IdUserRol = x.Id,
+                        CompanyId = x.CompanyId,
+                        RoleName = x.Role,
+                        IsActive = x.IsActive,
+                        CreatedAt = x.CreatedAt,
+                        UpdatedAt = x.UpdatedAt
+                    })
+                    .OrderBy(x => x.RoleName)
+                    .ToListAsync(cancellation);
+            }
+            else
+            {
+                return await _context.UserRole
+                    .AsNoTracking()
+                    .Where(x => x.CompanyId == null)
+                    .Select(x => new GetUserRoleDto
+                    {
+                        IdUserRol = x.Id,
+                        CompanyId = x.CompanyId,
+                        RoleName = (x.Id == 1 && (x.Role == "Administrador" || x.Role == "Admin")) ? "Super Administrador" : x.Role,
+                        IsActive = x.IsActive,
+                        CreatedAt = x.CreatedAt,
+                        UpdatedAt = x.UpdatedAt
+                    })
+                    .OrderBy(x => x.RoleName)
+                    .ToListAsync(cancellation);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, Constants.UserRoleError);
             return Enumerable.Empty<GetUserRoleDto>();
+        }
+    }
+
+    private async Task AutoProvisionCompanyAdminRoleAsync(int targetCompanyId, CancellationToken cancellation)
+    {
+        try
+        {
+            var companyAdminRole = new UserRole
+            {
+                CompanyId = targetCompanyId,
+                Role = "Administrador",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _context.UserRole.AddAsync(companyAdminRole, cancellation);
+            await _context.SaveChangesAsync(cancellation);
+
+            var allowedModuleIds = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+            foreach (var modId in allowedModuleIds)
+            {
+                _context.UserRoleModule.Add(new UserRoleModule
+                {
+                    UserRoleId = companyAdminRole.Id,
+                    ModulesRoleId = modId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            var allowedActions = await _context.Action
+                .Where(a => a.ModuleId != 16 && a.IsActive)
+                .Select(a => a.Id)
+                .ToListAsync(cancellation);
+
+            foreach (var actionId in allowedActions)
+            {
+                _context.RoleAction.Add(new RoleAction
+                {
+                    RoleId = companyAdminRole.Id,
+                    ActionId = actionId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync(cancellation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al auto-aprovisionar el rol de Administrador para la empresa {CompanyId}", targetCompanyId);
         }
     }
 
