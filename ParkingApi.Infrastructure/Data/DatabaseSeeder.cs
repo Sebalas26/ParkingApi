@@ -32,7 +32,7 @@ public static class DatabaseSeeder
         if (!await context.UserRole.AnyAsync())
         {
             context.UserRole.AddRange(
-                new UserRole { Id = 1, Role = "Administrador", IsActive = true, CreatedAt = DateTime.UtcNow },
+                new UserRole { Id = 1, Role = "Super Administrador", IsActive = true, CreatedAt = DateTime.UtcNow },
                 new UserRole { Id = 2, Role = "Operador", IsActive = true, CreatedAt = DateTime.UtcNow },
                 new UserRole { Id = 3, Role = "Supervisor", IsActive = true, CreatedAt = DateTime.UtcNow }
             );

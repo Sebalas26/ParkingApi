@@ -30,13 +30,13 @@ public class UserRoleRepository : IUserRoleRepository
             var query = _context.UserRole.AsNoTracking();
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(x => x.CompanyId == companyId.Value || x.CompanyId == null);
+                query = query.Where(x => x.CompanyId == companyId.Value);
             }
             return await query
                 .Select(x => new GetUserRoleDto
                 {
                     IdUserRol = x.Id,
-                    RoleName = x.Role,
+                    RoleName = (x.Id == 1 && (x.Role == "Administrador" || x.Role == "Admin")) ? "Super Administrador" : x.Role,
                     IsActive = x.IsActive,
                     CreatedAt = x.CreatedAt,
                     UpdatedAt = x.UpdatedAt
