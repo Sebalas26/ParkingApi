@@ -2,6 +2,21 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Corrección de Consulta LINQ en Aprovisionamiento de Empresas (EF Core / MySQL)
+- **`💬 Prompt Original del Usuario`**:
+  > *"cuando intento registrar un nuevo parqueadero me sale como en la segunda imagen"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Corrección de incompatibilidad SQL en `CompanyService.cs`**:
+    - Se reemplazó `.Where(m => m.IsActive && m.Id != 16 && !m.Name.Contains("SaaS", StringComparison.OrdinalIgnoreCase))` por `.Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"))`.
+    - Esta modificación permite que el proveedor Pomelo MySQL de Entity Framework Core traduzca correctamente la consulta LINQ a `LOWER(m.Name) NOT LIKE '%saas%'` sin lanzar la excepción `InvalidOperationException: The LINQ expression could not be translated`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` ejecutado en `ParkingApi` con resultado exitoso (**0 Errores**).
+
 ## 📌 Entrada: Aprovisionamiento Automático de Organización Tenant y Persistencia Integral de CompanyId (SaaS Multi-Tenant)
 - **`💬 Prompt Original del Usuario`**:
   > *"Verificar que cuando se cree la compañia se guarde en la base de datos el companyid por que no se esta guardando entonces eso no va a generara el desacoplamiento que se necesita para cuadno creemos varias organizaciones por que es la idea del saas multitenat"*

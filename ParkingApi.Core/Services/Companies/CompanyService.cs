@@ -100,7 +100,7 @@ public class CompanyService : ICompanyService
 
         // 5. Asignar módulos y acciones operativas y administrativas al nuevo rol de Administrador de la empresa (Excluyendo Módulo 16 SaaS Global)
         var tenantModules = await _context.Module
-            .Where(m => m.IsActive && m.Id != 16 && !m.Name.Contains("SaaS", StringComparison.OrdinalIgnoreCase))
+            .Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"))
             .ToListAsync(cancellationToken);
         foreach (var mod in tenantModules)
         {
