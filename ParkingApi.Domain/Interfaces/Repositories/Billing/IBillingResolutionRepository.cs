@@ -8,8 +8,8 @@ namespace ParkingApi.Domain.Interfaces.Repositories.Billing;
 
 public interface IBillingResolutionRepository
 {
-    Task<IReadOnlyList<BillingResolution>> GetAllAsync(int? branchId = null, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<BillingResolution>> GetActiveAsync(int? branchId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BillingResolution>> GetAllAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BillingResolution>> GetActiveAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
     Task<BillingResolution?> GetByIdAsync(Guid resolutionId, CancellationToken cancellationToken = default);
     Task<BillingResolution?> GetByPrefixAndNumberAsync(string prefix, string resolutionNumber, CancellationToken cancellationToken = default);
     Task<BillingResolution> AddAsync(BillingResolution resolution, CancellationToken cancellationToken = default);

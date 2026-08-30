@@ -25,11 +25,20 @@ public class UserRoleController : ControllerBase
 
     [HttpGet("GetUsersRoles")]
     [HttpGet]
-    public async Task<IActionResult> GetUsersRoles(CancellationToken cancellation)
+    public async Task<IActionResult> GetUsersRoles([FromQuery] int? companyId, CancellationToken cancellation)
     {
         try
         {
-            var roles = await _userRoleService.GetUserRoles(cancellation);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var roles = await _userRoleService.GetUserRoles(companyId, cancellation);
             return Ok(roles);
         }
         catch (Exception ex)

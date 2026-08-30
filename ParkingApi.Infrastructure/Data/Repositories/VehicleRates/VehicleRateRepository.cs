@@ -23,12 +23,16 @@ public class VehicleRateRepository : IVehicleRateRepository
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<VehicleRate>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<VehicleRate>> GetAllAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.VehicleRates
-                .AsNoTracking()
+            var query = _context.VehicleRates.AsNoTracking();
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(r => r.CompanyId == companyId.Value || r.CompanyId == null);
+            }
+            return await query
                 .OrderBy(r => r.VehicleType)
                 .ToListAsync(cancellationToken);
         }

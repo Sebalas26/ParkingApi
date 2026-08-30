@@ -22,11 +22,11 @@ public class PaymentMethodService : IPaymentMethodService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllAsync(CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllAsync(int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _repository.GetAllAsync(cancellation);
+            return await _repository.GetAllAsync(companyId, cancellation);
         }
         catch (Exception ex)
         {
@@ -35,11 +35,11 @@ public class PaymentMethodService : IPaymentMethodService
         }
     }
 
-    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllActiveAsync(CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllActiveAsync(int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _repository.GetAllActiveAsync(cancellation);
+            return await _repository.GetAllActiveAsync(companyId, cancellation);
         }
         catch (Exception ex)
         {
@@ -69,6 +69,7 @@ public class PaymentMethodService : IPaymentMethodService
             var data = new PaymentMethod
             {
                 Id = paymentMethod.Id,
+                CompanyId = paymentMethod.CompanyId,
                 Name = paymentMethod.Name.Trim(),
                 Icon = paymentMethod.Icon.Trim(),
                 IsActive = paymentMethod.IsActive

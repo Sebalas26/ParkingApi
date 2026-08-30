@@ -99,7 +99,7 @@ public class SyncService : ISyncService
                 }
                 else
                 {
-                    var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(cancellationToken);
+                    var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(null, cancellationToken);
                     paymentMethods = paymentMethodsDtos.Select(dto => new PaymentMethod
                     {
                         Id = dto.Id,
@@ -115,7 +115,7 @@ public class SyncService : ISyncService
             {
                 branches = (await _branchRepository.GetActiveAsync(cancellationToken)).ToList();
                 users = (await _userRepository.GetAllActiveUsersAsync(cancellationToken)).ToList();
-                var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(cancellationToken);
+                var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(null, cancellationToken);
                 paymentMethods = paymentMethodsDtos.Select(dto => new PaymentMethod
                 {
                     Id = dto.Id,
@@ -127,13 +127,13 @@ public class SyncService : ISyncService
                 }).ToList();
             }
 
-            var allRates = await _rateRepository.GetAllAsync(cancellationToken);
+            var allRates = await _rateRepository.GetAllAsync(null, cancellationToken);
             var rates = branchId.HasValue
                 ? allRates.Where(r => r.IsActive && r.BranchId == branchId.Value).ToList()
                 : allRates.Where(r => r.IsActive).ToList();
 
-            var allStores = await _storeRepository.GetAllAsync(cancellationToken);
-            var allAgreements = await _agreementRepository.GetAllAsync(cancellationToken);
+            var allStores = await _storeRepository.GetAllAsync(null, cancellationToken);
+            var allAgreements = await _agreementRepository.GetAllAsync(null, cancellationToken);
             var stores = branchId.HasValue
                 ? allStores.Where(s => s.IsActive && s.BranchId == branchId.Value).ToList()
                 : allStores.Where(s => s.IsActive).ToList();

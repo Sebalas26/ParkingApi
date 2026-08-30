@@ -27,11 +27,20 @@ public class VehicleRatesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var rates = await _rateService.GetAllRatesAsync(cancellationToken);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var rates = await _rateService.GetAllRatesAsync(companyId, cancellationToken);
             return Ok(rates);
         }
         catch (Exception ex)

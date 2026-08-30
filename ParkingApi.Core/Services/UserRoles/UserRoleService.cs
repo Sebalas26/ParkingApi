@@ -21,11 +21,11 @@ public class UserRoleService : IUserRoleService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<GetUserRoleDto>> GetUserRoles(CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetUserRoleDto>> GetUserRoles(int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _userRoleRepository.GetUserRoles(cancellation);
+            return await _userRoleRepository.GetUserRoles(companyId, cancellation);
         }
         catch (Exception ex)
         {

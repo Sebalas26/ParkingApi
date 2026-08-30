@@ -21,11 +21,11 @@ public class StoreService : IStoreService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<Store>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Store>> GetAllAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _storeRepository.GetAllAsync(cancellationToken);
+            return await _storeRepository.GetAllAsync(companyId, cancellationToken);
         }
         catch (Exception ex)
         {

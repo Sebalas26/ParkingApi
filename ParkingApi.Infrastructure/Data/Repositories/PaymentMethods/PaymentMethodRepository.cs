@@ -26,15 +26,20 @@ public class PaymentMethodRepository : IPaymentMethodRepository
         _currentUser = currentUser;
     }
 
-    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllAsync(CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllAsync(int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _context.PaymentMethod
-                .AsNoTracking()
+            var query = _context.PaymentMethod.AsNoTracking();
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(x => x.CompanyId == companyId.Value || x.CompanyId == null);
+            }
+            return await query
                 .Select(x => new GetPaymentMethodDto
                 {
                     Id = x.Id,
+                    CompanyId = x.CompanyId,
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,
@@ -51,16 +56,20 @@ public class PaymentMethodRepository : IPaymentMethodRepository
         }
     }
 
-    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllActiveAsync(CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetPaymentMethodDto>> GetAllActiveAsync(int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _context.PaymentMethod
-                .AsNoTracking()
-                .Where(x => x.IsActive)
+            var query = _context.PaymentMethod.AsNoTracking().Where(x => x.IsActive);
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(x => x.CompanyId == companyId.Value || x.CompanyId == null);
+            }
+            return await query
                 .Select(x => new GetPaymentMethodDto
                 {
                     Id = x.Id,
+                    CompanyId = x.CompanyId,
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,
@@ -87,6 +96,7 @@ public class PaymentMethodRepository : IPaymentMethodRepository
                 .Select(x => new GetPaymentMethodDto
                 {
                     Id = x.Id,
+                    CompanyId = x.CompanyId,
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,
@@ -132,6 +142,7 @@ public class PaymentMethodRepository : IPaymentMethodRepository
             {
                 existing.ResponsibleUserId = uid;
             }
+            existing.CompanyId = paymentMethod.CompanyId ?? existing.CompanyId;
             existing.Name = paymentMethod.Name;
             existing.Icon = paymentMethod.Icon;
             existing.IsActive = paymentMethod.IsActive;
@@ -157,6 +168,7 @@ public class PaymentMethodRepository : IPaymentMethodRepository
                 .Select(x => new GetPaymentMethodDto
                 {
                     Id = x.Id,
+                    CompanyId = x.CompanyId,
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,

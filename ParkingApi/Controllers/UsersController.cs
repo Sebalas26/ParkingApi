@@ -31,11 +31,20 @@ public class UsersController : ControllerBase
 
     [HttpGet("GetUsers")]
     [HttpGet]
-    public async Task<IActionResult> GetUsers(CancellationToken cancellation)
+    public async Task<IActionResult> GetUsers([FromQuery] int? companyId, CancellationToken cancellation)
     {
         try
         {
-            var users = await _userService.GetUsers(cancellation);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var users = await _userService.GetUsers(companyId, cancellation);
             return Ok(users);
         }
         catch (Exception ex)

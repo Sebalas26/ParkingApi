@@ -30,11 +30,20 @@ public class PaymentMethodController : ControllerBase
 
     [HttpGet("GetPaymentMethods")]
     [HttpGet]
-    public async Task<IActionResult> GetPaymentMethods(CancellationToken cancellation)
+    public async Task<IActionResult> GetPaymentMethods([FromQuery] int? companyId, CancellationToken cancellation)
     {
         try
         {
-            var methods = await _paymentMethodService.GetAllAsync(cancellation);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var methods = await _paymentMethodService.GetAllAsync(companyId, cancellation);
             return Ok(methods);
         }
         catch (Exception ex)
@@ -45,11 +54,20 @@ public class PaymentMethodController : ControllerBase
     }
 
     [HttpGet("GetPaymentMethodsActive")]
-    public async Task<IActionResult> GetPaymentMethodsActive(CancellationToken cancellation)
+    public async Task<IActionResult> GetPaymentMethodsActive([FromQuery] int? companyId, CancellationToken cancellation)
     {
         try
         {
-            var methods = await _paymentMethodService.GetAllActiveAsync(cancellation);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var methods = await _paymentMethodService.GetAllActiveAsync(companyId, cancellation);
             return Ok(methods);
         }
         catch (Exception ex)
@@ -85,6 +103,15 @@ public class PaymentMethodController : ControllerBase
     {
         try
         {
+            if (!value.CompanyId.HasValue || value.CompanyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    value.CompanyId = cid;
+                }
+            }
+
             var result = await _paymentMethodService.CreateOrEditPaymentMethod(value, cancellation);
             _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("PaymentMethodsChanged", "Medio de Pago Modificado", $"Se actualizó el catálogo de medios de pago ('{value.Name}').", cancellation);
             return Ok(result);

@@ -21,7 +21,7 @@ public class BillingResolutionRepository : IBillingResolutionRepository
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<BillingResolution>> GetAllAsync(int? branchId = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BillingResolution>> GetAllAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -33,6 +33,11 @@ public class BillingResolutionRepository : IBillingResolutionRepository
             if (branchId.HasValue && branchId.Value > 0)
             {
                 query = query.Where(r => r.BranchId == branchId || r.BranchId == null);
+            }
+
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(r => r.CompanyId == companyId.Value || r.CompanyId == null);
             }
 
             return await query
@@ -47,7 +52,7 @@ public class BillingResolutionRepository : IBillingResolutionRepository
         }
     }
 
-    public async Task<IReadOnlyList<BillingResolution>> GetActiveAsync(int? branchId = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BillingResolution>> GetActiveAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -59,6 +64,11 @@ public class BillingResolutionRepository : IBillingResolutionRepository
             if (branchId.HasValue && branchId.Value > 0)
             {
                 query = query.Where(r => r.BranchId == branchId || r.BranchId == null);
+            }
+
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(r => r.CompanyId == companyId.Value || r.CompanyId == null);
             }
 
             return await query

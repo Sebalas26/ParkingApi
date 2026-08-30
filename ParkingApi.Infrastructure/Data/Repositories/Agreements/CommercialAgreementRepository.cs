@@ -22,12 +22,16 @@ public class CommercialAgreementRepository : ICommercialAgreementRepository
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<CommercialAgreement>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CommercialAgreement>> GetAllAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.CommercialAgreements
-                .AsNoTracking()
+            var query = _context.CommercialAgreements.AsNoTracking();
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(a => a.Store != null && (a.Store.CompanyId == companyId.Value || a.Store.CompanyId == null));
+            }
+            return await query
                 .Include(a => a.Store)
                 .OrderBy(a => a.Name)
                 .ToListAsync(cancellationToken);

@@ -8,8 +8,8 @@ namespace ParkingApi.Domain.Interfaces.Repositories.PaymentMethods;
 
 public interface IPaymentMethodRepository
 {
-    Task<IEnumerable<GetPaymentMethodDto>> GetAllAsync(CancellationToken cancellation = default);
-    Task<IEnumerable<GetPaymentMethodDto>> GetAllActiveAsync(CancellationToken cancellation = default);
+    Task<IEnumerable<GetPaymentMethodDto>> GetAllAsync(int? companyId = null, CancellationToken cancellation = default);
+    Task<IEnumerable<GetPaymentMethodDto>> GetAllActiveAsync(int? companyId = null, CancellationToken cancellation = default);
     Task<GetPaymentMethodDto?> GetByIdAsync(int id, CancellationToken cancellation = default);
     Task<bool> CreateAsync(PaymentMethod paymentMethod, CancellationToken cancellation = default);
     Task<bool> UpdateAsync(PaymentMethod paymentMethod, CancellationToken cancellation = default);

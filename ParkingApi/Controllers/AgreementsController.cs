@@ -27,11 +27,20 @@ public class AgreementsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var agreements = await _agreementService.GetAllAsync(cancellationToken);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var agreements = await _agreementService.GetAllAsync(companyId, cancellationToken);
             return Ok(agreements);
         }
         catch (Exception ex)

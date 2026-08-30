@@ -22,11 +22,20 @@ public class StoresController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var stores = await _storeService.GetAllAsync(cancellationToken);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var stores = await _storeService.GetAllAsync(companyId, cancellationToken);
             return Ok(stores);
         }
         catch (Exception ex)

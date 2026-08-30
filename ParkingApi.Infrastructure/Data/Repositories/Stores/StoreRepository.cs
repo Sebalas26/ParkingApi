@@ -22,12 +22,16 @@ public class StoreRepository : IStoreRepository
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<Store>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Store>> GetAllAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.Stores
-                .AsNoTracking()
+            var query = _context.Stores.AsNoTracking();
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(s => s.CompanyId == companyId.Value || s.CompanyId == null);
+            }
+            return await query
                 .Include(s => s.Agreements)
                 .OrderBy(s => s.Name)
                 .ToListAsync(cancellationToken);

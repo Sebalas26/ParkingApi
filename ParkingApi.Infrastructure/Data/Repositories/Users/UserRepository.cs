@@ -25,12 +25,16 @@ public class UserRepository : IUserRepository
         _logger = logger;
     }
 
-    public async Task<IEnumerable<GetUsersDto>> GetUsers(CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetUsersDto>> GetUsers(int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _context.User
-                .AsNoTracking()
+            var query = _context.User.AsNoTracking();
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(x => x.CompanyId == companyId.Value);
+            }
+            return await query
                 .Include(x => x.UserRoleIdNavigation)
                 .Include(x => x.IdentificationTypeIdNavigation)
                 .Select(x => new GetUsersDto

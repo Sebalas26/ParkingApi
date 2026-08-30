@@ -27,11 +27,20 @@ public class ResolutionsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int? branchId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var list = await _resolutionService.GetAllAsync(branchId, cancellationToken);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var list = await _resolutionService.GetAllAsync(branchId, companyId, cancellationToken);
             return Ok(list);
         }
         catch (Exception ex)
@@ -42,11 +51,20 @@ public class ResolutionsController : ControllerBase
     }
 
     [HttpGet("active")]
-    public async Task<IActionResult> GetActive([FromQuery] int? branchId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetActive([FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var list = await _resolutionService.GetActiveAsync(branchId, cancellationToken);
+            if (!companyId.HasValue || companyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    companyId = cid;
+                }
+            }
+
+            var list = await _resolutionService.GetActiveAsync(branchId, companyId, cancellationToken);
             return Ok(list);
         }
         catch (Exception ex)
@@ -61,7 +79,7 @@ public class ResolutionsController : ControllerBase
     {
         try
         {
-            var list = await _resolutionService.GetActiveAsync(branchId, cancellationToken);
+            var list = await _resolutionService.GetActiveAsync(branchId, null, cancellationToken);
             return Ok(list);
         }
         catch (Exception ex)

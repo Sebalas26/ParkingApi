@@ -22,15 +22,15 @@ public class BillingResolutionService : IBillingResolutionService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<BillingResolutionDto>> GetAllAsync(int? branchId = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BillingResolutionDto>> GetAllAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
-        var list = await _repository.GetAllAsync(branchId, cancellationToken);
+        var list = await _repository.GetAllAsync(branchId, companyId, cancellationToken);
         return list.Select(MapToDto).ToList();
     }
 
-    public async Task<IReadOnlyList<BillingResolutionDto>> GetActiveAsync(int? branchId = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BillingResolutionDto>> GetActiveAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
-        var list = await _repository.GetActiveAsync(branchId, cancellationToken);
+        var list = await _repository.GetActiveAsync(branchId, companyId, cancellationToken);
         return list.Select(MapToDto).ToList();
     }
 

@@ -21,11 +21,11 @@ public class VehicleRateService : IVehicleRateService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<VehicleRate>> GetAllRatesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<VehicleRate>> GetAllRatesAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _rateRepository.GetAllAsync(cancellationToken);
+            return await _rateRepository.GetAllAsync(companyId, cancellationToken);
         }
         catch (Exception ex)
         {

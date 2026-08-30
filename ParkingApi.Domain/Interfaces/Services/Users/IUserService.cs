@@ -7,7 +7,7 @@ namespace ParkingApi.Domain.Interfaces.Services.Users;
 
 public interface IUserService
 {
-    Task<IEnumerable<GetUsersDto>> GetUsers(CancellationToken cancellation = default);
+    Task<IEnumerable<GetUsersDto>> GetUsers(int? companyId = null, CancellationToken cancellation = default);
     Task<GetUsersDto?> GetUserById(int id, CancellationToken cancellation = default);
     Task<LoginUserDto?> GetUser(string username, CancellationToken cancellation = default);
     Task<GetUsersDto?> CreateOrEditUser(GetUsersDto userDto, CancellationToken cancellation = default);

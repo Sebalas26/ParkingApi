@@ -8,7 +8,7 @@ namespace ParkingApi.Domain.Interfaces.Services.Stores;
 
 public interface IStoreService
 {
-    Task<IReadOnlyList<Store>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Store>> GetAllAsync(int? companyId = null, CancellationToken cancellationToken = default);
     Task<Store?> GetByIdAsync(Guid storeId, CancellationToken cancellationToken = default);
     Task<Store> CreateAsync(Store store, CancellationToken cancellationToken = default);
     Task<bool> UpdateAsync(Store store, CancellationToken cancellationToken = default);

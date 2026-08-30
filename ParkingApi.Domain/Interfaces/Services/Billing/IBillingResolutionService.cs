@@ -9,8 +9,8 @@ namespace ParkingApi.Domain.Interfaces.Services.Billing;
 
 public interface IBillingResolutionService
 {
-    Task<IReadOnlyList<BillingResolutionDto>> GetAllAsync(int? branchId = null, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<BillingResolutionDto>> GetActiveAsync(int? branchId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BillingResolutionDto>> GetAllAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BillingResolutionDto>> GetActiveAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
     Task<BillingResolutionDto?> GetByIdAsync(Guid resolutionId, CancellationToken cancellationToken = default);
     Task<BillingResolutionDto> CreateAsync(SaveBillingResolutionDto dto, CancellationToken cancellationToken = default);
     Task<BillingResolutionDto?> UpdateAsync(Guid resolutionId, SaveBillingResolutionDto dto, CancellationToken cancellationToken = default);

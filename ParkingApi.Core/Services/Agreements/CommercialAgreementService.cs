@@ -21,11 +21,11 @@ public class CommercialAgreementService : ICommercialAgreementService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<CommercialAgreement>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CommercialAgreement>> GetAllAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _agreementRepository.GetAllAsync(cancellationToken);
+            return await _agreementRepository.GetAllAsync(companyId, cancellationToken);
         }
         catch (Exception ex)
         {

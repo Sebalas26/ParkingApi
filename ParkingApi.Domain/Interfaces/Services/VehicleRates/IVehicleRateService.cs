@@ -8,7 +8,7 @@ namespace ParkingApi.Domain.Interfaces.Services.VehicleRates;
 
 public interface IVehicleRateService
 {
-    Task<IReadOnlyList<VehicleRate>> GetAllRatesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<VehicleRate>> GetAllRatesAsync(int? companyId = null, CancellationToken cancellationToken = default);
     Task<VehicleRate?> GetByIdAsync(Guid rateId, CancellationToken cancellationToken = default);
     Task<VehicleRate> CreateRateAsync(VehicleRate rate, CancellationToken cancellationToken = default);
     Task<VehicleRate> UpdateRateAsync(Guid rateId, decimal hourRate, decimal minuteRate, decimal fullDayRate, int graceMinutes, CancellationToken cancellationToken = default);

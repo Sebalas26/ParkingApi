@@ -23,12 +23,16 @@ public class UserRoleRepository : IUserRoleRepository
         _logger = logger;
     }
 
-    public async Task<IEnumerable<GetUserRoleDto>> GetUserRoles(CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetUserRoleDto>> GetUserRoles(int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _context.UserRole
-                .AsNoTracking()
+            var query = _context.UserRole.AsNoTracking();
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(x => x.CompanyId == companyId.Value || x.CompanyId == null);
+            }
+            return await query
                 .Select(x => new GetUserRoleDto
                 {
                     IdUserRol = x.Id,
