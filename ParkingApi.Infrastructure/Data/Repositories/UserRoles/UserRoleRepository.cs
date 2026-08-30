@@ -30,9 +30,14 @@ public class UserRoleRepository : IUserRoleRepository
             var query = _context.UserRole.AsNoTracking();
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(x => x.CompanyId == companyId.Value);
+                query = query.Where(x => x.CompanyId == companyId.Value || x.CompanyId == null);
             }
-            return await query
+
+            var rawRoles = await query.ToListAsync(cancellation);
+
+            var resultRoles = rawRoles
+                .GroupBy(r => (r.Role ?? "").Trim().ToLowerInvariant())
+                .Select(g => g.OrderByDescending(r => r.CompanyId.HasValue && companyId.HasValue && r.CompanyId == companyId.Value ? 1 : 0).ThenBy(r => r.Id).First())
                 .Select(x => new GetUserRoleDto
                 {
                     IdUserRol = x.Id,
@@ -42,7 +47,9 @@ public class UserRoleRepository : IUserRoleRepository
                     UpdatedAt = x.UpdatedAt
                 })
                 .OrderBy(x => x.RoleName)
-                .ToListAsync(cancellation);
+                .ToList();
+
+            return resultRoles;
         }
         catch (Exception ex)
         {
