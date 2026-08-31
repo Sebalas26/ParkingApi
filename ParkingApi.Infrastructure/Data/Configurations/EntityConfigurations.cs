@@ -58,10 +58,17 @@ public class SecurityConfigurations :
         builder.Property(r => r.Role).IsRequired().HasMaxLength(50);
 
         builder.HasIndex(r => r.CompanyId);
+        builder.HasIndex(r => r.BranchId);
 
         builder.HasOne(r => r.Company)
             .WithMany(c => c.UserRoles)
             .HasForeignKey(r => r.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(r => r.Branch)
+            .WithMany()
+            .HasForeignKey(r => r.BranchId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 

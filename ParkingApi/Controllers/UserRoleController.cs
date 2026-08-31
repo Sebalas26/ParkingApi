@@ -25,7 +25,7 @@ public class UserRoleController : ControllerBase
 
     [HttpGet("GetUsersRoles")]
     [HttpGet]
-    public async Task<IActionResult> GetUsersRoles([FromQuery] int? companyId, CancellationToken cancellation)
+    public async Task<IActionResult> GetUsersRoles([FromQuery] int? companyId, [FromQuery] int? branchId, CancellationToken cancellation)
     {
         try
         {
@@ -38,7 +38,7 @@ public class UserRoleController : ControllerBase
                 }
             }
 
-            var roles = await _userRoleService.GetUserRoles(companyId, cancellation);
+            var roles = await _userRoleService.GetUserRoles(companyId, branchId, cancellation);
             return Ok(roles);
         }
         catch (Exception ex)

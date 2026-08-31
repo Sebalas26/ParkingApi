@@ -23,7 +23,7 @@ public class UserRoleRepository : IUserRoleRepository
         _logger = logger;
     }
 
-    public async Task<IEnumerable<GetUserRoleDto>> GetUserRoles(int? companyId = null, CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetUserRoleDto>> GetUserRoles(int? companyId = null, int? branchId = null, CancellationToken cancellation = default)
     {
         try
         {
@@ -31,13 +31,18 @@ public class UserRoleRepository : IUserRoleRepository
             {
                 await EnsureCompanyAdminRoleAsync(companyId.Value, cancellation);
 
-                return await _context.UserRole
-                    .AsNoTracking()
-                    .Where(x => x.CompanyId == companyId.Value)
+                var query = _context.UserRole.AsNoTracking().Where(x => x.CompanyId == companyId.Value);
+                if (branchId.HasValue && branchId.Value > 0)
+                {
+                    query = query.Where(x => x.BranchId == branchId.Value || x.BranchId == null);
+                }
+
+                return await query
                     .Select(x => new GetUserRoleDto
                     {
                         IdUserRol = x.Id,
                         CompanyId = x.CompanyId,
+                        BranchId = x.BranchId,
                         RoleName = x.Role,
                         IsActive = x.IsActive,
                         CreatedAt = x.CreatedAt,
@@ -55,6 +60,7 @@ public class UserRoleRepository : IUserRoleRepository
                     {
                         IdUserRol = x.Id,
                         CompanyId = x.CompanyId,
+                        BranchId = x.BranchId,
                         RoleName = (x.Id == 1 && (x.Role == "Administrador" || x.Role == "Admin")) ? "Super Administrador" : x.Role,
                         IsActive = x.IsActive,
                         CreatedAt = x.CreatedAt,

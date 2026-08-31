@@ -24,11 +24,11 @@ public class UserService : IUserService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<GetUsersDto>> GetUsers(int? companyId = null, CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetUsersDto>> GetUsers(int? companyId = null, int? branchId = null, CancellationToken cancellation = default)
     {
         try
         {
-            return await _userRepository.GetUsers(companyId, cancellation);
+            return await _userRepository.GetUsers(companyId, branchId, cancellation);
         }
         catch (Exception ex)
         {

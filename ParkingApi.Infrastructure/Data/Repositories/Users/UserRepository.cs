@@ -25,7 +25,7 @@ public class UserRepository : IUserRepository
         _logger = logger;
     }
 
-    public async Task<IEnumerable<GetUsersDto>> GetUsers(int? companyId = null, CancellationToken cancellation = default)
+    public async Task<IEnumerable<GetUsersDto>> GetUsers(int? companyId = null, int? branchId = null, CancellationToken cancellation = default)
     {
         try
         {
@@ -38,6 +38,12 @@ public class UserRepository : IUserRepository
             else
             {
                 query = query.Where(x => x.CompanyId == null);
+            }
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                var bid = branchId.Value;
+                query = query.Where(x => x.UserBranches.Any(ub => ub.BranchId == bid));
             }
 
             return await query

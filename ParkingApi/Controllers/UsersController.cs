@@ -31,7 +31,7 @@ public class UsersController : ControllerBase
 
     [HttpGet("GetUsers")]
     [HttpGet]
-    public async Task<IActionResult> GetUsers([FromQuery] int? companyId, CancellationToken cancellation)
+    public async Task<IActionResult> GetUsers([FromQuery] int? companyId, [FromQuery] int? branchId, CancellationToken cancellation)
     {
         try
         {
@@ -44,7 +44,7 @@ public class UsersController : ControllerBase
                 }
             }
 
-            var users = await _userService.GetUsers(companyId, cancellation);
+            var users = await _userService.GetUsers(companyId, branchId, cancellation);
             return Ok(users);
         }
         catch (Exception ex)

@@ -8,7 +8,7 @@ namespace ParkingApi.Domain.Interfaces.Repositories.UserRoles;
 
 public interface IUserRoleRepository
 {
-    Task<IEnumerable<GetUserRoleDto>> GetUserRoles(int? companyId = null, CancellationToken cancellation = default);
+    Task<IEnumerable<GetUserRoleDto>> GetUserRoles(int? companyId = null, int? branchId = null, CancellationToken cancellation = default);
     Task<GetUserRoleDto?> GetUserRoleById(int id, CancellationToken cancellation = default);
     Task<GetUserRoleDto?> GetUserRoleName(string nameRol, int? companyId = null, CancellationToken cancellation = default);
     Task<bool> SaveUserRole(UserRole userRole, CancellationToken cancellation = default);

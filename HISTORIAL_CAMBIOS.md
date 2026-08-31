@@ -2,8 +2,38 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: Aislamiento Estricto de Roles y Usuarios por Parqueadero / Empresa (Multi-Tenant SaaS)
+## 📌 Entrada: Aislamiento Completo de Roles y Usuarios a Nivel de Sede (Branch)
 - **`💬 Prompt Original del Usuario`**:
+  > *"no, esta mal, cuando como super administrador ingreso administrar un parqueadero me deben salir toda la infomacion de ese parqueadero, dashboard, caja, activos, reportes, novedades y confguraciones (sedes, usuarios, roles) ... valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Aislamiento por `BranchId` en `UserRole` y API**:
+    - Se incluyó `BranchId` en la entidad `UserRole` y `GetUserRoleDto`.
+    - Se agregó el soporte opcional `branchId` en `IUserRoleRepository.GetUserRoles`, filtrando por sede cuando el contexto lo indique, permitiendo que la PWA segmente la lista de roles al seleccionar un parqueadero/sede.
+  - **Aislamiento por `BranchId` en Usuarios (`UserRepository`)**:
+    - Se actualizó el método `GetUsers` en `UserRepository.cs` para filtrar por `BranchId` a través de la entidad puente `UserBranches` cuando el parámetro `branchId` está presente.
+  - **Migración de Base de Datos**:
+    - Se creó la migración EF Core `AddBranchIdToUserRole` para la columna `BranchId` con clave foránea hacia la tabla `Branches`.
+  - **Endpoint Controllers (`UserRoleController.cs`, `UsersController.cs`)**:
+    - Se añadieron parámetros `[FromQuery] int? branchId` en los endpoints `GetUsersRoles` y `GetUsers` para propagar la solicitud de filtrado hacia la capa de persistencia.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain\Models\UserRole.cs`
+  - `ParkingApi.Domain\Dtos\UserRoles\GetUserRoleDto.cs`
+  - `ParkingApi.Infrastructure\Data\Configurations\EntityConfigurations.cs`
+  - `ParkingApi.Infrastructure\Data\Repositories\UserRoles\UserRoleRepository.cs`
+  - `ParkingApi.Infrastructure\Data\Repositories\Users\UserRepository.cs`
+  - `ParkingApi.Core\Services\UserRoles\UserRoleService.cs`
+  - `ParkingApi.Core\Services\Users\UserService.cs`
+  - `ParkingApi\Controllers\UserRoleController.cs`
+  - `ParkingApi\Controllers\UsersController.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` ejecutado en `ParkingApi.slnx` con resultado exitoso (**0 Errores**).
+
+---
+
+## 📌 Entrada: Aislamiento Estricto de Roles y Usuarios por Parqueadero / Empresa (Multi-Tenant SaaS)
   > *"tengo un problema cuando ingreso con el super administrador y administro un parqueadero veo todos sus roles, sin embargo, no me esta filtrando los roles que se encuentran creados para cada parqueadero, porque cuando ingreso a otro parqueadero veo los mismos, requiero es que si yo ingreso a la administracion de un parqueadero, desde el superadministrador me muestre sus roles y usuario, si ingreso a otro igual, caso contrario que pasaria ya cuando ingreso con el usuario administrador de ese parqueadero, a el solo le deberia de mostrar los roles y usuarios asociados a ese parqueadero , valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"*
 
 - **`🤖 Resumen Técnico para la IA`**:
