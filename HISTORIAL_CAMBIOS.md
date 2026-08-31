@@ -2,7 +2,61 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: Aislamiento Completo de Roles y Usuarios a Nivel de Sede (Branch)
+## 📌 Entrada: Auditoría Integral y Blindaje Multi-Tenant SaaS & Estandarización Canónica de Permisos RBAC (PWA / API / WPF)
+- **`💬 Prompt Original del Usuario`**:
+  > *"AUDITORÍA TÉCNICA EXHAUSTIVA: SISTEMA DE PERMISOS (PWA/API/WPF) Y MULTI-TENANCY SaaS. Diagnóstico del flujo de permisos (PWA -> API -> WPF), blindaje de aislamiento multi-tenant SaaS (Organizaciones y Sedes), cero errores de compilación y registro estricto en HISTORIAL_CAMBIOS.md."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Servicio de Contexto de Usuario (`ICurrentUserService` / `CurrentUserService`)**:
+    - Se agregaron las propiedades y métodos `UserId`, `ParsedUserId`, `CompanyId`, `IsSuperAdmin`, `RoleId`, `RoleName`, `GetEffectiveCompanyId(int? requestedCompanyId)` y `CanAccessCompany(int targetCompanyId)`.
+    - Blindaje de acceso: Si un usuario no es SuperAdmin, el backend ignora cualquier `companyId` enviado por query string o payload y fuerza estrictamente el `CompanyId` de su claim JWT.
+  - **Blindaje Multi-Tenant en Capa de Repositorios y Servicios**:
+    - `IBranchRepository` / `BranchRepository`: `GetActiveAsync(int? companyId = null)` aísla sedes por empresa.
+    - `IMonthlySubscriptionRepository` / `MonthlySubscriptionRepository`: `GetAllAsync`, `GetActiveAsync`, `GetActiveByPlateAsync` filtran por `companyId` y `branchId`.
+    - `IParkingTicketRepository` / `ParkingTicketRepository`: `GetActiveTicketsAsync`, `GetTodayCompletedTicketsAsync`, `GetHistoryAsync`, `GetAllAsync`, `CountActiveAsync`, `CountTodayCompletedAsync`, `CountTodayTotalAsync`, `GetTodayRevenueAsync` reciben `branchId` y `companyId` para total aislamiento por sede y empresa.
+    - `ISyncService` / `SyncService`: `GetBootstrapDataAsync(int? branchId)` sincroniza de forma segura `UserRoles` y `RoleActions` filtrados por la empresa/sede activa, además de sedes, tarifas, comercios, convenios, turnos, mensualidades, novedades y tiquetes.
+  - **Blindaje Multi-Tenant en Controladores**:
+    - `BranchesController.cs`, `MonthlySubscriptionsController.cs`, `TicketsController.cs`, `UsersController.cs`, `UserRoleController.cs`, `VehicleRatesController.cs`, `PaymentMethodController.cs`, `StoresController.cs`, `AgreementsController.cs`, `ResolutionsController.cs` inyectan `ICurrentUserService` y aplican `_currentUser.GetEffectiveCompanyId` en todas las consultas y validaciones de creación/edición.
+  - **Extensión de DTOs de Sincronización (`SyncDtos.cs`)**:
+    - Se definieron `UserRoleSyncDto` y `RoleActionSyncDto`, incorporándolos a `BootstrapSyncDto` para garantizar la sincronización offline completa de roles y permisos hacia clientes WPF.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Services/ICurrentUserService.cs`
+  - `ParkingApi.Infrastructure/Security/CurrentUserService.cs`
+  - `ParkingApi.Domain/Dtos/Sync/SyncDtos.cs`
+  - `ParkingApi.Domain/Dtos/MonthlySubscriptions/MonthlySubscriptionDtos.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/Branches/IBranchRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Branches/IBranchService.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/MonthlySubscriptions/IMonthlySubscriptionRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/MonthlySubscriptions/MonthlySubscriptionRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/MonthlySubscriptions/IMonthlySubscriptionService.cs`
+  - `ParkingApi.Core/Services/MonthlySubscriptions/MonthlySubscriptionService.cs`
+  - `ParkingApi/Controllers/MonthlySubscriptionsController.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/Tickets/IParkingTicketRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Tickets/ParkingTicketRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Tickets/IParkingTicketService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi/Controllers/TicketsController.cs`
+  - `ParkingApi/Controllers/PublicTicketsController.cs`
+  - `ParkingApi.Core/Services/Sync/SyncService.cs`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs`
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi/Controllers/UsersController.cs`
+  - `ParkingApi/Controllers/UserRoleController.cs`
+  - `ParkingApi/Controllers/VehicleRatesController.cs`
+  - `ParkingApi/Controllers/PaymentMethodController.cs`
+  - `ParkingApi/Controllers/StoresController.cs`
+  - `ParkingApi/Controllers/AgreementsController.cs`
+  - `ParkingApi/Controllers/ResolutionsController.cs`
+  - `Scripts/02_Init_RBAC_Seed.sql`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` ejecutado en `c:\Users\migue\source\repos\ParkingApi` con resultado exitoso (**0 Errores**).
+
+---
 - **`💬 Prompt Original del Usuario`**:
   > *"no, esta mal, cuando como super administrador ingreso administrar un parqueadero me deben salir toda la infomacion de ese parqueadero, dashboard, caja, activos, reportes, novedades y confguraciones (sedes, usuarios, roles) ... valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"*
 

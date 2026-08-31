@@ -16,11 +16,16 @@ public class UserRoleController : ControllerBase
 {
     private readonly ILogger<UserRoleController> _logger;
     private readonly IUserRoleService _userRoleService;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
 
-    public UserRoleController(ILogger<UserRoleController> logger, IUserRoleService userRoleService)
+    public UserRoleController(
+        ILogger<UserRoleController> logger,
+        IUserRoleService userRoleService,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser)
     {
         _logger = logger;
         _userRoleService = userRoleService;
+        _currentUser = currentUser;
     }
 
     [HttpGet("GetUsersRoles")]
@@ -29,16 +34,8 @@ public class UserRoleController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var roles = await _userRoleService.GetUserRoles(companyId, branchId, cancellation);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var roles = await _userRoleService.GetUserRoles(effectiveCompanyId, branchId, cancellation);
             return Ok(roles);
         }
         catch (Exception ex)
@@ -59,6 +56,12 @@ public class UserRoleController : ControllerBase
             {
                 return NotFound(new { message = "Rol no encontrado." });
             }
+
+            if (!_currentUser.IsSuperAdmin && role.CompanyId.HasValue && !_currentUser.CanAccessCompany(role.CompanyId.Value))
+            {
+                return NotFound(new { message = "Rol no encontrado." });
+            }
+
             return Ok(role);
         }
         catch (Exception ex)
@@ -74,13 +77,13 @@ public class UserRoleController : ControllerBase
     {
         try
         {
-            if (!userRole.CompanyId.HasValue || userRole.CompanyId.Value <= 0)
+            if (!_currentUser.IsSuperAdmin)
             {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    userRole.CompanyId = cid;
-                }
+                userRole.CompanyId = _currentUser.CompanyId;
+            }
+            else if (!userRole.CompanyId.HasValue || userRole.CompanyId <= 0)
+            {
+                userRole.CompanyId = _currentUser.CompanyId;
             }
 
             var result = await _userRoleService.SaveOrEditUserRole(userRole, cancellation);

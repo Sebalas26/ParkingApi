@@ -14,15 +14,18 @@ public class VehicleRatesController : ControllerBase
 {
     private readonly IVehicleRateService _rateService;
     private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<VehicleRatesController> _logger;
 
     public VehicleRatesController(
         IVehicleRateService rateService, 
         ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
         ILogger<VehicleRatesController> logger)
     {
         _rateService = rateService;
         _realtimeNotifier = realtimeNotifier;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -31,16 +34,8 @@ public class VehicleRatesController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var rates = await _rateService.GetAllRatesAsync(companyId, cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var rates = await _rateService.GetAllRatesAsync(effectiveCompanyId, cancellationToken);
             return Ok(rates);
         }
         catch (Exception ex)
@@ -60,6 +55,12 @@ public class VehicleRatesController : ControllerBase
             {
                 return NotFound(new { message = "Tarifa no encontrada." });
             }
+
+            if (!_currentUser.IsSuperAdmin && rate.CompanyId.HasValue && !_currentUser.CanAccessCompany(rate.CompanyId.Value))
+            {
+                return NotFound(new { message = "Tarifa no encontrada." });
+            }
+
             return Ok(rate);
         }
         catch (Exception ex)
@@ -74,13 +75,13 @@ public class VehicleRatesController : ControllerBase
     {
         try
         {
-            if (!rate.CompanyId.HasValue || rate.CompanyId.Value <= 0)
+            if (!_currentUser.IsSuperAdmin)
             {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    rate.CompanyId = cid;
-                }
+                rate.CompanyId = _currentUser.CompanyId;
+            }
+            else if (!rate.CompanyId.HasValue || rate.CompanyId <= 0)
+            {
+                rate.CompanyId = _currentUser.CompanyId;
             }
 
             var created = await _rateService.CreateRateAsync(rate, cancellationToken);

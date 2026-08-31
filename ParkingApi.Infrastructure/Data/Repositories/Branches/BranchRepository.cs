@@ -26,13 +26,14 @@ public class BranchRepository : IBranchRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Branch>> GetActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Branch>> GetActiveAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
-        return await _context.Branches
-            .AsNoTracking()
-            .Where(b => b.IsActive)
-            .OrderBy(b => b.Name)
-            .ToListAsync(cancellationToken);
+        var query = _context.Branches.AsNoTracking().Where(b => b.IsActive);
+        if (companyId.HasValue && companyId.Value > 0)
+        {
+            query = query.Where(b => b.CompanyId == companyId.Value);
+        }
+        return await query.OrderBy(b => b.Name).ToListAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<Branch>> GetBranchesByCompanyIdAsync(int companyId, CancellationToken cancellationToken = default)

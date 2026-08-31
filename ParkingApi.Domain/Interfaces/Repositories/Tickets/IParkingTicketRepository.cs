@@ -10,15 +10,15 @@ public interface IParkingTicketRepository
 {
     Task<ParkingTicket?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ParkingTicket?> GetByTicketNumberAsync(string ticketNumber, CancellationToken cancellationToken = default);
-    Task<ParkingTicket?> GetActiveByPlateAsync(string plateNumber, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ParkingTicket>> GetActiveTicketsAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ParkingTicket>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<ParkingTicket?> GetActiveByPlateAsync(string plateNumber, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ParkingTicket>> GetActiveTicketsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ParkingTicket>> GetAllAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
     Task<ParkingTicket> AddAsync(ParkingTicket ticket, CancellationToken cancellationToken = default);
     Task<bool> UpdateAsync(ParkingTicket ticket, CancellationToken cancellationToken = default);
-    Task<int> CountActiveAsync(CancellationToken cancellationToken = default);
-    Task<int> CountTodayCompletedAsync(CancellationToken cancellationToken = default);
-    Task<int> CountTodayTotalAsync(CancellationToken cancellationToken = default);
-    Task<decimal> GetTodayRevenueAsync(CancellationToken cancellationToken = default);
+    Task<int> CountActiveAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<int> CountTodayCompletedAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<int> CountTodayTotalAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<decimal> GetTodayRevenueAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
 }

@@ -13,11 +13,16 @@ namespace ParkingApi.Controllers;
 public class TicketsController : ControllerBase
 {
     private readonly IParkingTicketService _ticketService;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<TicketsController> _logger;
 
-    public TicketsController(IParkingTicketService ticketService, ILogger<TicketsController> logger)
+    public TicketsController(
+        IParkingTicketService ticketService,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
+        ILogger<TicketsController> logger)
     {
         _ticketService = ticketService;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -60,11 +65,12 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("active")]
-    public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetActive([FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var tickets = await _ticketService.GetActiveTicketsAsync(cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var tickets = await _ticketService.GetActiveTicketsAsync(branchId, effectiveCompanyId, cancellationToken);
             return Ok(tickets);
         }
         catch (Exception ex)
@@ -113,12 +119,13 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("history")]
-    public async Task<IActionResult> GetHistory([FromQuery] DateTime? date, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetHistory([FromQuery] DateTime? date, [FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
             var targetDate = date ?? DateTime.UtcNow;
-            var history = await _ticketService.GetHistoryAsync(targetDate, cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var history = await _ticketService.GetHistoryAsync(targetDate, branchId, effectiveCompanyId, cancellationToken);
             return Ok(history);
         }
         catch (Exception ex)

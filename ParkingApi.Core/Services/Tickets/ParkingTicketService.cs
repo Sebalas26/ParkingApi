@@ -60,7 +60,7 @@ public class ParkingTicketService : IParkingTicketService
             }
 
             // 2. Validar que el vehículo no se encuentre ya adentro
-            var active = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, cancellationToken);
+            var active = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, dto.BranchId, null, cancellationToken);
             if (active != null)
             {
                 throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
@@ -80,13 +80,13 @@ public class ParkingTicketService : IParkingTicketService
                 var existingWithNumber = await _ticketRepository.GetByTicketNumberAsync(ticketNumber, cancellationToken);
                 if (existingWithNumber != null)
                 {
-                    var countToday = await _ticketRepository.CountTodayTotalAsync(cancellationToken) + 1;
+                    var countToday = await _ticketRepository.CountTodayTotalAsync(dto.BranchId, null, cancellationToken) + 1;
                     ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
                 }
             }
             else
             {
-                var countToday = await _ticketRepository.CountTodayTotalAsync(cancellationToken) + 1;
+                var countToday = await _ticketRepository.CountTodayTotalAsync(dto.BranchId, null, cancellationToken) + 1;
                 ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
             }
 
@@ -189,11 +189,11 @@ public class ParkingTicketService : IParkingTicketService
         }
     }
 
-    public async Task<IReadOnlyList<ParkingTicket>> GetActiveTicketsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ParkingTicket>> GetActiveTicketsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
+            return await _ticketRepository.GetActiveTicketsAsync(branchId, companyId, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -228,11 +228,11 @@ public class ParkingTicketService : IParkingTicketService
         }
     }
 
-    public async Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _ticketRepository.GetHistoryAsync(date, cancellationToken);
+            return await _ticketRepository.GetHistoryAsync(date, branchId, companyId, cancellationToken);
         }
         catch (Exception ex)
         {

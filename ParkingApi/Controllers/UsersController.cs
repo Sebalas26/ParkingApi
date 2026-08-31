@@ -18,15 +18,18 @@ public class UsersController : ControllerBase
     private readonly ILogger<UsersController> _logger;
     private readonly IUserService _userService;
     private readonly IRealtimeNotificationService _realtimeNotifier;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
 
     public UsersController(
         ILogger<UsersController> logger,
         IUserService userService,
-        IRealtimeNotificationService realtimeNotifier)
+        IRealtimeNotificationService realtimeNotifier,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser)
     {
         _logger = logger;
         _userService = userService;
         _realtimeNotifier = realtimeNotifier;
+        _currentUser = currentUser;
     }
 
     [HttpGet("GetUsers")]
@@ -35,16 +38,8 @@ public class UsersController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var users = await _userService.GetUsers(companyId, branchId, cancellation);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var users = await _userService.GetUsers(effectiveCompanyId, branchId, cancellation);
             return Ok(users);
         }
         catch (Exception ex)
@@ -65,6 +60,12 @@ public class UsersController : ControllerBase
             {
                 return NotFound(new { message = "Usuario no encontrado." });
             }
+
+            if (!_currentUser.IsSuperAdmin && user.CompanyId.HasValue && !_currentUser.CanAccessCompany(user.CompanyId.Value))
+            {
+                return NotFound(new { message = "Usuario no encontrado." });
+            }
+
             return Ok(user);
         }
         catch (Exception ex)
@@ -80,13 +81,13 @@ public class UsersController : ControllerBase
     {
         try
         {
-            if (!getUsersDto.CompanyId.HasValue || getUsersDto.CompanyId.Value <= 0)
+            if (!_currentUser.IsSuperAdmin)
             {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    getUsersDto.CompanyId = cid;
-                }
+                getUsersDto.CompanyId = _currentUser.CompanyId;
+            }
+            else if (!getUsersDto.CompanyId.HasValue || getUsersDto.CompanyId.Value <= 0)
+            {
+                getUsersDto.CompanyId = _currentUser.CompanyId;
             }
 
             var result = await _userService.CreateOrEditUser(getUsersDto, cancellation);

@@ -11,9 +11,11 @@ using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Incidents;
 using ParkingApi.Domain.Interfaces.Repositories.MonthlySubscriptions;
 using ParkingApi.Domain.Interfaces.Repositories.PaymentMethods;
+using ParkingApi.Domain.Interfaces.Repositories.RoleActions;
 using ParkingApi.Domain.Interfaces.Repositories.Shifts;
 using ParkingApi.Domain.Interfaces.Repositories.Stores;
 using ParkingApi.Domain.Interfaces.Repositories.Tickets;
+using ParkingApi.Domain.Interfaces.Repositories.UserRoles;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Repositories.VehicleRates;
 using ParkingApi.Domain.Interfaces.Services.Sync;
@@ -25,6 +27,8 @@ public class SyncService : ISyncService
 {
     private readonly IUserRepository _userRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IUserRoleRepository _userRoleRepository;
+    private readonly IRoleActionRepository _roleActionRepository;
     private readonly IPaymentMethodRepository _paymentMethodRepository;
     private readonly IVehicleRateRepository _rateRepository;
     private readonly IStoreRepository _storeRepository;
@@ -39,6 +43,8 @@ public class SyncService : ISyncService
     public SyncService(
         IUserRepository userRepository,
         IBranchRepository branchRepository,
+        IUserRoleRepository userRoleRepository,
+        IRoleActionRepository roleActionRepository,
         IPaymentMethodRepository paymentMethodRepository,
         IVehicleRateRepository rateRepository,
         IStoreRepository storeRepository,
@@ -52,6 +58,8 @@ public class SyncService : ISyncService
     {
         _userRepository = userRepository;
         _branchRepository = branchRepository;
+        _userRoleRepository = userRoleRepository;
+        _roleActionRepository = roleActionRepository;
         _paymentMethodRepository = paymentMethodRepository;
         _rateRepository = rateRepository;
         _storeRepository = storeRepository;
@@ -72,14 +80,20 @@ public class SyncService : ISyncService
             List<Branch> branches;
             List<User> users;
             List<PaymentMethod> paymentMethods;
+            int? targetCompanyId = null;
 
             if (branchId.HasValue)
             {
                 var branch = await _branchRepository.GetByIdAsync(branchId.Value, cancellationToken);
-                branches = branch != null ? new List<Branch> { branch } : (await _branchRepository.GetActiveAsync(cancellationToken)).ToList();
                 if (branch != null)
                 {
+                    targetCompanyId = branch.CompanyId;
                     totalCapacity = branch.TotalCapacity;
+                    branches = new List<Branch> { branch };
+                }
+                else
+                {
+                    branches = (await _branchRepository.GetActiveAsync(null, cancellationToken)).ToList();
                 }
 
                 users = (await _branchRepository.GetUsersByBranchIdAsync(branchId.Value, cancellationToken)).ToList();
@@ -99,7 +113,7 @@ public class SyncService : ISyncService
                 }
                 else
                 {
-                    var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(null, cancellationToken);
+                    var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(targetCompanyId, cancellationToken);
                     paymentMethods = paymentMethodsDtos.Select(dto => new PaymentMethod
                     {
                         Id = dto.Id,
@@ -113,7 +127,7 @@ public class SyncService : ISyncService
             }
             else
             {
-                branches = (await _branchRepository.GetActiveAsync(cancellationToken)).ToList();
+                branches = (await _branchRepository.GetActiveAsync(null, cancellationToken)).ToList();
                 users = (await _userRepository.GetAllActiveUsersAsync(cancellationToken)).ToList();
                 var paymentMethodsDtos = await _paymentMethodRepository.GetAllActiveAsync(null, cancellationToken);
                 paymentMethods = paymentMethodsDtos.Select(dto => new PaymentMethod
@@ -127,40 +141,58 @@ public class SyncService : ISyncService
                 }).ToList();
             }
 
-            var allRates = await _rateRepository.GetAllAsync(null, cancellationToken);
+            // Sincronización de Roles y Acciones (RBAC Data-Driven)
+            var userRolesDtos = await _userRoleRepository.GetUserRoles(targetCompanyId, branchId, cancellationToken);
+            var userRoles = userRolesDtos.Select(r => new UserRoleSyncDto
+            {
+                Id = r.IdUserRol,
+                Role = r.RoleName,
+                Description = r.RoleName,
+                IsActive = r.IsActive
+            }).ToList();
+
+            var roleActionsList = new List<RoleActionSyncDto>();
+            foreach (var r in userRoles)
+            {
+                var actions = await _roleActionRepository.GetActionsByRoleAsync(r.Id, cancellationToken);
+                foreach (var a in actions.Where(x => x.IsActive && !string.IsNullOrWhiteSpace(x.ActionName)))
+                {
+                    roleActionsList.Add(new RoleActionSyncDto
+                    {
+                        RoleId = r.Id,
+                        ActionSlug = a.ActionName,
+                        ActionName = a.ActionName,
+                        IsActive = a.IsActive
+                    });
+                }
+            }
+
+            var allRates = await _rateRepository.GetAllAsync(targetCompanyId, cancellationToken);
             var rates = branchId.HasValue
-                ? allRates.Where(r => r.IsActive && r.BranchId == branchId.Value).ToList()
+                ? allRates.Where(r => r.IsActive && (r.BranchId == null || r.BranchId == branchId.Value)).ToList()
                 : allRates.Where(r => r.IsActive).ToList();
 
-            var allStores = await _storeRepository.GetAllAsync(null, cancellationToken);
-            var allAgreements = await _agreementRepository.GetAllAsync(null, cancellationToken);
+            var allStores = await _storeRepository.GetAllAsync(targetCompanyId, cancellationToken);
+            var allAgreements = await _agreementRepository.GetAllAsync(targetCompanyId, cancellationToken);
             var stores = branchId.HasValue
-                ? allStores.Where(s => s.IsActive && s.BranchId == branchId.Value).ToList()
+                ? allStores.Where(s => s.IsActive && (s.BranchId == null || s.BranchId == branchId.Value)).ToList()
                 : allStores.Where(s => s.IsActive).ToList();
 
             var storeIds = stores.Select(s => s.StoreId).ToHashSet();
             var agreements = allAgreements.Where(a => a.IsActive && storeIds.Contains(a.StoreId)).ToList();
 
-            var allShifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, null, cancellationToken);
+            var allShifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, branchId, cancellationToken);
             var shifts = branchId.HasValue
                 ? allShifts.Where(ws => ws.BranchId == branchId.Value).ToList()
                 : allShifts.ToList();
 
-            var allSubs = await _monthlySubscriptionRepository.GetAllAsync(cancellationToken);
-            var subscriptions = branchId.HasValue
-                ? allSubs.Where(s => s.IsActive && s.BranchId == branchId.Value).ToList()
-                : allSubs.Where(s => s.IsActive).ToList();
+            var allSubs = await _monthlySubscriptionRepository.GetAllAsync(targetCompanyId, branchId, cancellationToken);
+            var subscriptions = allSubs.Where(s => s.IsActive).ToList();
 
-            var allActiveTickets = await _ticketRepository.GetActiveTicketsAsync(cancellationToken);
-            var allRecentTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
-            var activeTickets = branchId.HasValue
-                ? allActiveTickets.Where(t => t.BranchId == branchId.Value).ToList()
-                : allActiveTickets.ToList();
-            var recentTickets = branchId.HasValue
-                ? allRecentTickets.Where(t => t.BranchId == branchId.Value).ToList()
-                : allRecentTickets.ToList();
+            var activeTickets = (await _ticketRepository.GetActiveTicketsAsync(branchId, targetCompanyId, cancellationToken)).ToList();
+            var recentTickets = (await _ticketRepository.GetTodayCompletedTicketsAsync(branchId, targetCompanyId, cancellationToken)).ToList();
 
-            var allIncidents = await _incidentRepository.GetAllAsync(branchId: null, status: "Activa", isBlocked: null, search: null, cancellationToken: cancellationToken);
+            var allIncidents = await _incidentRepository.GetAllAsync(branchId: branchId, status: "Activa", isBlocked: null, search: null, cancellationToken: cancellationToken);
             var incidents = branchId.HasValue
                 ? allIncidents.Where(i => i.IsGlobal || i.BranchId == branchId.Value || i.IncidentBranches.Any(ib => ib.BranchId == branchId.Value)).ToList()
                 : allIncidents.ToList();
@@ -171,6 +203,8 @@ public class SyncService : ISyncService
                 TotalCapacity = totalCapacity,
                 Branches = branches,
                 Users = users,
+                UserRoles = userRoles,
+                RoleActions = roleActionsList,
                 PaymentMethods = paymentMethods,
                 Rates = rates,
                 Stores = stores,
@@ -189,3 +223,4 @@ public class SyncService : ISyncService
         }
     }
 }
+

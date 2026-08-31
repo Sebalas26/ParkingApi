@@ -13,11 +13,16 @@ namespace ParkingApi.Controllers;
 public class StoresController : ControllerBase
 {
     private readonly IStoreService _storeService;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<StoresController> _logger;
 
-    public StoresController(IStoreService storeService, ILogger<StoresController> logger)
+    public StoresController(
+        IStoreService storeService,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
+        ILogger<StoresController> logger)
     {
         _storeService = storeService;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -26,16 +31,8 @@ public class StoresController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var stores = await _storeService.GetAllAsync(companyId, cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var stores = await _storeService.GetAllAsync(effectiveCompanyId, cancellationToken);
             return Ok(stores);
         }
         catch (Exception ex)
@@ -55,6 +52,12 @@ public class StoresController : ControllerBase
             {
                 return NotFound(new { message = "Comercio no encontrado." });
             }
+
+            if (!_currentUser.IsSuperAdmin && store.CompanyId.HasValue && !_currentUser.CanAccessCompany(store.CompanyId.Value))
+            {
+                return NotFound(new { message = "Comercio no encontrado." });
+            }
+
             return Ok(store);
         }
         catch (Exception ex)
@@ -69,6 +72,15 @@ public class StoresController : ControllerBase
     {
         try
         {
+            if (!_currentUser.IsSuperAdmin)
+            {
+                store.CompanyId = _currentUser.CompanyId;
+            }
+            else if (!store.CompanyId.HasValue || store.CompanyId <= 0)
+            {
+                store.CompanyId = _currentUser.CompanyId;
+            }
+
             var created = await _storeService.CreateAsync(store, cancellationToken);
             return Ok(created);
         }

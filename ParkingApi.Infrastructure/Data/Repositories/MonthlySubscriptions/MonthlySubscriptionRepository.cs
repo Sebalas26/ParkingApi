@@ -19,18 +19,41 @@ public class MonthlySubscriptionRepository : IMonthlySubscriptionRepository
         _context = context;
     }
 
-    public async Task<IReadOnlyList<MonthlySubscription>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MonthlySubscription>> GetAllAsync(int? companyId = null, int? branchId = null, CancellationToken cancellationToken = default)
     {
-        return await _context.MonthlySubscriptions
+        var query = _context.MonthlySubscriptions.Include(s => s.Branch).AsNoTracking();
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            query = query.Where(s => s.BranchId == branchId.Value);
+        }
+        if (companyId.HasValue && companyId.Value > 0)
+        {
+            query = query.Where(s => s.CompanyId == companyId.Value || (s.Branch != null && s.Branch.CompanyId == companyId.Value));
+        }
+
+        return await query
             .OrderByDescending(s => s.StartDateUtc)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<MonthlySubscription>> GetActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MonthlySubscription>> GetActiveAsync(int? companyId = null, int? branchId = null, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        return await _context.MonthlySubscriptions
-            .Where(s => s.IsActive && s.EndDateUtc >= now)
+        var query = _context.MonthlySubscriptions
+            .Include(s => s.Branch)
+            .AsNoTracking()
+            .Where(s => s.IsActive && s.EndDateUtc >= now);
+
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            query = query.Where(s => s.BranchId == branchId.Value);
+        }
+        if (companyId.HasValue && companyId.Value > 0)
+        {
+            query = query.Where(s => s.CompanyId == companyId.Value || (s.Branch != null && s.Branch.CompanyId == companyId.Value));
+        }
+
+        return await query
             .OrderByDescending(s => s.StartDateUtc)
             .ToListAsync(cancellationToken);
     }
@@ -38,17 +61,30 @@ public class MonthlySubscriptionRepository : IMonthlySubscriptionRepository
     public async Task<MonthlySubscription?> GetByIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default)
     {
         return await _context.MonthlySubscriptions
+            .Include(s => s.Branch)
             .FirstOrDefaultAsync(s => s.SubscriptionId == subscriptionId, cancellationToken);
     }
 
-    public async Task<MonthlySubscription?> GetActiveByPlateAsync(string plateNumber, CancellationToken cancellationToken = default)
+    public async Task<MonthlySubscription?> GetActiveByPlateAsync(string plateNumber, int? companyId = null, int? branchId = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(plateNumber)) return null;
         var normalized = plateNumber.Trim().ToUpperInvariant();
         var now = DateTime.UtcNow;
 
-        return await _context.MonthlySubscriptions
-            .Where(s => s.IsActive && s.PlateNumber == normalized && s.EndDateUtc >= now)
+        var query = _context.MonthlySubscriptions
+            .Include(s => s.Branch)
+            .Where(s => s.IsActive && s.PlateNumber == normalized && s.EndDateUtc >= now);
+
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            query = query.Where(s => s.BranchId == branchId.Value);
+        }
+        if (companyId.HasValue && companyId.Value > 0)
+        {
+            query = query.Where(s => s.CompanyId == companyId.Value || (s.Branch != null && s.Branch.CompanyId == companyId.Value));
+        }
+
+        return await query
             .OrderByDescending(s => s.EndDateUtc)
             .FirstOrDefaultAsync(cancellationToken);
     }

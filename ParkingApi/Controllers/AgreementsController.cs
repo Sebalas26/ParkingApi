@@ -14,15 +14,18 @@ public class AgreementsController : ControllerBase
 {
     private readonly ICommercialAgreementService _agreementService;
     private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<AgreementsController> _logger;
 
     public AgreementsController(
         ICommercialAgreementService agreementService, 
         ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
         ILogger<AgreementsController> logger)
     {
         _agreementService = agreementService;
         _realtimeNotifier = realtimeNotifier;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -31,16 +34,8 @@ public class AgreementsController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var agreements = await _agreementService.GetAllAsync(companyId, cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var agreements = await _agreementService.GetAllAsync(effectiveCompanyId, cancellationToken);
             return Ok(agreements);
         }
         catch (Exception ex)
@@ -60,6 +55,12 @@ public class AgreementsController : ControllerBase
             {
                 return NotFound(new { message = "Convenio no encontrado." });
             }
+
+            if (!_currentUser.IsSuperAdmin && agreement.Store?.CompanyId.HasValue == true && !_currentUser.CanAccessCompany(agreement.Store.CompanyId.Value))
+            {
+                return NotFound(new { message = "Convenio no encontrado." });
+            }
+
             return Ok(agreement);
         }
         catch (Exception ex)

@@ -17,15 +17,18 @@ public class PaymentMethodController : ControllerBase
     private readonly ILogger<PaymentMethodController> _logger;
     private readonly IPaymentMethodService _paymentMethodService;
     private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
 
     public PaymentMethodController(
         ILogger<PaymentMethodController> logger, 
         IPaymentMethodService paymentMethodService,
-        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier)
+        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser)
     {
         _logger = logger;
         _paymentMethodService = paymentMethodService;
         _realtimeNotifier = realtimeNotifier;
+        _currentUser = currentUser;
     }
 
     [HttpGet("GetPaymentMethods")]
@@ -34,16 +37,8 @@ public class PaymentMethodController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var methods = await _paymentMethodService.GetAllAsync(companyId, cancellation);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var methods = await _paymentMethodService.GetAllAsync(effectiveCompanyId, cancellation);
             return Ok(methods);
         }
         catch (Exception ex)
@@ -58,16 +53,8 @@ public class PaymentMethodController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var methods = await _paymentMethodService.GetAllActiveAsync(companyId, cancellation);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var methods = await _paymentMethodService.GetAllActiveAsync(effectiveCompanyId, cancellation);
             return Ok(methods);
         }
         catch (Exception ex)
@@ -103,13 +90,13 @@ public class PaymentMethodController : ControllerBase
     {
         try
         {
-            if (!value.CompanyId.HasValue || value.CompanyId.Value <= 0)
+            if (!_currentUser.IsSuperAdmin)
             {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    value.CompanyId = cid;
-                }
+                value.CompanyId = _currentUser.CompanyId;
+            }
+            else if (!value.CompanyId.HasValue || value.CompanyId <= 0)
+            {
+                value.CompanyId = _currentUser.CompanyId;
             }
 
             var result = await _paymentMethodService.CreateOrEditPaymentMethod(value, cancellation);

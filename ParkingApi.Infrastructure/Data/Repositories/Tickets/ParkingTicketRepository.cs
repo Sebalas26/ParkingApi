@@ -57,14 +57,26 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<ParkingTicket?> GetActiveByPlateAsync(string plateNumber, CancellationToken cancellationToken = default)
+    public async Task<ParkingTicket?> GetActiveByPlateAsync(string plateNumber, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var normalized = plateNumber.Trim().ToUpperInvariant();
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .Include(t => t.Discounts)
-                .FirstOrDefaultAsync(t => t.Status == TicketStatus.Active && t.PlateNumber.ToUpper() == normalized, cancellationToken);
+                .Include(t => t.Branch)
+                .Where(t => t.Status == TicketStatus.Active && t.PlateNumber.ToUpper() == normalized);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query.FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -73,14 +85,26 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<IReadOnlyList<ParkingTicket>> GetActiveTicketsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ParkingTicket>> GetActiveTicketsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Discounts)
-                .Where(t => t.Status == TicketStatus.Active)
+                .Include(t => t.Branch)
+                .Where(t => t.Status == TicketStatus.Active);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query
                 .OrderByDescending(t => t.EntryTimeUtc)
                 .ToListAsync(cancellationToken);
         }
@@ -91,15 +115,27 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var today = DateTime.UtcNow.Date;
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Discounts)
-                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today)
+                .Include(t => t.Branch)
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query
                 .OrderByDescending(t => t.ExitTimeUtc)
                 .ToListAsync(cancellationToken);
         }
@@ -110,15 +146,27 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime date, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var targetDate = date.Date;
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Discounts)
-                .Where(t => t.EntryTimeUtc.Date == targetDate || (t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == targetDate))
+                .Include(t => t.Branch)
+                .Where(t => t.EntryTimeUtc.Date == targetDate || (t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == targetDate));
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query
                 .OrderByDescending(t => t.EntryTimeUtc)
                 .ToListAsync(cancellationToken);
         }
@@ -129,13 +177,26 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<IReadOnlyList<ParkingTicket>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ParkingTicket>> GetAllAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Discounts)
+                .Include(t => t.Branch)
+                .AsQueryable();
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query
                 .OrderByDescending(t => t.EntryTimeUtc)
                 .ToListAsync(cancellationToken);
         }
@@ -176,13 +237,25 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<int> CountActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<int> CountActiveAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
-                .CountAsync(t => t.Status == TicketStatus.Active, cancellationToken);
+                .Include(t => t.Branch)
+                .Where(t => t.Status == TicketStatus.Active);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query.CountAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -191,14 +264,26 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<int> CountTodayCompletedAsync(CancellationToken cancellationToken = default)
+    public async Task<int> CountTodayCompletedAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var today = DateTime.UtcNow.Date;
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
-                .CountAsync(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today, cancellationToken);
+                .Include(t => t.Branch)
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query.CountAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -207,14 +292,26 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<int> CountTodayTotalAsync(CancellationToken cancellationToken = default)
+    public async Task<int> CountTodayTotalAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var today = DateTime.UtcNow.Date;
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
-                .CountAsync(t => t.EntryTimeUtc.Date == today, cancellationToken);
+                .Include(t => t.Branch)
+                .Where(t => t.EntryTimeUtc.Date == today);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query.CountAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -223,15 +320,26 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<decimal> GetTodayRevenueAsync(CancellationToken cancellationToken = default)
+    public async Task<decimal> GetTodayRevenueAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var today = DateTime.UtcNow.Date;
-            return await _context.ParkingTickets
+            var query = _context.ParkingTickets
                 .AsNoTracking()
-                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today)
-                .SumAsync(t => t.NetAmount, cancellationToken);
+                .Include(t => t.Branch)
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query.SumAsync(t => t.NetAmount, cancellationToken);
         }
         catch (Exception ex)
         {

@@ -16,15 +16,18 @@ public class AnalyticsService : IAnalyticsService
 {
     private readonly IParkingTicketRepository _ticketRepository;
     private readonly IConfiguration _configuration;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<AnalyticsService> _logger;
 
     public AnalyticsService(
         IParkingTicketRepository ticketRepository,
         IConfiguration configuration,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
         ILogger<AnalyticsService> logger)
     {
         _ticketRepository = ticketRepository;
         _configuration = configuration;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -32,8 +35,9 @@ public class AnalyticsService : IAnalyticsService
     {
         try
         {
-            var todayTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(cancellationToken);
-            var activeCount = await _ticketRepository.CountActiveAsync(cancellationToken);
+            var companyId = _currentUser.CompanyId;
+            var todayTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(null, companyId, cancellationToken);
+            var activeCount = await _ticketRepository.CountActiveAsync(null, companyId, cancellationToken);
 
             var totalRevenue = todayTickets.Sum(t => t.NetAmount);
             var completedCount = todayTickets.Count;
@@ -93,7 +97,8 @@ public class AnalyticsService : IAnalyticsService
         var totalCapacity = int.TryParse(_configuration["ParkingSettings:TotalCapacity"], out var cap) ? cap : 100;
         try
         {
-            var activeCount = await _ticketRepository.CountActiveAsync(cancellationToken);
+            var companyId = _currentUser.CompanyId;
+            var activeCount = await _ticketRepository.CountActiveAsync(null, companyId, cancellationToken);
             return new OccupancyStatsDto
             {
                 TotalCapacity = totalCapacity,

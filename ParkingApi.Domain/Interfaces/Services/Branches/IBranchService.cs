@@ -8,7 +8,7 @@ namespace ParkingApi.Domain.Interfaces.Services.Branches;
 public interface IBranchService
 {
     Task<IReadOnlyList<BranchDto>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<BranchDto>> GetActiveAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BranchDto>> GetActiveAsync(int? companyId = null, CancellationToken cancellationToken = default);
     Task<BranchDto?> GetByIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BranchDto>> GetBranchesByUserIdAsync(int userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BranchDto>> GetBranchesByCompanyIdAsync(int companyId, CancellationToken cancellationToken = default);

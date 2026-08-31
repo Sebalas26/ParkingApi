@@ -16,21 +16,25 @@ public class MonthlySubscriptionsController : ControllerBase
 {
     private readonly ILogger<MonthlySubscriptionsController> _logger;
     private readonly IMonthlySubscriptionService _subscriptionService;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
 
     public MonthlySubscriptionsController(
         ILogger<MonthlySubscriptionsController> logger,
-        IMonthlySubscriptionService subscriptionService)
+        IMonthlySubscriptionService subscriptionService,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser)
     {
         _logger = logger;
         _subscriptionService = subscriptionService;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var subscriptions = await _subscriptionService.GetAllAsync(cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var subscriptions = await _subscriptionService.GetAllAsync(effectiveCompanyId, branchId, cancellationToken);
             return Ok(subscriptions);
         }
         catch (Exception ex)
@@ -41,11 +45,12 @@ public class MonthlySubscriptionsController : ControllerBase
     }
 
     [HttpGet("active")]
-    public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetActive([FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var subscriptions = await _subscriptionService.GetActiveAsync(cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var subscriptions = await _subscriptionService.GetActiveAsync(effectiveCompanyId, branchId, cancellationToken);
             return Ok(subscriptions);
         }
         catch (Exception ex)
@@ -57,11 +62,12 @@ public class MonthlySubscriptionsController : ControllerBase
 
     [HttpGet("by-plate/{plate}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetByPlate(string plate, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByPlate(string plate, [FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var subscription = await _subscriptionService.GetActiveByPlateAsync(plate, cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var subscription = await _subscriptionService.GetActiveByPlateAsync(plate, effectiveCompanyId, branchId, cancellationToken);
             if (subscription == null)
             {
                 return NotFound(new { message = "No existe mensualidad activa para la placa proporcionada." });
@@ -85,6 +91,12 @@ public class MonthlySubscriptionsController : ControllerBase
             {
                 return NotFound(new { message = "Mensualidad no encontrada." });
             }
+
+            if (!_currentUser.IsSuperAdmin && subscription.CompanyId.HasValue && !_currentUser.CanAccessCompany(subscription.CompanyId.Value))
+            {
+                return NotFound(new { message = "Mensualidad no encontrada." });
+            }
+
             return Ok(subscription);
         }
         catch (Exception ex)
@@ -100,6 +112,15 @@ public class MonthlySubscriptionsController : ControllerBase
         try
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (!_currentUser.IsSuperAdmin)
+            {
+                dto.CompanyId = _currentUser.CompanyId;
+            }
+            else if (!dto.CompanyId.HasValue || dto.CompanyId <= 0)
+            {
+                dto.CompanyId = _currentUser.CompanyId;
+            }
 
             var created = await _subscriptionService.CreateAsync(dto, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.SubscriptionId }, created);

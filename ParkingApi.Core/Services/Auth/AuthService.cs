@@ -160,7 +160,7 @@ public class AuthService : IAuthService
             IReadOnlyList<Branch> userBranches;
             if (isSuperAdmin)
             {
-                userBranches = await _branchRepository.GetActiveAsync(cancellation);
+                userBranches = await _branchRepository.GetActiveAsync(null, cancellation);
             }
             else if (isAdmin && user.CompanyId.HasValue)
             {
@@ -257,7 +257,7 @@ public class AuthService : IAuthService
             IReadOnlyList<Branch> userBranches;
             if (isSuperAdmin)
             {
-                userBranches = await _branchRepository.GetActiveAsync(cancellationToken);
+                userBranches = await _branchRepository.GetActiveAsync(null, cancellationToken);
             }
             else if (isAdmin && user.CompanyId.HasValue)
             {

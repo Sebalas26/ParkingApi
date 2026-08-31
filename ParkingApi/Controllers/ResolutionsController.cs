@@ -14,15 +14,18 @@ public class ResolutionsController : ControllerBase
 {
     private readonly IBillingResolutionService _resolutionService;
     private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<ResolutionsController> _logger;
 
     public ResolutionsController(
         IBillingResolutionService resolutionService, 
         ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
         ILogger<ResolutionsController> logger)
     {
         _resolutionService = resolutionService;
         _realtimeNotifier = realtimeNotifier;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -31,16 +34,8 @@ public class ResolutionsController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var list = await _resolutionService.GetAllAsync(branchId, companyId, cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var list = await _resolutionService.GetAllAsync(branchId, effectiveCompanyId, cancellationToken);
             return Ok(list);
         }
         catch (Exception ex)
@@ -55,16 +50,8 @@ public class ResolutionsController : ControllerBase
     {
         try
         {
-            if (!companyId.HasValue || companyId.Value <= 0)
-            {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    companyId = cid;
-                }
-            }
-
-            var list = await _resolutionService.GetActiveAsync(branchId, companyId, cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var list = await _resolutionService.GetActiveAsync(branchId, effectiveCompanyId, cancellationToken);
             return Ok(list);
         }
         catch (Exception ex)
@@ -79,7 +66,7 @@ public class ResolutionsController : ControllerBase
     {
         try
         {
-            var list = await _resolutionService.GetActiveAsync(branchId, null, cancellationToken);
+            var list = await _resolutionService.GetActiveAsync(branchId, _currentUser.CompanyId, cancellationToken);
             return Ok(list);
         }
         catch (Exception ex)
@@ -123,13 +110,13 @@ public class ResolutionsController : ControllerBase
                 return BadRequest(new { message = "El rango inicial ('Desde') no puede ser mayor al rango final ('Hasta')." });
             }
 
-            if (!dto.CompanyId.HasValue || dto.CompanyId.Value <= 0)
+            if (!_currentUser.IsSuperAdmin)
             {
-                var companyClaim = User.FindFirst("company_id")?.Value;
-                if (int.TryParse(companyClaim, out int cid))
-                {
-                    dto.CompanyId = cid;
-                }
+                dto.CompanyId = _currentUser.CompanyId;
+            }
+            else if (!dto.CompanyId.HasValue || dto.CompanyId <= 0)
+            {
+                dto.CompanyId = _currentUser.CompanyId;
             }
 
             var created = await _resolutionService.CreateAsync(dto, cancellationToken);

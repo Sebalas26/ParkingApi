@@ -19,15 +19,15 @@ public class MonthlySubscriptionService : IMonthlySubscriptionService
         _repository = repository;
     }
 
-    public async Task<IReadOnlyList<MonthlySubscriptionDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MonthlySubscriptionDto>> GetAllAsync(int? companyId = null, int? branchId = null, CancellationToken cancellationToken = default)
     {
-        var entities = await _repository.GetAllAsync(cancellationToken);
+        var entities = await _repository.GetAllAsync(companyId, branchId, cancellationToken);
         return entities.Select(MapToDto).ToList();
     }
 
-    public async Task<IReadOnlyList<MonthlySubscriptionDto>> GetActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MonthlySubscriptionDto>> GetActiveAsync(int? companyId = null, int? branchId = null, CancellationToken cancellationToken = default)
     {
-        var entities = await _repository.GetActiveAsync(cancellationToken);
+        var entities = await _repository.GetActiveAsync(companyId, branchId, cancellationToken);
         return entities.Select(MapToDto).ToList();
     }
 
@@ -37,9 +37,9 @@ public class MonthlySubscriptionService : IMonthlySubscriptionService
         return entity == null ? null : MapToDto(entity);
     }
 
-    public async Task<MonthlySubscriptionDto?> GetActiveByPlateAsync(string plateNumber, CancellationToken cancellationToken = default)
+    public async Task<MonthlySubscriptionDto?> GetActiveByPlateAsync(string plateNumber, int? companyId = null, int? branchId = null, CancellationToken cancellationToken = default)
     {
-        var entity = await _repository.GetActiveByPlateAsync(plateNumber, cancellationToken);
+        var entity = await _repository.GetActiveByPlateAsync(plateNumber, companyId, branchId, cancellationToken);
         return entity == null ? null : MapToDto(entity);
     }
 
@@ -48,6 +48,8 @@ public class MonthlySubscriptionService : IMonthlySubscriptionService
         var entity = new MonthlySubscription
         {
             SubscriptionId = Guid.NewGuid(),
+            CompanyId = dto.CompanyId,
+            BranchId = dto.BranchId,
             CustomerName = dto.CustomerName.Trim(),
             CustomerDocument = dto.CustomerDocument.Trim(),
             CustomerPhone = dto.CustomerPhone.Trim(),
@@ -98,6 +100,8 @@ public class MonthlySubscriptionService : IMonthlySubscriptionService
         return new MonthlySubscriptionDto
         {
             SubscriptionId = s.SubscriptionId,
+            CompanyId = s.CompanyId,
+            BranchId = s.BranchId,
             CustomerName = s.CustomerName,
             CustomerDocument = s.CustomerDocument,
             CustomerPhone = s.CustomerPhone,

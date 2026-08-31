@@ -16,34 +16,35 @@ public class BranchesController : ControllerBase
 {
     private readonly IBranchService _branchService;
     private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<BranchesController> _logger;
 
     public BranchesController(
         IBranchService branchService, 
         ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
         ILogger<BranchesController> logger)
     {
         _branchService = branchService;
         _realtimeNotifier = realtimeNotifier;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int? companyId, CancellationToken cancellationToken)
     {
-        if (!companyId.HasValue || companyId.Value <= 0)
+        var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+
+        if (effectiveCompanyId.HasValue && effectiveCompanyId.Value > 0)
         {
-            var companyClaim = User.FindFirst("company_id")?.Value;
-            if (int.TryParse(companyClaim, out int cid))
-            {
-                companyId = cid;
-            }
+            var companyBranches = await _branchService.GetBranchesByCompanyIdAsync(effectiveCompanyId.Value, cancellationToken);
+            return Ok(companyBranches);
         }
 
-        if (companyId.HasValue && companyId.Value > 0)
+        if (!_currentUser.IsSuperAdmin)
         {
-            var companyBranches = await _branchService.GetBranchesByCompanyIdAsync(companyId.Value, cancellationToken);
-            return Ok(companyBranches);
+            return Ok(new List<BranchDto>());
         }
 
         var branches = await _branchService.GetAllAsync(cancellationToken);
@@ -52,9 +53,10 @@ public class BranchesController : ControllerBase
 
     [HttpGet("active")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetActive([FromQuery] int? companyId, CancellationToken cancellationToken)
     {
-        var branches = await _branchService.GetActiveAsync(cancellationToken);
+        var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+        var branches = await _branchService.GetActiveAsync(effectiveCompanyId, cancellationToken);
         return Ok(branches);
     }
 

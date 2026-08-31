@@ -69,12 +69,12 @@ public class PublicTicketsController : ControllerBase
             if (foundTicket == null && !string.IsNullOrWhiteSpace(plate))
             {
                 var normalizedPlate = plate.Trim().ToUpperInvariant().Replace("-", "").Replace(" ", "");
-                foundTicket = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, cancellationToken);
+                foundTicket = await _ticketRepository.GetActiveByPlateAsync(normalizedPlate, null, null, cancellationToken);
 
                 // Si no está activo, buscar el más reciente completado de esa placa
                 if (foundTicket == null)
                 {
-                    var all = await _ticketRepository.GetAllAsync(cancellationToken);
+                    var all = await _ticketRepository.GetAllAsync(null, null, cancellationToken);
                     foundTicket = all
                         .Where(t => t.PlateNumber.Trim().ToUpperInvariant() == normalizedPlate)
                         .OrderByDescending(t => t.EntryTimeUtc)

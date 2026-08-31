@@ -28,9 +28,9 @@ public class BranchService : IBranchService
         return branches.Select(MapToDto).ToList();
     }
 
-    public async Task<IReadOnlyList<BranchDto>> GetActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BranchDto>> GetActiveAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
-        var branches = await _branchRepository.GetActiveAsync(cancellationToken);
+        var branches = await _branchRepository.GetActiveAsync(companyId, cancellationToken);
         return branches.Select(MapToDto).ToList();
     }
 

@@ -6,6 +6,8 @@ namespace ParkingApi.Domain.Dtos.MonthlySubscriptions;
 public class MonthlySubscriptionDto
 {
     public Guid SubscriptionId { get; set; }
+    public int? CompanyId { get; set; }
+    public int? BranchId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerDocument { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
@@ -24,6 +26,8 @@ public class MonthlySubscriptionDto
 
 public class CreateMonthlySubscriptionDto
 {
+    public int? CompanyId { get; set; }
+    public int? BranchId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerDocument { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
