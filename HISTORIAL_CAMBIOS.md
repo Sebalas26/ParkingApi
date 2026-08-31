@@ -2,6 +2,26 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Compatibilidad de Transacciones con MySqlRetryingExecutionStrategy
+- **`💬 Prompt Original del Usuario`**:
+  > *"genero este error no dejo crearlo arrojo este conflicto pero esta vez ni lo creo en la bd"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Soporte de Estrategia de Reintentos (`CreateExecutionStrategy`) en `CompanyService.cs`**:
+    - Se encapsuló la ejecución de las transacciones manuales en `CreateCompanyAsync` y `DeleteCompanyAsync` mediante `_context.Database.CreateExecutionStrategy().ExecuteAsync(async () => { ... })`.
+    - Esto resuelve la incompatibilidad de EF Core con `MySqlRetryingExecutionStrategy` cuando se invocan transacciones manuales, permitiendo que la creación y aprovisionamiento de nuevas empresas se ejecute como una unidad retriable 100% atómica.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Transaccionalidad Atómica y Código Unívoco en Aprovisionamiento de Nuevas Empresas
 - **`💬 Prompt Original del Usuario`**:
   > *"Mira que intento desde el super admin crear una compañia y arroja este error pero al parecer si la crea por que si guarda en la bd ya revise pero generar error entonces algo esta mal por que si la crea pero genera el error eso no esta bien valida y genera el plan para la solución ."*

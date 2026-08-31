@@ -64,190 +64,194 @@ public class CompanyService : ICompanyService
             throw new InvalidOperationException($"El nombre de usuario '{dto.AdminUsername.Trim()}' ya está en uso.");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            // 3. Crear Empresa
-            var company = new Company
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                Name = dto.Name.Trim(),
-                LegalName = string.IsNullOrWhiteSpace(dto.LegalName) ? dto.Name.Trim() : dto.LegalName.Trim(),
-                Nit = dto.Nit.Trim(),
-                Email = dto.Email.Trim(),
-                Phone = dto.Phone?.Trim(),
-                Address = dto.Address?.Trim(),
-                City = dto.City?.Trim(),
-                PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? "Basic" : dto.PlanType.Trim(),
-                MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1,
-                IsActive = true,
-                SubscriptionExpiresAt = dto.SubscriptionExpiresAt,
-                ResponsibleUserId = responsibleUserId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Companies.Add(company);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // 4. Crear Rol "Administrador" para la nueva empresa
-            var adminRole = new UserRole
-            {
-                CompanyId = company.Id,
-                Role = "Administrador",
-                IsActive = true,
-                ResponsibleUserId = responsibleUserId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.UserRole.Add(adminRole);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // 5. Asignar módulos y acciones operativas y administrativas al nuevo rol de Administrador de la empresa (Excluyendo Módulo 16 SaaS Global)
-            var tenantModules = await _context.Module
-                .Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"))
-                .ToListAsync(cancellationToken);
-            foreach (var mod in tenantModules)
-            {
-                _context.UserRoleModule.Add(new UserRoleModule
+                // 3. Crear Empresa
+                var company = new Company
                 {
+                    Name = dto.Name.Trim(),
+                    LegalName = string.IsNullOrWhiteSpace(dto.LegalName) ? dto.Name.Trim() : dto.LegalName.Trim(),
+                    Nit = dto.Nit.Trim(),
+                    Email = dto.Email.Trim(),
+                    Phone = dto.Phone?.Trim(),
+                    Address = dto.Address?.Trim(),
+                    City = dto.City?.Trim(),
+                    PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? "Basic" : dto.PlanType.Trim(),
+                    MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1,
+                    IsActive = true,
+                    SubscriptionExpiresAt = dto.SubscriptionExpiresAt,
+                    ResponsibleUserId = responsibleUserId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Companies.Add(company);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // 4. Crear Rol "Administrador" para la nueva empresa
+                var adminRole = new UserRole
+                {
+                    CompanyId = company.Id,
+                    Role = "Administrador",
+                    IsActive = true,
+                    ResponsibleUserId = responsibleUserId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.UserRole.Add(adminRole);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // 5. Asignar módulos y acciones operativas y administrativas al nuevo rol de Administrador de la empresa (Excluyendo Módulo 16 SaaS Global)
+                var tenantModules = await _context.Module
+                    .Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"))
+                    .ToListAsync(cancellationToken);
+                foreach (var mod in tenantModules)
+                {
+                    _context.UserRoleModule.Add(new UserRoleModule
+                    {
+                        UserRoleId = adminRole.Id,
+                        ModulesRoleId = mod.Id,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        ResponsibleUserId = responsibleUserId
+                    });
+                }
+
+                var tenantActions = await _context.Action
+                    .Where(a => a.IsActive && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
+                    .ToListAsync(cancellationToken);
+                foreach (var act in tenantActions)
+                {
+                    _context.RoleAction.Add(new RoleAction
+                    {
+                        RoleId = adminRole.Id,
+                        ActionId = act.Id,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        ResponsibleUserId = responsibleUserId
+                    });
+                }
+
+                // 6. Crear Sede Inicial Obligatoria para la Empresa (con código único y seguro)
+                var branchCode = $"SEDE-{company.Id:D2}";
+                var defaultBranch = new Branch
+                {
+                    CompanyId = company.Id,
+                    Code = branchCode,
+                    Name = "Sede Principal",
+                    Address = string.IsNullOrWhiteSpace(company.Address) ? "Calle Principal # 1-01" : company.Address.Trim(),
+                    Phone = company.Phone?.Trim(),
+                    City = string.IsNullOrWhiteSpace(company.City) ? "Ciudad Principal" : company.City.Trim(),
+                    TotalCapacity = 100,
+                    Notes = $"Sede principal de operaciones de {company.Name}",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Branches.Add(defaultBranch);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // 7. Crear Usuario Administrador de la Empresa
+                var hashedPassword = PasswordHasher.HashPassword(dto.AdminPassword.Trim());
+                var nameParts = dto.AdminFullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var firstName = nameParts.Length > 0 ? nameParts[0] : dto.AdminFullName.Trim();
+                var firstSurname = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : "Admin";
+
+                var user = new User
+                {
+                    CompanyId = company.Id,
                     UserRoleId = adminRole.Id,
-                    ModulesRoleId = mod.Id,
+                    IdentificationTypeId = dto.AdminIdentificationTypeId > 0 ? dto.AdminIdentificationTypeId : 1,
+                    IdentificationNumber = string.IsNullOrWhiteSpace(dto.AdminIdentificationNumber) ? dto.Nit.Trim() : dto.AdminIdentificationNumber.Trim(),
+                    FirstName = firstName,
+                    MiddleName = string.Empty,
+                    FirstSurname = firstSurname,
+                    SecondLastName = string.Empty,
+                    FullName = dto.AdminFullName.Trim(),
+                    Username = dto.AdminUsername.Trim().ToLowerInvariant(),
+                    Password = hashedPassword,
+                    Email = string.IsNullOrWhiteSpace(dto.AdminEmail) ? dto.Email.Trim() : dto.AdminEmail.Trim(),
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    ResponsibleUserId = responsibleUserId
-                });
-            }
+                    MustChangePassword = false,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-            var tenantActions = await _context.Action
-                .Where(a => a.IsActive && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
-                .ToListAsync(cancellationToken);
-            foreach (var act in tenantActions)
-            {
-                _context.RoleAction.Add(new RoleAction
+                _context.User.Add(user);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // 8. Vincular al Administrador con la Sede Inicial (UserBranches)
+                _context.UserBranches.Add(new UserBranch
                 {
-                    RoleId = adminRole.Id,
-                    ActionId = act.Id,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    ResponsibleUserId = responsibleUserId
-                });
-            }
-
-            // 6. Crear Sede Inicial Obligatoria para la Empresa (con código único y seguro)
-            var branchCode = $"SEDE-{company.Id:D2}";
-            var defaultBranch = new Branch
-            {
-                CompanyId = company.Id,
-                Code = branchCode,
-                Name = "Sede Principal",
-                Address = string.IsNullOrWhiteSpace(company.Address) ? "Calle Principal # 1-01" : company.Address.Trim(),
-                Phone = company.Phone?.Trim(),
-                City = string.IsNullOrWhiteSpace(company.City) ? "Ciudad Principal" : company.City.Trim(),
-                TotalCapacity = 100,
-                Notes = $"Sede principal de operaciones de {company.Name}",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Branches.Add(defaultBranch);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // 7. Crear Usuario Administrador de la Empresa
-            var hashedPassword = PasswordHasher.HashPassword(dto.AdminPassword.Trim());
-            var nameParts = dto.AdminFullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var firstName = nameParts.Length > 0 ? nameParts[0] : dto.AdminFullName.Trim();
-            var firstSurname = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : "Admin";
-
-            var user = new User
-            {
-                CompanyId = company.Id,
-                UserRoleId = adminRole.Id,
-                IdentificationTypeId = dto.AdminIdentificationTypeId > 0 ? dto.AdminIdentificationTypeId : 1,
-                IdentificationNumber = string.IsNullOrWhiteSpace(dto.AdminIdentificationNumber) ? dto.Nit.Trim() : dto.AdminIdentificationNumber.Trim(),
-                FirstName = firstName,
-                MiddleName = string.Empty,
-                FirstSurname = firstSurname,
-                SecondLastName = string.Empty,
-                FullName = dto.AdminFullName.Trim(),
-                Username = dto.AdminUsername.Trim().ToLowerInvariant(),
-                Password = hashedPassword,
-                Email = string.IsNullOrWhiteSpace(dto.AdminEmail) ? dto.Email.Trim() : dto.AdminEmail.Trim(),
-                IsActive = true,
-                MustChangePassword = false,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.User.Add(user);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // 8. Vincular al Administrador con la Sede Inicial (UserBranches)
-            _context.UserBranches.Add(new UserBranch
-            {
-                UserId = user.Id,
-                BranchId = defaultBranch.Id,
-                IsDefault = true,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                ResponsibleUserId = responsibleUserId
-            });
-
-            // 9. Sembrar Catálogo Inicial de Tarifas de Vehículos para la Empresa (CompanyId)
-            var defaultRates = new List<VehicleRate>
-            {
-                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Car, DisplayName = "Automóvil / Sedán", HourRate = 3000, MinuteRate = 50, FullDayRate = 25000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Motorcycle, DisplayName = "Motocicleta", HourRate = 1500, MinuteRate = 25, FullDayRate = 12000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Suv, DisplayName = "Camioneta / SUV", HourRate = 3500, MinuteRate = 60, FullDayRate = 30000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Truck, DisplayName = "Vehículo Pesado / Camión", HourRate = 5000, MinuteRate = 90, FullDayRate = 45000, GracePeriodMinutes = 15, IconKey = "IconTruck", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Bicycle, DisplayName = "Bicicleta", HourRate = 1000, MinuteRate = 15, FullDayRate = 8000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow }
-            };
-            _context.VehicleRates.AddRange(defaultRates);
-
-            // 10. Sembrar Resolución de Facturación Inicial para la Empresa (CompanyId)
-            var defaultResolution = new BillingResolution
-            {
-                ResolutionId = Guid.NewGuid(),
-                CompanyId = company.Id,
-                BranchId = defaultBranch.Id,
-                Name = "Resolución POS Inicial",
-                DocumentType = "Documento equivalente electrónico del tiquete de máquina registradora con sistema P.O.S.",
-                Prefix = "POS",
-                ResolutionNumber = "18764000001",
-                FromNumber = 1,
-                ToNumber = 100000,
-                CurrentNumber = 1,
-                ValidFrom = DateTime.UtcNow.Date,
-                ValidTo = DateTime.UtcNow.Date.AddYears(2),
-                IsActive = true,
-                CreatedAtUtc = DateTime.UtcNow
-            };
-            _context.BillingResolutions.Add(defaultResolution);
-
-            // 11. Habilitar Medios de Pago Activos para la Sede Inicial
-            var activePaymentMethods = await _context.PaymentMethod.Where(p => p.IsActive).ToListAsync(cancellationToken);
-            foreach (var pm in activePaymentMethods)
-            {
-                _context.BranchPaymentMethods.Add(new BranchPaymentMethod
-                {
+                    UserId = user.Id,
                     BranchId = defaultBranch.Id,
-                    PaymentMethodId = pm.Id,
+                    IsDefault = true,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     ResponsibleUserId = responsibleUserId
                 });
+
+                // 9. Sembrar Catálogo Inicial de Tarifas de Vehículos para la Empresa (CompanyId)
+                var defaultRates = new List<VehicleRate>
+                {
+                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Car, DisplayName = "Automóvil / Sedán", HourRate = 3000, MinuteRate = 50, FullDayRate = 25000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Motorcycle, DisplayName = "Motocicleta", HourRate = 1500, MinuteRate = 25, FullDayRate = 12000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Suv, DisplayName = "Camioneta / SUV", HourRate = 3500, MinuteRate = 60, FullDayRate = 30000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Truck, DisplayName = "Vehículo Pesado / Camión", HourRate = 5000, MinuteRate = 90, FullDayRate = 45000, GracePeriodMinutes = 15, IconKey = "IconTruck", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Bicycle, DisplayName = "Bicicleta", HourRate = 1000, MinuteRate = 15, FullDayRate = 8000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow }
+                };
+                _context.VehicleRates.AddRange(defaultRates);
+
+                // 10. Sembrar Resolución de Facturación Inicial para la Empresa (CompanyId)
+                var defaultResolution = new BillingResolution
+                {
+                    ResolutionId = Guid.NewGuid(),
+                    CompanyId = company.Id,
+                    BranchId = defaultBranch.Id,
+                    Name = "Resolución POS Inicial",
+                    DocumentType = "Documento equivalente electrónico del tiquete de máquina registradora con sistema P.O.S.",
+                    Prefix = "POS",
+                    ResolutionNumber = "18764000001",
+                    FromNumber = 1,
+                    ToNumber = 100000,
+                    CurrentNumber = 1,
+                    ValidFrom = DateTime.UtcNow.Date,
+                    ValidTo = DateTime.UtcNow.Date.AddYears(2),
+                    IsActive = true,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
+                _context.BillingResolutions.Add(defaultResolution);
+
+                // 11. Habilitar Medios de Pago Activos para la Sede Inicial
+                var activePaymentMethods = await _context.PaymentMethod.Where(p => p.IsActive).ToListAsync(cancellationToken);
+                foreach (var pm in activePaymentMethods)
+                {
+                    _context.BranchPaymentMethods.Add(new BranchPaymentMethod
+                    {
+                        BranchId = defaultBranch.Id,
+                        PaymentMethodId = pm.Id,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        ResponsibleUserId = responsibleUserId
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) aprovisionada exitosamente con sede '{BranchCode}' y administrador '{Username}'", company.Name, company.Id, defaultBranch.Code, user.Username);
+
+                return MapToDto(company);
             }
-
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) aprovisionada exitosamente con sede '{BranchCode}' y administrador '{Username}'", company.Name, company.Id, defaultBranch.Code, user.Username);
-
-            return MapToDto(company);
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Error al crear y aprovisionar la empresa {CompanyName}", dto.Name);
-            throw;
-        }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Error al crear y aprovisionar la empresa {CompanyName}", dto.Name);
+                throw;
+            }
+        });
     }
 
     public async Task<CompanyDto> UpdateCompanyAsync(int id, UpdateCompanyDto dto, int? responsibleUserId = null, CancellationToken cancellationToken = default)
@@ -291,164 +295,165 @@ public class CompanyService : ICompanyService
 
     public async Task<bool> DeleteCompanyAsync(int id, CancellationToken cancellationToken = default)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            var company = await _context.Companies
-                .Include(c => c.Branches)
-                .Include(c => c.Users)
-                .Include(c => c.UserRoles)
-                .Include(c => c.VehicleRates)
-                .Include(c => c.Stores)
-                .Include(c => c.BillingResolutions)
-                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-
-            if (company == null) return false;
-
-            var branchIds = company.Branches.Select(b => b.Id).ToList();
-            var userIds = company.Users.Select(u => u.Id).ToList();
-
-            // 1. Eliminar Tickets y sus descuentos
-            var tickets = await _context.ParkingTickets
-                .Where(t => t.BranchId.HasValue && branchIds.Contains(t.BranchId.Value))
-                .ToListAsync(cancellationToken);
-            if (tickets.Any())
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                var ticketIds = tickets.Select(t => t.TicketId).ToList();
-                var discounts = await _context.TicketDiscounts
-                    .Where(d => ticketIds.Contains(d.TicketId))
+                var company = await _context.Companies
+                    .Include(c => c.Branches)
+                    .Include(c => c.Users)
+                    .Include(c => c.UserRoles)
+                    .Include(c => c.VehicleRates)
+                    .Include(c => c.Stores)
+                    .Include(c => c.BillingResolutions)
+                    .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+                if (company == null) return false;
+
+                var branchIds = company.Branches.Select(b => b.Id).ToList();
+                var userIds = company.Users.Select(u => u.Id).ToList();
+
+                // 1. Eliminar Tickets y sus descuentos
+                var tickets = await _context.ParkingTickets
+                    .Where(t => t.BranchId.HasValue && branchIds.Contains(t.BranchId.Value))
                     .ToListAsync(cancellationToken);
-                _context.TicketDiscounts.RemoveRange(discounts);
-                _context.ParkingTickets.RemoveRange(tickets);
+                if (tickets.Any())
+                {
+                    var ticketIds = tickets.Select(t => t.TicketId).ToList();
+                    var discounts = await _context.TicketDiscounts
+                        .Where(d => ticketIds.Contains(d.TicketId))
+                        .ToListAsync(cancellationToken);
+                    _context.TicketDiscounts.RemoveRange(discounts);
+                    _context.ParkingTickets.RemoveRange(tickets);
+                }
+
+                // 2. Eliminar incidentes y sus relaciones
+                var incidentBranches = await _context.VehicleIncidentBranches
+                    .Where(ib => branchIds.Contains(ib.BranchId))
+                    .ToListAsync(cancellationToken);
+                _context.VehicleIncidentBranches.RemoveRange(incidentBranches);
+
+                var incidents = await _context.VehicleIncidents
+                    .Where(i => i.CompanyId == id || (i.BranchId.HasValue && branchIds.Contains(i.BranchId.Value)))
+                    .ToListAsync(cancellationToken);
+                _context.VehicleIncidents.RemoveRange(incidents);
+
+                // 3. Eliminar Turnos de trabajo (WorkShifts)
+                var shifts = await _context.WorkShifts
+                    .Where(s => (s.BranchId.HasValue && branchIds.Contains(s.BranchId.Value)) || userIds.Contains(s.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.WorkShifts.RemoveRange(shifts);
+
+                // 4. Eliminar resoluciones DIAN
+                var resolutions = await _context.BillingResolutions
+                    .Where(r => r.CompanyId == id || (r.BranchId.HasValue && branchIds.Contains(r.BranchId.Value)))
+                    .ToListAsync(cancellationToken);
+                _context.BillingResolutions.RemoveRange(resolutions);
+
+                // 5. Eliminar medios de pago específicos de sedes
+                var branchPaymentMethods = await _context.BranchPaymentMethods
+                    .Where(bpm => branchIds.Contains(bpm.BranchId))
+                    .ToListAsync(cancellationToken);
+                _context.BranchPaymentMethods.RemoveRange(branchPaymentMethods);
+
+                // 6. Eliminar UserBranches
+                var userBranches = await _context.UserBranches
+                    .Where(ub => branchIds.Contains(ub.BranchId) || userIds.Contains(ub.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.UserBranches.RemoveRange(userBranches);
+
+                // 7. Eliminar convenios comerciales y sus tiendas
+                var stores = await _context.Stores
+                    .Where(st => st.CompanyId == id || (st.BranchId.HasValue && branchIds.Contains(st.BranchId.Value)))
+                    .ToListAsync(cancellationToken);
+                if (stores.Any())
+                {
+                    var storeIds = stores.Select(s => s.StoreId).ToList();
+                    var agreements = await _context.CommercialAgreements
+                        .Where(ca => storeIds.Contains(ca.StoreId))
+                        .ToListAsync(cancellationToken);
+                    _context.CommercialAgreements.RemoveRange(agreements);
+                    _context.Stores.RemoveRange(stores);
+                }
+
+                // 8. Eliminar tarifas de vehículos
+                var rates = await _context.VehicleRates
+                    .Where(vr => vr.CompanyId == id || (vr.BranchId.HasValue && branchIds.Contains(vr.BranchId.Value)))
+                    .ToListAsync(cancellationToken);
+                _context.VehicleRates.RemoveRange(rates);
+
+                // 9. Eliminar mensualidades
+                var subscriptions = await _context.MonthlySubscriptions
+                    .Where(ms => ms.CompanyId == id || (ms.BranchId.HasValue && branchIds.Contains(ms.BranchId.Value)))
+                    .ToListAsync(cancellationToken);
+                _context.MonthlySubscriptions.RemoveRange(subscriptions);
+
+                // 11. Eliminar Logins y PasswordResetTokens de usuarios
+                var userLogins = await _context.Login
+                    .Where(l => userIds.Contains(l.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.Login.RemoveRange(userLogins);
+
+                var userResetTokens = await _context.PasswordResetToken
+                    .Where(t => userIds.Contains(t.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.PasswordResetToken.RemoveRange(userResetTokens);
+
+                // 12. Eliminar Roles de Usuario
+                var roles = await _context.UserRole
+                    .Where(r => r.CompanyId == id)
+                    .ToListAsync(cancellationToken);
+                
+                // Eliminar RoleActions
+                if (roles.Any())
+                {
+                    var roleIds = roles.Select(r => r.Id).ToList();
+                    var roleActions = await _context.RoleAction
+                        .Where(ra => roleIds.Contains(ra.RoleId))
+                        .ToListAsync(cancellationToken);
+                    _context.RoleAction.RemoveRange(roleActions);
+
+                    var roleModules = await _context.UserRoleModule
+                        .Where(rm => roleIds.Contains(rm.UserRoleId))
+                        .ToListAsync(cancellationToken);
+                    _context.UserRoleModule.RemoveRange(roleModules);
+                }
+
+                // 13. Eliminar Usuarios y UserParkings asociados
+                var userParkings = await _context.UserParkings
+                    .Where(up => userIds.Contains(up.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.UserParkings.RemoveRange(userParkings);
+
+                var users = await _context.User
+                    .Where(u => u.CompanyId == id)
+                    .ToListAsync(cancellationToken);
+                _context.User.RemoveRange(users);
+
+                // 14. Eliminar Sedes (Branches)
+                _context.Branches.RemoveRange(company.Branches);
+
+                // 15. Eliminar Roles
+                _context.UserRole.RemoveRange(roles);
+
+                // 16. Eliminar la propia compañía
+                _context.Companies.Remove(company);
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                _logger.LogInformation("Empresa con ID {CompanyId} y todos sus datos relacionados eliminados permanentemente", id);
+                return true;
             }
-
-            // 2. Eliminar incidentes y sus relaciones
-            var incidentBranches = await _context.VehicleIncidentBranches
-                .Where(ib => branchIds.Contains(ib.BranchId))
-                .ToListAsync(cancellationToken);
-            _context.VehicleIncidentBranches.RemoveRange(incidentBranches);
-
-            var incidents = await _context.VehicleIncidents
-                .Where(i => i.CompanyId == id || (i.BranchId.HasValue && branchIds.Contains(i.BranchId.Value)))
-                .ToListAsync(cancellationToken);
-            _context.VehicleIncidents.RemoveRange(incidents);
-
-            // 3. Eliminar Turnos de trabajo (WorkShifts)
-            var shifts = await _context.WorkShifts
-                .Where(s => (s.BranchId.HasValue && branchIds.Contains(s.BranchId.Value)) || userIds.Contains(s.UserId))
-                .ToListAsync(cancellationToken);
-            _context.WorkShifts.RemoveRange(shifts);
-
-            // 4. Eliminar resoluciones DIAN
-            var resolutions = await _context.BillingResolutions
-                .Where(r => r.CompanyId == id || (r.BranchId.HasValue && branchIds.Contains(r.BranchId.Value)))
-                .ToListAsync(cancellationToken);
-            _context.BillingResolutions.RemoveRange(resolutions);
-
-            // 5. Eliminar medios de pago específicos de sedes
-            var branchPaymentMethods = await _context.BranchPaymentMethods
-                .Where(bpm => branchIds.Contains(bpm.BranchId))
-                .ToListAsync(cancellationToken);
-            _context.BranchPaymentMethods.RemoveRange(branchPaymentMethods);
-
-            // 6. Eliminar UserBranches
-            var userBranches = await _context.UserBranches
-                .Where(ub => branchIds.Contains(ub.BranchId) || userIds.Contains(ub.UserId))
-                .ToListAsync(cancellationToken);
-            _context.UserBranches.RemoveRange(userBranches);
-
-            // 7. Eliminar Convenios Comerciales y Aliados (Stores)
-            var agreements = await _context.CommercialAgreements
-                .Where(a => a.Store.CompanyId == id || branchIds.Contains(a.Store.BranchId ?? 0))
-                .ToListAsync(cancellationToken);
-            _context.CommercialAgreements.RemoveRange(agreements);
-
-            var stores = await _context.Stores
-                .Where(s => s.CompanyId == id || (s.BranchId.HasValue && branchIds.Contains(s.BranchId.Value)))
-                .ToListAsync(cancellationToken);
-            _context.Stores.RemoveRange(stores);
-
-            // 8. Eliminar Tarifas de vehículos (VehicleRates)
-            var rates = await _context.VehicleRates
-                .Where(r => r.CompanyId == id || (r.BranchId.HasValue && branchIds.Contains(r.BranchId.Value)))
-                .ToListAsync(cancellationToken);
-            _context.VehicleRates.RemoveRange(rates);
-
-            // 9. Eliminar Mensualidades (MonthlySubscriptions)
-            var subs = await _context.MonthlySubscriptions
-                .Where(s => s.CompanyId == id || (s.BranchId.HasValue && branchIds.Contains(s.BranchId.Value)))
-                .ToListAsync(cancellationToken);
-            _context.MonthlySubscriptions.RemoveRange(subs);
-
-            // 10. Eliminar Medios de Pago propios de la compañía
-            var methods = await _context.PaymentMethod
-                .Where(m => m.CompanyId == id)
-                .ToListAsync(cancellationToken);
-            _context.PaymentMethod.RemoveRange(methods);
-
-            // 11. Eliminar Logins y Tokens de los usuarios
-            var userLogins = await _context.Login
-                .Where(l => userIds.Contains(l.UserId))
-                .ToListAsync(cancellationToken);
-            _context.Login.RemoveRange(userLogins);
-
-            var userResetTokens = await _context.PasswordResetToken
-                .Where(t => userIds.Contains(t.UserId))
-                .ToListAsync(cancellationToken);
-            _context.PasswordResetToken.RemoveRange(userResetTokens);
-
-            // 12. Eliminar Roles de Usuario
-            var roles = await _context.UserRole
-                .Where(r => r.CompanyId == id)
-                .ToListAsync(cancellationToken);
-            
-            // Eliminar RoleActions
-            if (roles.Any())
+            catch (Exception ex)
             {
-                var roleIds = roles.Select(r => r.Id).ToList();
-                var roleActions = await _context.RoleAction
-                    .Where(ra => roleIds.Contains(ra.RoleId))
-                    .ToListAsync(cancellationToken);
-                _context.RoleAction.RemoveRange(roleActions);
-
-                var roleModules = await _context.UserRoleModule
-                    .Where(rm => roleIds.Contains(rm.UserRoleId))
-                    .ToListAsync(cancellationToken);
-                _context.UserRoleModule.RemoveRange(roleModules);
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Error al eliminar empresa {CompanyId}", id);
+                throw;
             }
-
-            // 13. Eliminar Usuarios y UserParkings asociados
-            var userParkings = await _context.UserParkings
-                .Where(up => userIds.Contains(up.UserId))
-                .ToListAsync(cancellationToken);
-            _context.UserParkings.RemoveRange(userParkings);
-
-            var users = await _context.User
-                .Where(u => u.CompanyId == id)
-                .ToListAsync(cancellationToken);
-            _context.User.RemoveRange(users);
-
-            // 14. Eliminar Sedes (Branches)
-            _context.Branches.RemoveRange(company.Branches);
-
-            // 15. Eliminar Roles
-            _context.UserRole.RemoveRange(roles);
-
-            // 16. Eliminar la propia compañía
-            _context.Companies.Remove(company);
-
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            _logger.LogInformation("Empresa con ID {CompanyId} y todos sus datos relacionados eliminados permanentemente", id);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Error al eliminar permanentemente la empresa con ID {CompanyId} en cascada", id);
-            throw;
-        }
+        });
     }
 
     private static CompanyDto MapToDto(Company c)
