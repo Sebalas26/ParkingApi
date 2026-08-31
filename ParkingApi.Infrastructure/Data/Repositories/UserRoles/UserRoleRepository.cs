@@ -29,7 +29,7 @@ public class UserRoleRepository : IUserRoleRepository
         {
             if (companyId.HasValue && companyId.Value > 0)
             {
-                await EnsureCompanyDefaultRolesAsync(companyId.Value, cancellation);
+                await EnsureCompanyAdminRoleAsync(companyId.Value, cancellation);
 
                 return await _context.UserRole
                     .AsNoTracking()
@@ -71,69 +71,59 @@ public class UserRoleRepository : IUserRoleRepository
         }
     }
 
-    private async Task EnsureCompanyDefaultRolesAsync(int targetCompanyId, CancellationToken cancellation)
+    private async Task EnsureCompanyAdminRoleAsync(int targetCompanyId, CancellationToken cancellation)
     {
         try
         {
-            var defaultRoles = new[] { "Administrador", "Supervisor", "Operador" };
-            var existingRoleNames = await _context.UserRole
-                .Where(x => x.CompanyId == targetCompanyId)
-                .Select(x => x.Role.Trim().ToLower())
-                .ToListAsync(cancellation);
+            var hasAnyRole = await _context.UserRole
+                .AnyAsync(x => x.CompanyId == targetCompanyId, cancellation);
 
-            var allowedModuleIds = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-            var allowedActions = await _context.Action
-                .Where(a => a.ModuleId != 16 && a.IsActive)
-                .Select(a => a.Id)
-                .ToListAsync(cancellation);
-
-            foreach (var roleName in defaultRoles)
+            if (!hasAnyRole)
             {
-                if (!existingRoleNames.Contains(roleName.ToLower()))
+                var allowedModuleIds = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+                var allowedActions = await _context.Action
+                    .Where(a => a.ModuleId != 16 && a.IsActive && !a.Slug.StartsWith("companies."))
+                    .Select(a => a.Id)
+                    .ToListAsync(cancellation);
+
+                var newRole = new UserRole
                 {
-                    var newRole = new UserRole
+                    CompanyId = targetCompanyId,
+                    Role = "Administrador",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _context.UserRole.AddAsync(newRole, cancellation);
+                await _context.SaveChangesAsync(cancellation);
+
+                foreach (var modId in allowedModuleIds)
+                {
+                    _context.UserRoleModule.Add(new UserRoleModule
                     {
-                        CompanyId = targetCompanyId,
-                        Role = roleName,
+                        UserRoleId = newRole.Id,
+                        ModulesRoleId = modId,
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
-                    };
-                    await _context.UserRole.AddAsync(newRole, cancellation);
-                    await _context.SaveChangesAsync(cancellation);
-
-                    foreach (var modId in allowedModuleIds)
-                    {
-                        _context.UserRoleModule.Add(new UserRoleModule
-                        {
-                            UserRoleId = newRole.Id,
-                            ModulesRoleId = modId,
-                            IsActive = true,
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
-
-                    var actionsToAssign = roleName == "Administrador"
-                        ? allowedActions
-                        : allowedActions.Take(15).ToList();
-
-                    foreach (var actionId in actionsToAssign)
-                    {
-                        _context.RoleAction.Add(new RoleAction
-                        {
-                            RoleId = newRole.Id,
-                            ActionId = actionId,
-                            IsActive = true,
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
-
-                    await _context.SaveChangesAsync(cancellation);
+                    });
                 }
+
+                foreach (var actionId in allowedActions)
+                {
+                    _context.RoleAction.Add(new RoleAction
+                    {
+                        RoleId = newRole.Id,
+                        ActionId = actionId,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                await _context.SaveChangesAsync(cancellation);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al asegurar roles base para la empresa {CompanyId}", targetCompanyId);
+            _logger.LogError(ex, "Error al asegurar rol administrador para la empresa {CompanyId}", targetCompanyId);
         }
     }
 

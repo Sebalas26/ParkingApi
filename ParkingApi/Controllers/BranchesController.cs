@@ -29,8 +29,23 @@ public class BranchesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] int? companyId, CancellationToken cancellationToken)
     {
+        if (!companyId.HasValue || companyId.Value <= 0)
+        {
+            var companyClaim = User.FindFirst("company_id")?.Value;
+            if (int.TryParse(companyClaim, out int cid))
+            {
+                companyId = cid;
+            }
+        }
+
+        if (companyId.HasValue && companyId.Value > 0)
+        {
+            var companyBranches = await _branchService.GetBranchesByCompanyIdAsync(companyId.Value, cancellationToken);
+            return Ok(companyBranches);
+        }
+
         var branches = await _branchService.GetAllAsync(cancellationToken);
         return Ok(branches);
     }

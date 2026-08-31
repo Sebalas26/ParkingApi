@@ -33,8 +33,13 @@ public class UserRepository : IUserRepository
             if (companyId.HasValue && companyId.Value > 0)
             {
                 var cid = companyId.Value;
-                query = query.Where(x => x.CompanyId == cid || x.UserBranches.Any(ub => ub.Branch.CompanyId == cid));
+                query = query.Where(x => x.CompanyId == cid || (x.CompanyId == null && x.UserBranches.Any(ub => ub.Branch.CompanyId == cid)));
             }
+            else
+            {
+                query = query.Where(x => x.CompanyId == null);
+            }
+
             return await query
                 .Include(x => x.UserRoleIdNavigation)
                 .Include(x => x.IdentificationTypeIdNavigation)

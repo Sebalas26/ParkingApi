@@ -2,6 +2,32 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Aislamiento Estricto de Roles y Usuarios por Parqueadero / Empresa (Multi-Tenant SaaS)
+- **`💬 Prompt Original del Usuario`**:
+  > *"tengo un problema cuando ingreso con el super administrador y administro un parqueadero veo todos sus roles, sin embargo, no me esta filtrando los roles que se encuentran creados para cada parqueadero, porque cuando ingreso a otro parqueadero veo los mismos, requiero es que si yo ingreso a la administracion de un parqueadero, desde el superadministrador me muestre sus roles y usuario, si ingreso a otro igual, caso contrario que pasaria ya cuando ingreso con el usuario administrador de ese parqueadero, a el solo le deberia de mostrar los roles y usuarios asociados a ese parqueadero , valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Eliminación de auto-aprovisionamiento forzado en `UserRoleRepository.GetUserRoles`**:
+    - Se reemplazó `EnsureCompanyDefaultRolesAsync` (que reinsertaba "Supervisor" y "Operador" en cada consulta) por `EnsureCompanyAdminRoleAsync`. Ahora solo se crea el rol `Administrador` si la empresa no cuenta con ningún rol en base de datos.
+    - Se garantiza que `GetUserRoles(companyId)` retorne **estrictamente** los roles vinculados a esa empresa (`WHERE CompanyId == companyId`).
+    - Para consultas globales (`companyId == null`), retorna únicamente los roles del sistema (`CompanyId == null`, Rol `Super Administrador`).
+  - **Persistencia de `CompanyId` en `UserRoleController.SaveOrEditUserRole`**:
+    - Se incluyó la extracción del claim `company_id` del token JWT del usuario autenticado si el payload del DTO no lo provee explícitamente.
+  - **Aislamiento en Consulta de Usuarios (`UserRepository.GetUsers`)**:
+    - Cuando `companyId.HasValue && companyId > 0`: Filtra por `x.CompanyId == cid || (x.CompanyId == null && x.UserBranches.Any(ub => ub.Branch.CompanyId == cid))`.
+    - Cuando `companyId == null`: Filtra estrictamente por `x.CompanyId == null` (usuarios de la plataforma global SaaS).
+  - **Filtrado por Empresa en `BranchesController.GetAll`**:
+    - Soportó parámetro opcional `[FromQuery] int? companyId` con fallback automático al claim `company_id` del token JWT para restringir las sedes retornadas a la empresa del usuario.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Data/Repositories/UserRoles/UserRoleRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Users/UserRepository.cs`
+  - `ParkingApi/Controllers/UserRoleController.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` ejecutado en `ParkingApi.slnx` con resultado exitoso (**0 Errores**).
+
 ## 📌 Entrada: Corrección de Consulta LINQ en Aprovisionamiento de Empresas (EF Core / MySQL)
 - **`💬 Prompt Original del Usuario`**:
   > *"cuando intento registrar un nuevo parqueadero me sale como en la segunda imagen"*

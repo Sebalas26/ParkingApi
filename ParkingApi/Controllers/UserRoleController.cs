@@ -74,6 +74,15 @@ public class UserRoleController : ControllerBase
     {
         try
         {
+            if (!userRole.CompanyId.HasValue || userRole.CompanyId.Value <= 0)
+            {
+                var companyClaim = User.FindFirst("company_id")?.Value;
+                if (int.TryParse(companyClaim, out int cid))
+                {
+                    userRole.CompanyId = cid;
+                }
+            }
+
             var result = await _userRoleService.SaveOrEditUserRole(userRole, cancellation);
             return Ok(result);
         }
