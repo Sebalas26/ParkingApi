@@ -2,7 +2,28 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: Auditoría Integral y Blindaje Multi-Tenant SaaS & Estandarización Canónica de Permisos RBAC (PWA / API / WPF)
+## 📌 Entrada: Blindaje y Soporte de Contexto Multi-Organización vía Header X-Company-Id para SuperAdmin
+- **`💬 Prompt Original del Usuario`**:
+  > *"AUDITORÍA Y BLINDAJE: GESTIÓN DE ROLES/PERMISOS MULTI-ORGANIZACIÓN PARA SUPERADMIN (PWA & API). Verificar y validar exhaustivamente que la experiencia de administración multi-tenant en la ParkingPwa y el backend ParkingApi mantenga aislamiento estricto por organización cuando opera un usuario con rol SuperAdmin."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Soporte de Contexto Header `X-Company-Id` (`CurrentUserService.cs`)**:
+    - `GetEffectiveCompanyId` ahora valida si `requestedCompanyId` viene por query parameter o en el header HTTP `X-Company-Id`.
+    - Si el usuario es `SuperAdmin`, se adopta el ID de la organización objetivo; si el usuario es un administrador de tenant regular, el backend fuerza de forma intransferible el `CompanyId` de su claim JWT, ignorando cualquier intento de manipulación por headers o parámetros.
+  - **Aislamiento en `UserRoleRepository` y `RoleActionRepository`**:
+    - Consultas filtran estrictamente por `x.CompanyId == targetCompanyId`.
+    - La asignación de permisos `AssignRolePermissionsAsync` afecta única y exclusivamente las filas vinculadas a la clave primaria `roleId` de esa organización específica.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Security/CurrentUserService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
 - **`💬 Prompt Original del Usuario`**:
   > *"AUDITORÍA TÉCNICA EXHAUSTIVA: SISTEMA DE PERMISOS (PWA/API/WPF) Y MULTI-TENANCY SaaS. Diagnóstico del flujo de permisos (PWA -> API -> WPF), blindaje de aislamiento multi-tenant SaaS (Organizaciones y Sedes), cero errores de compilación y registro estricto en HISTORIAL_CAMBIOS.md."*
 
