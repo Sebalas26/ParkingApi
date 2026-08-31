@@ -162,9 +162,17 @@ public class AuthService : IAuthService
             {
                 userBranches = await _branchRepository.GetActiveAsync(null, cancellation);
             }
-            else if (isAdmin && user.CompanyId.HasValue)
+            else if (user.CompanyId.HasValue)
             {
-                userBranches = await _branchRepository.GetBranchesByCompanyIdAsync(user.CompanyId.Value, cancellation);
+                var assignedBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellation);
+                if (assignedBranches.Count > 0 && !isAdmin)
+                {
+                    userBranches = assignedBranches;
+                }
+                else
+                {
+                    userBranches = await _branchRepository.GetBranchesByCompanyIdAsync(user.CompanyId.Value, cancellation);
+                }
             }
             else
             {
@@ -259,9 +267,17 @@ public class AuthService : IAuthService
             {
                 userBranches = await _branchRepository.GetActiveAsync(null, cancellationToken);
             }
-            else if (isAdmin && user.CompanyId.HasValue)
+            else if (user.CompanyId.HasValue)
             {
-                userBranches = await _branchRepository.GetBranchesByCompanyIdAsync(user.CompanyId.Value, cancellationToken);
+                var assignedBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
+                if (assignedBranches.Count > 0 && !isAdmin)
+                {
+                    userBranches = assignedBranches;
+                }
+                else
+                {
+                    userBranches = await _branchRepository.GetBranchesByCompanyIdAsync(user.CompanyId.Value, cancellationToken);
+                }
             }
             else
             {

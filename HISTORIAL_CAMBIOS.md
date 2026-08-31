@@ -2,6 +2,27 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Herencia Automática de Sedes en Login para Usuarios de Empresa
+- **`💬 Prompt Original del Usuario`**:
+  > *"Listo perfecto, pero tengo otro error sucede que le listo cree el usuario en la otra compañia super bien le di permisos super bien le di todos los permisos super bien pero me loguee y de una me mando a crear sede pero si ya existe una sede en esa compañia por que me saco esa ventana eso no deberia ser así deberia existir algo antes. analiza eso y dame el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Herencia Automática de Sedes (`AuthService.cs`)**:
+    - En `LoginStandardAsync` y `LoginAsync`, si el usuario autenticado pertenece a una empresa (`user.CompanyId.HasValue`):
+      - Se consulta si tiene sedes asignadas en `UserBranches`. Si existen asignaciones explícitas (y no es administrador global de la empresa), se retornan dichas sedes.
+      - Si `UserBranches` está vacío o el usuario es administrador de la empresa, **hereda automáticamente todas las sedes activas de su empresa** (`_branchRepository.GetBranchesByCompanyIdAsync`), evitando retornar una lista vacía de sedes (`[]`) que provocaría el disparo erróneo del modal de primera sede en el frontend.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Corrección de Índice Único Multi-Tenant en Sedes y Visibilidad de Usuarios por Empresa
 - **`💬 Prompt Original del Usuario`**:
   > *"Intente crear una sede y se revento, segundo estoy como superadministrador controlando una sede pero no me carga los usuarios de esa sede y reviso en la bd y si esta creado los usuarios yo los cree pero no los esta mostrando ni filtrando, revisa eso que esta pasando llega null algo esat m al por que filtra por sede los usuartios si soy super administrador o igual soy administrador como va a filtrar por sede el usuario no entiendo ese filtro entiendo lo de la compañia nada mas es lo correcto. si me explico. analiza ese proceso y dame el plan"*
