@@ -323,6 +323,7 @@ public class AuthService : IAuthService
                 IsSuperAdmin = isSuperAdmin,
                 CompanyId = user.CompanyId,
                 CompanyName = user.Company?.Name,
+                MaxBranches = user.Company?.MaxBranches,
                 Branches = branchDtos,
                 Permissions = rolePermissions
             };

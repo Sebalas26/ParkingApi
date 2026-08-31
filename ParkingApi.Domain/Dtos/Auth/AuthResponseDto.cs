@@ -18,6 +18,7 @@ public class AuthResponseDto
     public bool IsSuperAdmin { get; set; }
     public int? CompanyId { get; set; }
     public string? CompanyName { get; set; }
+    public int? MaxBranches { get; set; }
     public List<BranchDto> Branches { get; set; } = new();
     public List<string> Permissions { get; set; } = new();
 }

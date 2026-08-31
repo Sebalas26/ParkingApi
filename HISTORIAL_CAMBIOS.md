@@ -2,6 +2,34 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Control Estricto de MaxBranches y Código de Sede Autoincremental
+- **`💬 Prompt Original del Usuario`**:
+  > *"Listo, ya se creo bien las compañias deja crear bien las sedes, pero encontramos otro error se supone que cuando se crea la compañia se le coloca el limite de sedes que puede tener le colocamos 3 y dejo pasar dejor crear 4 sedes eso no debe ser posible debería salir un mensaje de alerta con el mismo diseño del sistema donde diga ya alcanzaste tu limite comprado si necesitas mas sedes contacta al administrador si me explico. otro error que encontrado el codigo de sede necesito que le crees un codigo dinamico si pero que no se repita en la bd osea oculta ese campo del fronted pero que si guarde un codigo dinamico osea consecutivo entonces va a coger el nombre de la compañia y le va a sumar el 01 despues el02 si me explico así autoincremental pero se debe quitar de la visual del usuario tanto al crear como al editar la sedeme explico analiza el plan para revisarlo."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Control de Límite de Sedes (`BranchService.cs`)**:
+    - Inyección de `ICompanyRepository` en `BranchService`.
+    - En `CreateAsync`, se consulta la empresa y se evalúa `if (company.MaxBranches > 0 && existingBranches.Count >= company.MaxBranches)` lanzando `InvalidOperationException` descriptiva para bloquear creaciones que superen el cupo contratado.
+    - Se mapeó `MaxBranches` en `AuthResponseDto` en `LoginStandardAsync` para su consumo reactivo en la sesión del cliente.
+  - **Generación Consecutiva de Código de Sede**:
+    - Si el código no viene en el payload (`string.IsNullOrWhiteSpace(dto.Code)`), se calcula un prefijo a partir del nombre de la empresa y se busca el siguiente consecutivo libre (`EMPRESA-01`, `EMPRESA-02`, etc.) garantizando unicidad por empresa sin colisiones.
+    - `Code` se marcó como opcional en `CreateBranchDto` y `UpdateBranchDto`.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
+  - `ParkingApi.Domain/Dtos/Auth/AuthResponseDto.cs`
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Compatibilidad de Transacciones con MySqlRetryingExecutionStrategy
 - **`💬 Prompt Original del Usuario`**:
   > *"genero este error no dejo crearlo arrojo este conflicto pero esta vez ni lo creo en la bd"*

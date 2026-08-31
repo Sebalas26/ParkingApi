@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
+using ParkingApi.Domain.Interfaces.Repositories.Companies;
 using ParkingApi.Domain.Interfaces.Services.Branches;
 using ParkingApi.Domain.Models;
 
@@ -14,11 +16,16 @@ namespace ParkingApi.Core.Services.Branches;
 public class BranchService : IBranchService
 {
     private readonly IBranchRepository _branchRepository;
+    private readonly ICompanyRepository _companyRepository;
     private readonly ILogger<BranchService> _logger;
 
-    public BranchService(IBranchRepository branchRepository, ILogger<BranchService> logger)
+    public BranchService(
+        IBranchRepository branchRepository,
+        ICompanyRepository companyRepository,
+        ILogger<BranchService> logger)
     {
         _branchRepository = branchRepository;
+        _companyRepository = companyRepository;
         _logger = logger;
     }
 
@@ -59,10 +66,47 @@ public class BranchService : IBranchService
             throw new InvalidOperationException("La sede debe estar asociada a una empresa válida (CompanyId requerido).");
         }
 
+        var company = await _companyRepository.GetByIdAsync(dto.CompanyId.Value, cancellationToken);
+        if (company == null)
+        {
+            throw new InvalidOperationException($"La empresa con ID {dto.CompanyId.Value} no existe.");
+        }
+
+        var existingBranches = await _branchRepository.GetBranchesByCompanyIdAsync(dto.CompanyId.Value, cancellationToken);
+        if (company.MaxBranches > 0 && existingBranches.Count >= company.MaxBranches)
+        {
+            throw new InvalidOperationException($"Has alcanzado el límite máximo contratado de sedes ({company.MaxBranches}) para tu empresa. Si necesitas más sedes, comunícate con el administrador.");
+        }
+
+        // Generación dinámica consecutiva del código de sede si no se envía
+        string branchCode = dto.Code?.Trim()?.ToUpperInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(branchCode))
+        {
+            var rawName = company.Name?.Trim() ?? "SEDE";
+            var words = rawName.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+            string prefix = words.Length > 0 ? Regex.Replace(words[0].ToUpperInvariant(), @"[^A-Z0-9]", "") : "SEDE";
+            if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 2) prefix = "SEDE";
+            if (prefix.Length > 8) prefix = prefix.Substring(0, 8);
+
+            int nextNum = 1;
+            do
+            {
+                branchCode = $"{prefix}-{nextNum:D2}";
+                nextNum++;
+            } while (existingBranches.Any(b => b.Code.Equals(branchCode, StringComparison.OrdinalIgnoreCase)));
+        }
+        else
+        {
+            if (existingBranches.Any(b => b.Code.Equals(branchCode, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException($"Ya existe una sede con el código '{branchCode}' en esta empresa.");
+            }
+        }
+
         var branch = new Branch
         {
             CompanyId = dto.CompanyId.Value,
-            Code = dto.Code.Trim().ToUpperInvariant(),
+            Code = branchCode,
             Name = dto.Name.Trim(),
             Address = dto.Address.Trim(),
             Phone = dto.Phone?.Trim(),
@@ -83,7 +127,10 @@ public class BranchService : IBranchService
         var branch = await _branchRepository.GetByIdAsync(branchId, cancellationToken);
         if (branch == null) return null;
 
-        branch.Code = dto.Code.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(dto.Code))
+        {
+            branch.Code = dto.Code.Trim().ToUpperInvariant();
+        }
         branch.Name = dto.Name.Trim();
         branch.Address = dto.Address.Trim();
         branch.Phone = dto.Phone?.Trim();
