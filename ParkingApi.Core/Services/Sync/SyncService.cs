@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Sync;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
+using ParkingApi.Domain.Interfaces.Repositories.Billing;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Incidents;
 using ParkingApi.Domain.Interfaces.Repositories.MonthlySubscriptions;
@@ -37,6 +38,7 @@ public class SyncService : ISyncService
     private readonly IMonthlySubscriptionRepository _monthlySubscriptionRepository;
     private readonly IParkingTicketRepository _ticketRepository;
     private readonly IVehicleIncidentRepository _incidentRepository;
+    private readonly IBillingResolutionRepository _billingResolutionRepository;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SyncService> _logger;
 
@@ -53,6 +55,7 @@ public class SyncService : ISyncService
         IMonthlySubscriptionRepository monthlySubscriptionRepository,
         IParkingTicketRepository ticketRepository,
         IVehicleIncidentRepository incidentRepository,
+        IBillingResolutionRepository billingResolutionRepository,
         IConfiguration configuration,
         ILogger<SyncService> logger)
     {
@@ -68,6 +71,7 @@ public class SyncService : ISyncService
         _monthlySubscriptionRepository = monthlySubscriptionRepository;
         _ticketRepository = ticketRepository;
         _incidentRepository = incidentRepository;
+        _billingResolutionRepository = billingResolutionRepository;
         _configuration = configuration;
         _logger = logger;
     }
@@ -197,6 +201,9 @@ public class SyncService : ISyncService
                 ? allIncidents.Where(i => i.IsGlobal || i.BranchId == branchId.Value || i.IncidentBranches.Any(ib => ib.BranchId == branchId.Value)).ToList()
                 : allIncidents.ToList();
 
+            var allResolutions = await _billingResolutionRepository.GetAllAsync(branchId, targetCompanyId, cancellationToken);
+            var resolutions = allResolutions.Where(r => r.IsActive).ToList();
+
             return new BootstrapSyncDto
             {
                 ServerTimeUtc = DateTime.UtcNow,
@@ -213,7 +220,8 @@ public class SyncService : ISyncService
                 MonthlySubscriptions = subscriptions,
                 ActiveTickets = activeTickets,
                 RecentTickets = recentTickets,
-                Incidents = incidents
+                Incidents = incidents,
+                Resolutions = resolutions
             };
         }
         catch (Exception ex)

@@ -38,6 +38,7 @@ public class BootstrapSyncDto
     public List<ParkingTicket> ActiveTickets { get; set; } = new();
     public List<ParkingTicket> RecentTickets { get; set; } = new();
     public List<VehicleIncident> Incidents { get; set; } = new();
+    public List<BillingResolution> Resolutions { get; set; } = new();
 }
 
 public class PendingSyncBatchDto
