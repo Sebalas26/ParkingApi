@@ -59,6 +59,12 @@ public class BranchRepository : IBranchRepository
             .FirstOrDefaultAsync(b => b.Code.ToLower() == code.ToLower(), cancellationToken);
     }
 
+    public async Task<Branch?> GetByCodeAndCompanyAsync(string code, int companyId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Branches
+            .FirstOrDefaultAsync(b => b.CompanyId == companyId && b.Code.ToLower() == code.ToLower(), cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Branch>> GetBranchesByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await _context.UserBranches

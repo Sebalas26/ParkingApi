@@ -106,14 +106,27 @@ public class BranchesController : ControllerBase
                 return BadRequest(new { message = "Se requiere identificar la empresa (CompanyId) para registrar la sede." });
             }
 
+            var existing = await _branchService.GetBranchesByCompanyIdAsync(dto.CompanyId.Value, cancellationToken);
+            if (existing.Any(b => b.Code.Equals(dto.Code.Trim(), StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new { message = $"Ya existe una sede con el código '{dto.Code.Trim().ToUpperInvariant()}' en esta empresa." });
+            }
+
             var created = await _branchService.CreateAsync(dto, cancellationToken);
             _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("BranchCreated", "Nueva Sede Creada", $"Se ha registrado la sede '{created.Name}'.", cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Validación al crear sede.");
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear sede.");
-            return StatusCode(500, new { message = "Error interno al crear la sede." });
+            var innerMsg = ex.InnerException?.Message;
+            var detailedMsg = !string.IsNullOrWhiteSpace(innerMsg) ? innerMsg : ex.Message;
+            return StatusCode(500, new { message = $"Error al crear la sede: {detailedMsg}" });
         }
     }
 

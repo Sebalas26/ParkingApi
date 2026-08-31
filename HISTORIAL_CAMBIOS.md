@@ -2,6 +2,34 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Corrección de Índice Único Multi-Tenant en Sedes y Visibilidad de Usuarios por Empresa
+- **`💬 Prompt Original del Usuario`**:
+  > *"Intente crear una sede y se revento, segundo estoy como superadministrador controlando una sede pero no me carga los usuarios de esa sede y reviso en la bd y si esta creado los usuarios yo los cree pero no los esta mostrando ni filtrando, revisa eso que esta pasando llega null algo esat m al por que filtra por sede los usuartios si soy super administrador o igual soy administrador como va a filtrar por sede el usuario no entiendo ese filtro entiendo lo de la compañia nada mas es lo correcto. si me explico. analiza ese proceso y dame el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Índice Multi-Tenant de Sedes (`EntityConfigurations.cs`)**:
+    - Se modificó la restricción única en `Branches` pasando de `builder.HasIndex(b => b.Code).IsUnique()` (global erróneo) a `builder.HasIndex(b => new { b.CompanyId, b.Code }).IsUnique()` (único por empresa). Esto permite que diferentes empresas utilicen los mismos códigos de sede (ej. `SEDE-01`) sin colisiones de base de datos.
+  - **Validación y Mensajes Claros (`BranchesController.cs`)**:
+    - Se agregó validación previa de código dentro de la misma empresa antes del insert.
+    - Se implementó captura detallada de excepciones internas (`ex.InnerException?.Message`) retornando mensajes descriptivos para la UI en vez de 500 genéricos.
+  - **Inclusión Permanente de Administradores (`UserRepository.cs`)**:
+    - En `GetUsers`, cuando se recibe `branchId`, se asegura que los administradores de la empresa (`Role == "Administrador" || Role == "Admin" || Role == "Super Administrador" || Role == "Super Admin"`) no sean excluidos por no tener una fila fija en `UserBranches`.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/Branches/IBranchRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Users/UserRepository.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Blindaje y Soporte de Contexto Multi-Organización vía Header X-Company-Id para SuperAdmin
 - **`💬 Prompt Original del Usuario`**:
   > *"AUDITORÍA Y BLINDAJE: GESTIÓN DE ROLES/PERMISOS MULTI-ORGANIZACIÓN PARA SUPERADMIN (PWA & API). Verificar y validar exhaustivamente que la experiencia de administración multi-tenant en la ParkingPwa y el backend ParkingApi mantenga aislamiento estricto por organización cuando opera un usuario con rol SuperAdmin."*

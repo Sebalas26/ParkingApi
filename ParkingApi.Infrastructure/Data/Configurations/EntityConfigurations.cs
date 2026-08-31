@@ -266,7 +266,7 @@ public class MultiBranchConfigurations :
         builder.Property(b => b.City).HasMaxLength(50);
         builder.Property(b => b.Notes).HasMaxLength(500);
 
-        builder.HasIndex(b => b.Code).IsUnique();
+        builder.HasIndex(b => new { b.CompanyId, b.Code }).IsUnique();
         builder.HasIndex(b => b.CompanyId);
 
         builder.HasOne(b => b.Company)

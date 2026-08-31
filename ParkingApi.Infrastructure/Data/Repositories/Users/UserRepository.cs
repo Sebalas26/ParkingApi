@@ -43,7 +43,9 @@ public class UserRepository : IUserRepository
             if (branchId.HasValue && branchId.Value > 0)
             {
                 var bid = branchId.Value;
-                query = query.Where(x => x.UserBranches.Any(ub => ub.BranchId == bid));
+                query = query.Where(x => 
+                    x.UserBranches.Any(ub => ub.BranchId == bid && ub.IsActive) ||
+                    (x.UserRoleIdNavigation != null && (x.UserRoleIdNavigation.Role == "Administrador" || x.UserRoleIdNavigation.Role == "Admin" || x.UserRoleIdNavigation.Role == "Super Administrador" || x.UserRoleIdNavigation.Role == "Super Admin")));
             }
 
             return await query
