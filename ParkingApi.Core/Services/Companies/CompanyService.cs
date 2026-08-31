@@ -80,6 +80,7 @@ public class CompanyService : ICompanyService
                     Phone = dto.Phone?.Trim(),
                     Address = dto.Address?.Trim(),
                     City = dto.City?.Trim(),
+                    Logo = dto.Logo?.Trim(),
                     PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? "Basic" : dto.PlanType.Trim(),
                     MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1,
                     IsActive = true,
@@ -269,6 +270,7 @@ public class CompanyService : ICompanyService
         company.Phone = dto.Phone?.Trim();
         company.Address = dto.Address?.Trim();
         company.City = dto.City?.Trim();
+        company.Logo = dto.Logo?.Trim();
         company.PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? company.PlanType : dto.PlanType.Trim();
         company.MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : company.MaxBranches;
         company.IsActive = dto.IsActive;
@@ -468,6 +470,7 @@ public class CompanyService : ICompanyService
             Phone = c.Phone,
             Address = c.Address,
             City = c.City,
+            Logo = c.Logo,
             PlanType = c.PlanType,
             MaxBranches = c.MaxBranches,
             IsActive = c.IsActive,

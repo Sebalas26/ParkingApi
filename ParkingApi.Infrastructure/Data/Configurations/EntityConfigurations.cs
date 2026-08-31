@@ -244,6 +244,7 @@ public class MultiBranchConfigurations :
         builder.Property(c => c.City).HasMaxLength(50);
         builder.Property(c => c.PlanType).IsRequired().HasMaxLength(50).HasDefaultValue("Basic");
         builder.Property(c => c.MaxBranches).HasDefaultValue(1);
+        builder.Property(c => c.Logo).HasColumnType("longtext").IsRequired(false);
         builder.Ignore(c => c.LogoBase64);
 
         builder.HasIndex(c => c.Nit);

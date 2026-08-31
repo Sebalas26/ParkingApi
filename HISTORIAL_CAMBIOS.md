@@ -2,6 +2,32 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Columna Logo en Companies y Soporte de Imagen Base64
+- **`💬 Prompt Original del Usuario`**:
+  > *"Necesito que agregues una columna en la tabla companies que sea logo eso se guardara en base 64 pero que sea opcional, compañia que no tenga el logo usuara el de nosotros el de nuestro software vale el que si lo tenga configurado se usara para la impresión eso lo vamos mirando después pero entonces para que lo tengas muy presente. lo que toca hacer, eso implica modificar la modal de creación de la compañia para que permita opcional cargar la imagen pero no quiero el boton convecional algo mas pro unico que se le pueda dar click y poder ver la imagen pero ten presente que no dañe nada del responsi completo que se tienen en el sistema, e iogual al editar la compañias ya creadas listo . analiza y dame el plan completo."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Mapeo de Columna `Logo` en EF Core**:
+    - Se habilitó la propiedad `public string? Logo { get; set; }` en `Company.cs`.
+    - En `EntityConfigurations.cs`, se configuró `builder.Property(c => c.Logo).HasColumnType("longtext").IsRequired(false);`.
+  - **DTOs y Lógica de Negocio**:
+    - Se incluyó `Logo` opcional en `CompanyDto`, `CreateCompanyDto` y `UpdateCompanyDto`.
+    - En `CompanyService.cs`, se adaptaron `CreateCompanyAsync`, `UpdateCompanyAsync` y `MapToDto` para persistir y retornar la cadena Base64 del logo de la compañía.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/Company.cs`
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+  - `ParkingApi.Domain/Dtos/Companies/CompanyDtos.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Control Estricto de MaxBranches y Código de Sede Autoincremental
 - **`💬 Prompt Original del Usuario`**:
   > *"Listo, ya se creo bien las compañias deja crear bien las sedes, pero encontramos otro error se supone que cuando se crea la compañia se le coloca el limite de sedes que puede tener le colocamos 3 y dejo pasar dejor crear 4 sedes eso no debe ser posible debería salir un mensaje de alerta con el mismo diseño del sistema donde diga ya alcanzaste tu limite comprado si necesitas mas sedes contacta al administrador si me explico. otro error que encontrado el codigo de sede necesito que le crees un codigo dinamico si pero que no se repita en la bd osea oculta ese campo del fronted pero que si guarde un codigo dinamico osea consecutivo entonces va a coger el nombre de la compañia y le va a sumar el 01 despues el02 si me explico así autoincremental pero se debe quitar de la visual del usuario tanto al crear como al editar la sedeme explico analiza el plan para revisarlo."*
