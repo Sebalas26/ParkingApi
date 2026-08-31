@@ -61,7 +61,7 @@ public class UserRoleService : IUserRoleService
                 CreatedAt = userRole.CreatedAt ?? DateTime.UtcNow
             };
 
-            var isExist = await ValidateRole(userRole.RoleName, cancellation);
+            var isExist = await ValidateRole(userRole.RoleName, userRole.CompanyId, cancellation);
             if (saveData.Id == 0 && !isExist)
             {
                 data.CreatedAt = DateTime.UtcNow;
@@ -73,7 +73,7 @@ public class UserRoleService : IUserRoleService
                 await _userRoleRepository.UpdateUserRole(saveData, cancellation);
             }
 
-            data = await _userRoleRepository.GetUserRoleName(saveData.Role, cancellation) ?? new();
+            data = await _userRoleRepository.GetUserRoleName(saveData.Role, userRole.CompanyId, cancellation) ?? new();
         }
         catch (Exception ex)
         {
@@ -95,11 +95,11 @@ public class UserRoleService : IUserRoleService
         }
     }
 
-    private async Task<bool> ValidateRole(string roleName, CancellationToken cancellation = default)
+    private async Task<bool> ValidateRole(string roleName, int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
-            var role = await _userRoleRepository.GetUserRoleName(roleName, cancellation);
+            var role = await _userRoleRepository.GetUserRoleName(roleName, companyId, cancellation);
             return role != null;
         }
         catch (Exception ex)

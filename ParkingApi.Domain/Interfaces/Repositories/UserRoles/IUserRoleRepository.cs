@@ -10,7 +10,7 @@ public interface IUserRoleRepository
 {
     Task<IEnumerable<GetUserRoleDto>> GetUserRoles(int? companyId = null, CancellationToken cancellation = default);
     Task<GetUserRoleDto?> GetUserRoleById(int id, CancellationToken cancellation = default);
-    Task<GetUserRoleDto?> GetUserRoleName(string nameRol, CancellationToken cancellation = default);
+    Task<GetUserRoleDto?> GetUserRoleName(string nameRol, int? companyId = null, CancellationToken cancellation = default);
     Task<bool> SaveUserRole(UserRole userRole, CancellationToken cancellation = default);
     Task<bool> UpdateUserRole(UserRole userRole, CancellationToken cancellation = default);
     Task<bool> DeleteUserRole(int id, CancellationToken cancellation = default);

@@ -161,17 +161,18 @@ public class UserRoleRepository : IUserRoleRepository
         }
     }
 
-    public async Task<GetUserRoleDto?> GetUserRoleName(string nameRol, CancellationToken cancellation = default)
+    public async Task<GetUserRoleDto?> GetUserRoleName(string nameRol, int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
             var normalized = nameRol.Trim().ToLower();
             return await _context.UserRole
                 .AsNoTracking()
-                .Where(x => x.Role.ToLower() == normalized)
+                .Where(x => x.Role.ToLower() == normalized && x.CompanyId == companyId)
                 .Select(x => new GetUserRoleDto
                 {
                     IdUserRol = x.Id,
+                    CompanyId = x.CompanyId,
                     RoleName = x.Role,
                     IsActive = x.IsActive,
                     CreatedAt = x.CreatedAt,
