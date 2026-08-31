@@ -64,170 +64,190 @@ public class CompanyService : ICompanyService
             throw new InvalidOperationException($"El nombre de usuario '{dto.AdminUsername.Trim()}' ya está en uso.");
         }
 
-        // 3. Crear Empresa
-        var company = new Company
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            Name = dto.Name.Trim(),
-            LegalName = string.IsNullOrWhiteSpace(dto.LegalName) ? dto.Name.Trim() : dto.LegalName.Trim(),
-            Nit = dto.Nit.Trim(),
-            Email = dto.Email.Trim(),
-            Phone = dto.Phone?.Trim(),
-            Address = dto.Address?.Trim(),
-            City = dto.City?.Trim(),
-            PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? "Basic" : dto.PlanType.Trim(),
-            MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1,
-            IsActive = true,
-            SubscriptionExpiresAt = dto.SubscriptionExpiresAt,
-            ResponsibleUserId = responsibleUserId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Companies.Add(company);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // 4. Crear Rol "Administrador" para la nueva empresa
-        var adminRole = new UserRole
-        {
-            CompanyId = company.Id,
-            Role = "Administrador",
-            IsActive = true,
-            ResponsibleUserId = responsibleUserId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.UserRole.Add(adminRole);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // 5. Asignar módulos y acciones operativas y administrativas al nuevo rol de Administrador de la empresa (Excluyendo Módulo 16 SaaS Global)
-        var tenantModules = await _context.Module
-            .Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"))
-            .ToListAsync(cancellationToken);
-        foreach (var mod in tenantModules)
-        {
-            _context.UserRoleModule.Add(new UserRoleModule
+            // 3. Crear Empresa
+            var company = new Company
             {
+                Name = dto.Name.Trim(),
+                LegalName = string.IsNullOrWhiteSpace(dto.LegalName) ? dto.Name.Trim() : dto.LegalName.Trim(),
+                Nit = dto.Nit.Trim(),
+                Email = dto.Email.Trim(),
+                Phone = dto.Phone?.Trim(),
+                Address = dto.Address?.Trim(),
+                City = dto.City?.Trim(),
+                PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? "Basic" : dto.PlanType.Trim(),
+                MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1,
+                IsActive = true,
+                SubscriptionExpiresAt = dto.SubscriptionExpiresAt,
+                ResponsibleUserId = responsibleUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Companies.Add(company);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 4. Crear Rol "Administrador" para la nueva empresa
+            var adminRole = new UserRole
+            {
+                CompanyId = company.Id,
+                Role = "Administrador",
+                IsActive = true,
+                ResponsibleUserId = responsibleUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.UserRole.Add(adminRole);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 5. Asignar módulos y acciones operativas y administrativas al nuevo rol de Administrador de la empresa (Excluyendo Módulo 16 SaaS Global)
+            var tenantModules = await _context.Module
+                .Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"))
+                .ToListAsync(cancellationToken);
+            foreach (var mod in tenantModules)
+            {
+                _context.UserRoleModule.Add(new UserRoleModule
+                {
+                    UserRoleId = adminRole.Id,
+                    ModulesRoleId = mod.Id,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    ResponsibleUserId = responsibleUserId
+                });
+            }
+
+            var tenantActions = await _context.Action
+                .Where(a => a.IsActive && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
+                .ToListAsync(cancellationToken);
+            foreach (var act in tenantActions)
+            {
+                _context.RoleAction.Add(new RoleAction
+                {
+                    RoleId = adminRole.Id,
+                    ActionId = act.Id,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    ResponsibleUserId = responsibleUserId
+                });
+            }
+
+            // 6. Crear Sede Inicial Obligatoria para la Empresa (con código único y seguro)
+            var branchCode = $"SEDE-{company.Id:D2}";
+            var defaultBranch = new Branch
+            {
+                CompanyId = company.Id,
+                Code = branchCode,
+                Name = "Sede Principal",
+                Address = string.IsNullOrWhiteSpace(company.Address) ? "Calle Principal # 1-01" : company.Address.Trim(),
+                Phone = company.Phone?.Trim(),
+                City = string.IsNullOrWhiteSpace(company.City) ? "Ciudad Principal" : company.City.Trim(),
+                TotalCapacity = 100,
+                Notes = $"Sede principal de operaciones de {company.Name}",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Branches.Add(defaultBranch);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 7. Crear Usuario Administrador de la Empresa
+            var hashedPassword = PasswordHasher.HashPassword(dto.AdminPassword.Trim());
+            var nameParts = dto.AdminFullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var firstName = nameParts.Length > 0 ? nameParts[0] : dto.AdminFullName.Trim();
+            var firstSurname = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : "Admin";
+
+            var user = new User
+            {
+                CompanyId = company.Id,
                 UserRoleId = adminRole.Id,
-                ModulesRoleId = mod.Id,
+                IdentificationTypeId = dto.AdminIdentificationTypeId > 0 ? dto.AdminIdentificationTypeId : 1,
+                IdentificationNumber = string.IsNullOrWhiteSpace(dto.AdminIdentificationNumber) ? dto.Nit.Trim() : dto.AdminIdentificationNumber.Trim(),
+                FirstName = firstName,
+                MiddleName = string.Empty,
+                FirstSurname = firstSurname,
+                SecondLastName = string.Empty,
+                FullName = dto.AdminFullName.Trim(),
+                Username = dto.AdminUsername.Trim().ToLowerInvariant(),
+                Password = hashedPassword,
+                Email = string.IsNullOrWhiteSpace(dto.AdminEmail) ? dto.Email.Trim() : dto.AdminEmail.Trim(),
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                ResponsibleUserId = responsibleUserId
-            });
-        }
+                MustChangePassword = false,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        var tenantActions = await _context.Action
-            .Where(a => a.IsActive && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
-            .ToListAsync(cancellationToken);
-        foreach (var act in tenantActions)
-        {
-            _context.RoleAction.Add(new RoleAction
+            _context.User.Add(user);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 8. Vincular al Administrador con la Sede Inicial (UserBranches)
+            _context.UserBranches.Add(new UserBranch
             {
-                RoleId = adminRole.Id,
-                ActionId = act.Id,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                ResponsibleUserId = responsibleUserId
-            });
-        }
-
-        // 6. Crear Sede Inicial Obligatoria para la Empresa
-        var defaultBranch = new Branch
-        {
-            CompanyId = company.Id,
-            Code = "SEDE-01",
-            Name = "Sede Principal",
-            Address = string.IsNullOrWhiteSpace(company.Address) ? "Calle Principal # 1-01" : company.Address.Trim(),
-            Phone = company.Phone?.Trim(),
-            City = string.IsNullOrWhiteSpace(company.City) ? "Ciudad Principal" : company.City.Trim(),
-            TotalCapacity = 100,
-            Notes = $"Sede principal de operaciones de {company.Name}",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Branches.Add(defaultBranch);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // 7. Crear Usuario Administrador de la Empresa
-        var hashedPassword = PasswordHasher.HashPassword(dto.AdminPassword.Trim());
-        var user = new User
-        {
-            CompanyId = company.Id,
-            UserRoleId = adminRole.Id,
-            IdentificationTypeId = dto.AdminIdentificationTypeId > 0 ? dto.AdminIdentificationTypeId : 1,
-            IdentificationNumber = string.IsNullOrWhiteSpace(dto.AdminIdentificationNumber) ? dto.Nit.Trim() : dto.AdminIdentificationNumber.Trim(),
-            FirstName = dto.AdminFullName.Trim(),
-            FullName = dto.AdminFullName.Trim(),
-            Username = dto.AdminUsername.Trim(),
-            Password = hashedPassword,
-            Email = string.IsNullOrWhiteSpace(dto.AdminEmail) ? dto.Email.Trim() : dto.AdminEmail.Trim(),
-            IsActive = true,
-            MustChangePassword = false,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.User.Add(user);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // 8. Vincular al Administrador con la Sede Inicial (UserBranches)
-        _context.UserBranches.Add(new UserBranch
-        {
-            UserId = user.Id,
-            BranchId = defaultBranch.Id,
-            IsDefault = true,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            ResponsibleUserId = responsibleUserId
-        });
-
-        // 9. Sembrar Catálogo Inicial de Tarifas de Vehículos para la Empresa (CompanyId)
-        var defaultRates = new List<VehicleRate>
-        {
-            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Car, DisplayName = "Automóvil / Sedán", HourRate = 3000, MinuteRate = 50, FullDayRate = 25000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Motorcycle, DisplayName = "Motocicleta", HourRate = 1500, MinuteRate = 25, FullDayRate = 12000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Suv, DisplayName = "Camioneta / SUV", HourRate = 3500, MinuteRate = 60, FullDayRate = 30000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Truck, DisplayName = "Vehículo Pesado / Camión", HourRate = 5000, MinuteRate = 90, FullDayRate = 45000, GracePeriodMinutes = 15, IconKey = "IconTruck", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-            new() { CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Bicycle, DisplayName = "Bicicleta", HourRate = 1000, MinuteRate = 15, FullDayRate = 8000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow }
-        };
-        _context.VehicleRates.AddRange(defaultRates);
-
-        // 10. Sembrar Resolución de Facturación Inicial para la Empresa (CompanyId)
-        var defaultResolution = new BillingResolution
-        {
-            CompanyId = company.Id,
-            BranchId = defaultBranch.Id,
-            Name = "Resolución POS Inicial",
-            DocumentType = "Documento equivalente electrónico del tiquete de máquina registradora con sistema P.O.S.",
-            Prefix = "POS",
-            ResolutionNumber = "18764000001",
-            FromNumber = 1,
-            ToNumber = 100000,
-            CurrentNumber = 1,
-            ValidFrom = DateTime.UtcNow.Date,
-            ValidTo = DateTime.UtcNow.Date.AddYears(2),
-            IsActive = true,
-            CreatedAtUtc = DateTime.UtcNow
-        };
-        _context.BillingResolutions.Add(defaultResolution);
-
-        // 11. Habilitar Medios de Pago Activos para la Sede Inicial
-        var activePaymentMethods = await _context.PaymentMethod.Where(p => p.IsActive).ToListAsync(cancellationToken);
-        foreach (var pm in activePaymentMethods)
-        {
-            _context.BranchPaymentMethods.Add(new BranchPaymentMethod
-            {
+                UserId = user.Id,
                 BranchId = defaultBranch.Id,
-                PaymentMethodId = pm.Id,
+                IsDefault = true,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 ResponsibleUserId = responsibleUserId
             });
+
+            // 9. Sembrar Catálogo Inicial de Tarifas de Vehículos para la Empresa (CompanyId)
+            var defaultRates = new List<VehicleRate>
+            {
+                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Car, DisplayName = "Automóvil / Sedán", HourRate = 3000, MinuteRate = 50, FullDayRate = 25000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Motorcycle, DisplayName = "Motocicleta", HourRate = 1500, MinuteRate = 25, FullDayRate = 12000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Suv, DisplayName = "Camioneta / SUV", HourRate = 3500, MinuteRate = 60, FullDayRate = 30000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Truck, DisplayName = "Vehículo Pesado / Camión", HourRate = 5000, MinuteRate = 90, FullDayRate = 45000, GracePeriodMinutes = 15, IconKey = "IconTruck", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
+                new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Bicycle, DisplayName = "Bicicleta", HourRate = 1000, MinuteRate = 15, FullDayRate = 8000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow }
+            };
+            _context.VehicleRates.AddRange(defaultRates);
+
+            // 10. Sembrar Resolución de Facturación Inicial para la Empresa (CompanyId)
+            var defaultResolution = new BillingResolution
+            {
+                ResolutionId = Guid.NewGuid(),
+                CompanyId = company.Id,
+                BranchId = defaultBranch.Id,
+                Name = "Resolución POS Inicial",
+                DocumentType = "Documento equivalente electrónico del tiquete de máquina registradora con sistema P.O.S.",
+                Prefix = "POS",
+                ResolutionNumber = "18764000001",
+                FromNumber = 1,
+                ToNumber = 100000,
+                CurrentNumber = 1,
+                ValidFrom = DateTime.UtcNow.Date,
+                ValidTo = DateTime.UtcNow.Date.AddYears(2),
+                IsActive = true,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            _context.BillingResolutions.Add(defaultResolution);
+
+            // 11. Habilitar Medios de Pago Activos para la Sede Inicial
+            var activePaymentMethods = await _context.PaymentMethod.Where(p => p.IsActive).ToListAsync(cancellationToken);
+            foreach (var pm in activePaymentMethods)
+            {
+                _context.BranchPaymentMethods.Add(new BranchPaymentMethod
+                {
+                    BranchId = defaultBranch.Id,
+                    PaymentMethodId = pm.Id,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    ResponsibleUserId = responsibleUserId
+                });
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) aprovisionada exitosamente con sede '{BranchCode}' y administrador '{Username}'", company.Name, company.Id, defaultBranch.Code, user.Username);
+
+            return MapToDto(company);
         }
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) aprovisionada exitosamente con sede '{BranchCode}' y administrador '{Username}'", company.Name, company.Id, defaultBranch.Code, user.Username);
-
-        return MapToDto(company);
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error al crear y aprovisionar la empresa {CompanyName}", dto.Name);
+            throw;
+        }
     }
 
     public async Task<CompanyDto> UpdateCompanyAsync(int id, UpdateCompanyDto dto, int? responsibleUserId = null, CancellationToken cancellationToken = default)

@@ -102,7 +102,9 @@ public class CompaniesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear empresa {CompanyName}", dto.Name);
-            return StatusCode(500, new { message = "Error interno al crear empresa: " + ex.Message });
+            var innerMsg = ex.InnerException?.Message;
+            var detailedMsg = !string.IsNullOrWhiteSpace(innerMsg) ? innerMsg : ex.Message;
+            return StatusCode(500, new { message = $"Error interno al crear empresa: {detailedMsg}" });
         }
     }
 
@@ -122,10 +124,16 @@ public class CompaniesController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar empresa {Id}", id);
-            return StatusCode(500, new { message = "Error interno al actualizar empresa." });
+            var innerMsg = ex.InnerException?.Message;
+            var detailedMsg = !string.IsNullOrWhiteSpace(innerMsg) ? innerMsg : ex.Message;
+            return StatusCode(500, new { message = $"Error interno al actualizar empresa: {detailedMsg}" });
         }
     }
 

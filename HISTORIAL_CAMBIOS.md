@@ -2,6 +2,32 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Transaccionalidad Atómica y Código Unívoco en Aprovisionamiento de Nuevas Empresas
+- **`💬 Prompt Original del Usuario`**:
+  > *"Mira que intento desde el super admin crear una compañia y arroja este error pero al parecer si la crea por que si guarda en la bd ya revise pero generar error entonces algo esta mal por que si la crea pero genera el error eso no esta bien valida y genera el plan para la solución ."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Transacción Atómica Integral (`CompanyService.cs`)**:
+    - Se envolvió todo el pipeline de aprovisionamiento de `CreateCompanyAsync` dentro de `using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken)`. Si cualquier paso falla (roles, acciones, sedes, usuario o tarifas), se ejecuta un `RollbackAsync` inmediato, garantizando que nunca queden registros huérfanos o empresas corruptas en la base de datos.
+  - **Código de Sede Unívoco y No Colisionante**:
+    - La sede inicial obligatoria se genera con el código unívoco `Code = $"SEDE-{company.Id:D2}"` (ej. `SEDE-04`), evitando colisiones de clave única en base de datos.
+  - **Inicialización Completa de Entidades**:
+    - Se asignaron todas las propiedades requeridas de `User` (`FirstName`, `FirstSurname`, `IdentificationTypeId`, etc.) y se garantizó la generación explícita de `Guid.NewGuid()` para `VehicleRates` y `BillingResolutions`.
+  - **Desempaquetado de Excepciones Detalladas (`CompaniesController.cs`)**:
+    - Se modificaron los bloques `catch` de `Create` y `Update` para extraer `ex.InnerException?.Message`, entregando mensajes exactos en caso de errores de BD en lugar del mensaje genérico de EF Core.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi/Controllers/CompaniesController.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Herencia Automática de Sedes en Login para Usuarios de Empresa
 - **`💬 Prompt Original del Usuario`**:
   > *"Listo perfecto, pero tengo otro error sucede que le listo cree el usuario en la otra compañia super bien le di permisos super bien le di todos los permisos super bien pero me loguee y de una me mando a crear sede pero si ya existe una sede en esa compañia por que me saco esa ventana eso no deberia ser así deberia existir algo antes. analiza eso y dame el plan"*
