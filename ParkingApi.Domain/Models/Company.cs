@@ -17,8 +17,10 @@ public class Company : GeneralEntity
     public int MaxBranches { get; set; } = 1;
     public DateTime? SubscriptionExpiresAt { get; set; }
 
+    public string? Logo { get; set; }
+    
     [NotMapped]
-    public string? LogoBase64 { get; set; }
+    public string? LogoBase64 { get => Logo; set => Logo = value; }
 
     public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
     public virtual ICollection<User> Users { get; set; } = new List<User>();

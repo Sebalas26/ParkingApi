@@ -173,17 +173,35 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("validate-session")]
-    public IActionResult ValidateSession()
+    public async Task<IActionResult> ValidateSession(CancellationToken cancellation)
     {
         var sidClaim = User.FindFirst(ClaimTypes.Sid)?.Value;
-        var nameClaim = User.FindFirst(ClaimTypes.Name)?.Value;
-        return Ok(new
+        if (!string.IsNullOrEmpty(sidClaim) && int.TryParse(sidClaim, out int userId))
         {
-            valid = true,
-            userId = sidClaim,
-            username = nameClaim,
-            validatedAtUtc = DateTime.UtcNow
-        });
+            var profile = await _authService.ValidateSessionProfileAsync(userId, cancellation);
+            if (profile != null && profile.Success)
+            {
+                return Ok(new
+                {
+                    valid = true,
+                    userId = profile.UserId,
+                    username = profile.Username,
+                    fullName = profile.FullName,
+                    roleName = profile.RoleName,
+                    roleId = profile.RoleId,
+                    isAdmin = profile.IsAdmin,
+                    isSuperAdmin = profile.IsSuperAdmin,
+                    companyId = profile.CompanyId,
+                    companyName = profile.CompanyName,
+                    maxBranches = profile.MaxBranches,
+                    branches = profile.Branches,
+                    permissions = profile.Permissions,
+                    validatedAtUtc = DateTime.UtcNow
+                });
+            }
+        }
+
+        return Unauthorized(new { valid = false, message = "Sesión inválida o expirada." });
     }
 
     [Authorize]

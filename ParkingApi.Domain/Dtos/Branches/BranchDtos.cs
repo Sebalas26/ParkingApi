@@ -24,7 +24,7 @@ public class BranchDto
 public class CreateBranchDto
 {
     public int? CompanyId { get; set; }
-    public string Code { get; set; } = string.Empty;
+    public string? Code { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string? Phone { get; set; }
@@ -36,7 +36,7 @@ public class CreateBranchDto
 
 public class UpdateBranchDto
 {
-    public string Code { get; set; } = string.Empty;
+    public string? Code { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string? Phone { get; set; }

@@ -12,6 +12,7 @@ public class CompanyDto
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
+    public string? Logo { get; set; }
     public string PlanType { get; set; } = "Basic";
     public int MaxBranches { get; set; } = 1;
     public bool IsActive { get; set; } = true;
@@ -30,6 +31,7 @@ public class CreateCompanyDto
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
+    public string? Logo { get; set; }
     public string PlanType { get; set; } = "Basic";
     public int MaxBranches { get; set; } = 1;
     public DateTime? SubscriptionExpiresAt { get; set; }
@@ -52,6 +54,7 @@ public class UpdateCompanyDto
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
+    public string? Logo { get; set; }
     public string PlanType { get; set; } = "Basic";
     public int MaxBranches { get; set; } = 1;
     public bool IsActive { get; set; } = true;

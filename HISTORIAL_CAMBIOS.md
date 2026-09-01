@@ -2,29 +2,6 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: Persistencia de Resolución DIAN y Consecutivo Fiscal en CheckOut de Tiquetes
-- **`💬 Prompt Original del Usuario`**:
-  > *"ayudame a organizar esto, pues no quiero que se vea alli, ya que al darle salida a un vehiculo debe guardarse con que resolucion se elegira, valida en api y en bd si ese dato queda registrado, si no? crealo para que al darle salida (2da pantalla) se guarde con resolucion"*
-
-- **`🤖 Resumen Técnico para la IA`**:
-  - **DTO de CheckOut Extendido (`CheckOutRequestDto.cs`)**:
-    - Se agregaron las propiedades `ResolutionId`, `ResolutionName` y `FiscalInvoiceNumber` al contrato de liquidación de salida.
-  - **Persistencia en Modelo y Control de Consecutivo (`ParkingTicketService.cs`)**:
-    - En `CheckOutAsync`, se asignan `ticket.ResolutionId`, `ticket.ResolutionName`, `ticket.InvoiceNumber` e `IsElectronicInvoice = !string.IsNullOrWhiteSpace(FiscalInvoiceNumber)`.
-    - Se inyectó `IBillingResolutionRepository` para consultar la resolución por ID e incrementar de forma atómica su `CurrentNumber` y `UpdatedAtUtc` en la base de datos central MySQL.
-  - **Cero Errores de Compilación**:
-    - `dotnet build` ejecutado exitosamente (**0 Errores**).
-
-- **`📦 Componentes Modificados`**:
-  - `ParkingApi.Domain/Dtos/Tickets/CheckOutRequestDto.cs`
-  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
-  - `HISTORIAL_CAMBIOS.md`
-
-- **`✅ Verificación y Compilación`**:
-  - `dotnet build` (**0 Errores**).
-
----
-
 ## 📌 Entrada: Compatibilidad de Transacciones con MySqlRetryingExecutionStrategy
 - **`💬 Prompt Original del Usuario`**:
   > *"genero este error no dejo crearlo arrojo este conflicto pero esta vez ni lo creo en la bd"*

@@ -85,9 +85,9 @@ public class BranchesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBranchDto dto, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(dto?.Code) || string.IsNullOrWhiteSpace(dto?.Name))
+        if (string.IsNullOrWhiteSpace(dto?.Name))
         {
-            return BadRequest(new { message = "El código y el nombre de la sede son obligatorios." });
+            return BadRequest(new { message = "El nombre de la sede es obligatorio." });
         }
 
         try
@@ -104,12 +104,6 @@ public class BranchesController : ControllerBase
             if (!dto.CompanyId.HasValue || dto.CompanyId.Value <= 0)
             {
                 return BadRequest(new { message = "Se requiere identificar la empresa (CompanyId) para registrar la sede." });
-            }
-
-            var existing = await _branchService.GetBranchesByCompanyIdAsync(dto.CompanyId.Value, cancellationToken);
-            if (existing.Any(b => b.Code.Equals(dto.Code.Trim(), StringComparison.OrdinalIgnoreCase)))
-            {
-                return BadRequest(new { message = $"Ya existe una sede con el código '{dto.Code.Trim().ToUpperInvariant()}' en esta empresa." });
             }
 
             var created = await _branchService.CreateAsync(dto, cancellationToken);

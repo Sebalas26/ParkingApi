@@ -156,8 +156,19 @@ public class RoleActionRepository : IRoleActionRepository
             int? uid = null;
             if (int.TryParse(_currentUser?.UserId, out int parsedUid)) uid = parsedUid;
 
-            // 2. Insertar nuevas asignaciones de acciones
+            // 2. Insertar nuevas asignaciones de acciones (filtrando acciones SuperAdmin si el usuario no es SuperAdmin)
             var distinctActionIds = actionIds.Distinct().ToList();
+
+            if (_currentUser != null && !_currentUser.IsSuperAdmin && distinctActionIds.Any())
+            {
+                var allowedActionIds = await _context.Action
+                    .Where(a => distinctActionIds.Contains(a.Id) && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
+                    .Select(a => a.Id)
+                    .ToListAsync(cancellationToken);
+
+                distinctActionIds = allowedActionIds;
+            }
+
             if (distinctActionIds.Any())
             {
                 var newRoleActions = distinctActionIds.Select(actionId => new RoleAction

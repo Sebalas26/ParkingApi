@@ -33,10 +33,18 @@ public class ActionRepository : IActionRepository
     {
         try
         {
-            return await _context.Action
+            var query = _context.Action
                 .AsNoTracking()
                 .Include(x => x.ModuleIdNavigation)
                 .Include(x => x.OperationIdNavigation)
+                .AsQueryable();
+
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                query = query.Where(x => x.ModuleId != 16 && !x.Slug.StartsWith("companies."));
+            }
+
+            return await query
                 .Select(x => new GetActionsDto
                 {
                     Id = x.Id,
@@ -72,11 +80,18 @@ public class ActionRepository : IActionRepository
     {
         try
         {
-            return await _context.Action
+            var query = _context.Action
                 .AsNoTracking()
                 .Include(x => x.ModuleIdNavigation)
                 .Include(x => x.OperationIdNavigation)
-                .Where(x => x.IsActive)
+                .Where(x => x.IsActive);
+
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                query = query.Where(x => x.ModuleId != 16 && !x.Slug.StartsWith("companies."));
+            }
+
+            return await query
                 .Select(x => new GetActionsDto
                 {
                     Id = x.Id,
