@@ -15,4 +15,7 @@ public class CheckOutRequestDto
     public decimal? PurchaseAmount { get; set; }
     public decimal DiscountAmount { get; set; }
     public DateTime? ExitTimeUtc { get; set; }
+    public Guid? ResolutionId { get; set; }
+    public string? ResolutionName { get; set; }
+    public string? FiscalInvoiceNumber { get; set; }
 }

@@ -8,6 +8,7 @@ using ParkingApi.Domain.Common.Constants;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
+using ParkingApi.Domain.Interfaces.Repositories.Billing;
 using ParkingApi.Domain.Interfaces.Repositories.Discounts;
 using ParkingApi.Domain.Interfaces.Repositories.Incidents;
 using ParkingApi.Domain.Interfaces.Repositories.Stores;
@@ -26,6 +27,7 @@ public class ParkingTicketService : IParkingTicketService
     private readonly ICommercialAgreementRepository _agreementRepository;
     private readonly ITicketDiscountRepository _discountRepository;
     private readonly IVehicleIncidentRepository _incidentRepository;
+    private readonly IBillingResolutionRepository _resolutionRepository;
     private readonly ILogger<ParkingTicketService> _logger;
 
     public ParkingTicketService(
@@ -35,6 +37,7 @@ public class ParkingTicketService : IParkingTicketService
         ICommercialAgreementRepository agreementRepository,
         ITicketDiscountRepository discountRepository,
         IVehicleIncidentRepository incidentRepository,
+        IBillingResolutionRepository resolutionRepository,
         ILogger<ParkingTicketService> logger)
     {
         _ticketRepository = ticketRepository;
@@ -43,6 +46,7 @@ public class ParkingTicketService : IParkingTicketService
         _agreementRepository = agreementRepository;
         _discountRepository = discountRepository;
         _incidentRepository = incidentRepository;
+        _resolutionRepository = resolutionRepository;
         _logger = logger;
     }
 
@@ -159,6 +163,29 @@ public class ParkingTicketService : IParkingTicketService
             if (dto.BranchId.HasValue && ticket.BranchId == null)
             {
                 ticket.BranchId = dto.BranchId.Value;
+            }
+
+            if (dto.ResolutionId.HasValue)
+            {
+                ticket.ResolutionId = dto.ResolutionId.Value;
+                ticket.ResolutionName = dto.ResolutionName;
+                ticket.InvoiceNumber = dto.FiscalInvoiceNumber;
+                ticket.IsElectronicInvoice = !string.IsNullOrWhiteSpace(dto.FiscalInvoiceNumber);
+
+                try
+                {
+                    var resolution = await _resolutionRepository.GetByIdAsync(dto.ResolutionId.Value, cancellationToken);
+                    if (resolution != null)
+                    {
+                        resolution.CurrentNumber++;
+                        resolution.UpdatedAtUtc = DateTime.UtcNow;
+                        await _resolutionRepository.UpdateAsync(resolution, cancellationToken);
+                    }
+                }
+                catch (Exception resEx)
+                {
+                    _logger.LogWarning(resEx, "No se pudo incrementar el consecutivo de la resolución {ResolutionId}", dto.ResolutionId.Value);
+                }
             }
 
             if (dto.StoreId.HasValue && dto.AgreementId.HasValue && !string.IsNullOrWhiteSpace(dto.InvoiceNumber) && dto.DiscountAmount > 0)
