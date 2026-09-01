@@ -41,8 +41,7 @@ public class ActionRepository : IActionRepository
 
             if (_currentUser != null && !_currentUser.IsSuperAdmin)
             {
-                var restrictedModuleIds = new[] { 7, 16 };
-                query = query.Where(x => !restrictedModuleIds.Contains(x.ModuleId) && !x.Slug.StartsWith("companies.") && !x.Slug.StartsWith("branches."));
+                query = query.Where(x => x.ModuleId != 16 && !x.Slug.StartsWith("companies."));
             }
 
             return await query
@@ -89,8 +88,7 @@ public class ActionRepository : IActionRepository
 
             if (_currentUser != null && !_currentUser.IsSuperAdmin)
             {
-                var restrictedModuleIds = new[] { 7, 16 };
-                query = query.Where(x => !restrictedModuleIds.Contains(x.ModuleId) && !x.Slug.StartsWith("companies.") && !x.Slug.StartsWith("branches."));
+                query = query.Where(x => x.ModuleId != 16 && !x.Slug.StartsWith("companies."));
             }
 
             return await query

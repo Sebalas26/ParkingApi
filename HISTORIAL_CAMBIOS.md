@@ -2,6 +2,30 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Corrección de Permisos de Administrador (Aislamiento Exclusivo de Módulo 16 Empresas SaaS)
+- **`💬 Prompt Original del Usuario`**:
+  > *"creo que filtraste de mas, por que en la primera imagen ingrese con el administrador y no salen los permisos que si debería tener para asignar, y en el superadmin si deja todo entonces creo que algo quedo mal si revisa el tema. y necesito que vuelvas a revisar lo de la actualización enserio creo que lo mas correcto es eliminar eso de que se salga la modal para actualizar y se actualice por que no lo hace imaginate que salio la modal y me deovlvio a la 0.0.87 osea devuelve el cache algo esta super mal pero seguir haciendo parches y parches creo que las cosas estan mal prefiero borrar y hacerla desde cero nuevamente por que algo esta super mal. analiza y dame el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Aislamiento Puntual en Módulo 16 (`ModuleRepository.cs` & `ActionRepository.cs`)**:
+    - Se corrigió el filtrado para excluir **únicamente** el módulo 16 (`Gestión de Empresas SaaS`) y las acciones `companies.*` para usuarios que no son SuperAdmin.
+    - Se restauró la disponibilidad del Módulo 7 (`Gestión de Sedes y Parqueaderos`) y los demás 14 módulos operativos/administrativos para que los Administradores de Empresa puedan asignarlos con normalidad a sus roles.
+  - **Sanitización en Asignación (`RoleActionRepository.cs`)**:
+    - En `AssignRolePermissionsAsync`, se descartan únicamente las acciones de `ModuleId == 16` (`companies.*`) ante peticiones de no-SuperAdmins.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Data/Repositories/Modules/ModuleRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Actions/ActionRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/RoleActions/RoleActionRepository.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Restricción Estricta de Módulos 'Empresas SaaS' y 'Sedes' para Super Administrador
 - **`💬 Prompt Original del Usuario`**:
   > *"estos dos modulos no deberían aparecerle a nadie que no sea el superadministrador del todo el software por que mira que estaba configurando los permisos para un rol de la compañia desde el usuario administrador de la compañia, pero enserio no es posible imaginate darle el controla otra compañia de mi software eso es un error fatal si me explico ? analiza eso y dame el plan"*

@@ -161,9 +161,8 @@ public class RoleActionRepository : IRoleActionRepository
 
             if (_currentUser != null && !_currentUser.IsSuperAdmin && distinctActionIds.Any())
             {
-                var restrictedModuleIds = new[] { 7, 16 };
                 var allowedActionIds = await _context.Action
-                    .Where(a => distinctActionIds.Contains(a.Id) && !restrictedModuleIds.Contains(a.ModuleId) && !a.Slug.StartsWith("companies.") && !a.Slug.StartsWith("branches."))
+                    .Where(a => distinctActionIds.Contains(a.Id) && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
                     .Select(a => a.Id)
                     .ToListAsync(cancellationToken);
 

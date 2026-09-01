@@ -34,8 +34,7 @@ public class ModuleRepository : IModuleRepository
 
             if (_currentUser != null && !_currentUser.IsSuperAdmin)
             {
-                var restrictedModuleIds = new[] { 7, 16 };
-                query = query.Where(x => !restrictedModuleIds.Contains(x.Id));
+                query = query.Where(x => x.Id != 16);
             }
 
             return await query
