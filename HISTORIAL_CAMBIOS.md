@@ -2,6 +2,28 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Validación y Refresco Dinámico de Sesión y Permisos en Tiempo Real
+- **`💬 Prompt Original del Usuario`**:
+  > *"Bueno estoy desde el super administrador e intento quitarle permisos a un rol administrador de alguna compañia por que no quiero que tenga ciertos modulos o fucniones pero no esta funcionadno le quite medios de pago el maestro le quite lo de la caja y sigue aparenciendo si te das cuenta eso debe ser reactivo me imagino que eso tiene signal R por que ya cerre sesión y volvi a ingresar y si funciono osea si esta funcionando los permisos pero no es en tiempo real y eso así no debería ser eso debe ser automatico analiza eso. y dame el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Entrega de Matriz Viva de Permisos (`AuthController.cs` & `AuthService.cs`)**:
+    - Se amplió `ValidateSessionProfileAsync` en `IAuthService` / `AuthService.cs` y se integró en `GET /api/Auth/validate-session`.
+    - El endpoint ahora consulta y entrega en tiempo real la matriz activa de permisos (`permissions`), roles (`roleName`, `roleId`), sede y empresa del usuario autenticado en la base de datos.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Services/Auth/IAuthService.cs`
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi/Controllers/AuthController.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Corrección de Permisos de Administrador (Aislamiento Exclusivo de Módulo 16 Empresas SaaS)
 - **`💬 Prompt Original del Usuario`**:
   > *"creo que filtraste de mas, por que en la primera imagen ingrese con el administrador y no salen los permisos que si debería tener para asignar, y en el superadmin si deja todo entonces creo que algo quedo mal si revisa el tema. y necesito que vuelvas a revisar lo de la actualización enserio creo que lo mas correcto es eliminar eso de que se salga la modal para actualizar y se actualice por que no lo hace imaginate que salio la modal y me deovlvio a la 0.0.87 osea devuelve el cache algo esta super mal pero seguir haciendo parches y parches creo que las cosas estan mal prefiero borrar y hacerla desde cero nuevamente por que algo esta super mal. analiza y dame el plan"*

@@ -335,6 +335,92 @@ public class AuthService : IAuthService
         }
     }
 
+    public async Task<AuthResponseDto?> ValidateSessionProfileAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+            if (user == null || !user.IsActive)
+            {
+                return null;
+            }
+
+            var roleName = user.UserRoleIdNavigation?.Role ?? "Usuario";
+            var isSuperAdmin = user.UserRoleId == 1 && !user.CompanyId.HasValue;
+            var isAdmin = isSuperAdmin || (user.CompanyId.HasValue && (roleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)));
+
+            IReadOnlyList<Branch> userBranches;
+            if (isSuperAdmin)
+            {
+                userBranches = await _branchRepository.GetActiveAsync(null, cancellationToken);
+            }
+            else if (user.CompanyId.HasValue)
+            {
+                var assignedBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
+                if (assignedBranches.Count > 0 && !isAdmin)
+                {
+                    userBranches = assignedBranches;
+                }
+                else
+                {
+                    userBranches = await _branchRepository.GetBranchesByCompanyIdAsync(user.CompanyId.Value, cancellationToken);
+                }
+            }
+            else
+            {
+                userBranches = await _branchRepository.GetBranchesByUserIdAsync(user.Id, cancellationToken);
+            }
+
+            var branchDtos = userBranches.Select(b => new Domain.Dtos.Branches.BranchDto
+            {
+                Id = b.Id,
+                CompanyId = b.CompanyId,
+                CompanyName = user.Company?.Name,
+                Code = b.Code,
+                Name = b.Name,
+                Address = b.Address,
+                Phone = b.Phone,
+                City = b.City,
+                TotalCapacity = b.TotalCapacity,
+                Notes = b.Notes,
+                IsActive = b.IsActive,
+                CreatedAt = b.CreatedAt
+            }).ToList();
+
+            var rolePermissions = isSuperAdmin
+                ? (await _roleActionRepository.GetActionsByRoleAsync(1, cancellationToken))
+                    .Where(ra => ra.IsActive && !string.IsNullOrWhiteSpace(ra.ActionName))
+                    .Select(ra => ra.ActionName!)
+                    .ToList()
+                : (await _roleActionRepository.GetActionsByRoleAsync(user.UserRoleId, cancellationToken))
+                    .Where(ra => ra.IsActive && !string.IsNullOrWhiteSpace(ra.ActionName))
+                    .Select(ra => ra.ActionName!)
+                    .ToList();
+
+            return new AuthResponseDto
+            {
+                Success = true,
+                UserId = user.Id,
+                Username = user.Username,
+                FullName = user.FullName,
+                RoleName = roleName,
+                RoleId = user.UserRoleId,
+                IsAdmin = isAdmin,
+                IsSuperAdmin = isSuperAdmin,
+                CompanyId = user.CompanyId,
+                CompanyName = user.Company?.Name,
+                MaxBranches = user.Company?.MaxBranches,
+                Branches = branchDtos,
+                Permissions = rolePermissions
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en ValidateSessionProfileAsync para UserId {UserId}", userId);
+            return null;
+        }
+    }
+
     public async Task<bool> LogoutAsync(int userId, CancellationToken cancellation = default)
     {
         try
