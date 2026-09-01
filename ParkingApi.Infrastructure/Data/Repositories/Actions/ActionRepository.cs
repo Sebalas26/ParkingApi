@@ -33,10 +33,19 @@ public class ActionRepository : IActionRepository
     {
         try
         {
-            return await _context.Action
+            var query = _context.Action
                 .AsNoTracking()
                 .Include(x => x.ModuleIdNavigation)
                 .Include(x => x.OperationIdNavigation)
+                .AsQueryable();
+
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                var restrictedModuleIds = new[] { 7, 16 };
+                query = query.Where(x => !restrictedModuleIds.Contains(x.ModuleId) && !x.Slug.StartsWith("companies.") && !x.Slug.StartsWith("branches."));
+            }
+
+            return await query
                 .Select(x => new GetActionsDto
                 {
                     Id = x.Id,
@@ -72,11 +81,19 @@ public class ActionRepository : IActionRepository
     {
         try
         {
-            return await _context.Action
+            var query = _context.Action
                 .AsNoTracking()
                 .Include(x => x.ModuleIdNavigation)
                 .Include(x => x.OperationIdNavigation)
-                .Where(x => x.IsActive)
+                .Where(x => x.IsActive);
+
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                var restrictedModuleIds = new[] { 7, 16 };
+                query = query.Where(x => !restrictedModuleIds.Contains(x.ModuleId) && !x.Slug.StartsWith("companies.") && !x.Slug.StartsWith("branches."));
+            }
+
+            return await query
                 .Select(x => new GetActionsDto
                 {
                     Id = x.Id,

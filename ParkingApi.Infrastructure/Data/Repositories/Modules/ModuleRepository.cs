@@ -30,8 +30,15 @@ public class ModuleRepository : IModuleRepository
     {
         try
         {
-            return await _context.Module
-                .AsNoTracking()
+            var query = _context.Module.AsNoTracking();
+
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                var restrictedModuleIds = new[] { 7, 16 };
+                query = query.Where(x => !restrictedModuleIds.Contains(x.Id));
+            }
+
+            return await query
                 .Select(x => new GetModuleDto
                 {
                     Id = x.Id,

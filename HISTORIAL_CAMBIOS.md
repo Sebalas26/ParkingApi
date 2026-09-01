@@ -2,6 +2,29 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Restricción Estricta de Módulos 'Empresas SaaS' y 'Sedes' para Super Administrador
+- **`💬 Prompt Original del Usuario`**:
+  > *"estos dos modulos no deberían aparecerle a nadie que no sea el superadministrador del todo el software por que mira que estaba configurando los permisos para un rol de la compañia desde el usuario administrador de la compañia, pero enserio no es posible imaginate darle el controla otra compañia de mi software eso es un error fatal si me explico ? analiza eso y dame el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Aislamiento de Módulos SuperAdmin (`ModuleRepository.cs` & `ActionRepository.cs`)**:
+    - Se restringieron los módulos 16 (`Gestión de Empresas SaaS`) y 7 (`Gestión de Sedes y Parqueaderos`) y todas sus acciones asociadas (`companies.*` y `branches.*`) en `GetModules`, `GetActions` y `GetActionsActive` para que no se retornen a usuarios que no tengan `_currentUser.IsSuperAdmin == true`.
+  - **Sanitización de Permisos Asignados (`RoleActionRepository.cs`)**:
+    - En `AssignRolePermissionsAsync`, si el usuario autenticado no es SuperAdmin, se filtran y descartan automáticamente las acciones de `ModuleId == 16` y `ModuleId == 7` antes de persistirlas.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Data/Repositories/Modules/ModuleRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Actions/ActionRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/RoleActions/RoleActionRepository.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Columna Logo en Companies y Soporte de Imagen Base64
 - **`💬 Prompt Original del Usuario`**:
   > *"Necesito que agregues una columna en la tabla companies que sea logo eso se guardara en base 64 pero que sea opcional, compañia que no tenga el logo usuara el de nosotros el de nuestro software vale el que si lo tenga configurado se usara para la impresión eso lo vamos mirando después pero entonces para que lo tengas muy presente. lo que toca hacer, eso implica modificar la modal de creación de la compañia para que permita opcional cargar la imagen pero no quiero el boton convecional algo mas pro unico que se le pueda dar click y poder ver la imagen pero ten presente que no dañe nada del responsi completo que se tienen en el sistema, e iogual al editar la compañias ya creadas listo . analiza y dame el plan completo."*
