@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Shifts;
+using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Shifts;
+using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.Shifts;
 using ParkingApi.Domain.Models;
 
@@ -15,11 +17,19 @@ namespace ParkingApi.Core.Services.Shifts;
 public class ShiftService : IShiftService
 {
     private readonly IShiftRepository _shiftRepository;
+    private readonly IBranchRepository _branchRepository;
+    private readonly ICurrentUserService _currentUser;
     private readonly ILogger<ShiftService> _logger;
 
-    public ShiftService(IShiftRepository shiftRepository, ILogger<ShiftService> logger)
+    public ShiftService(
+        IShiftRepository shiftRepository,
+        IBranchRepository branchRepository,
+        ICurrentUserService currentUser,
+        ILogger<ShiftService> logger)
     {
         _shiftRepository = shiftRepository;
+        _branchRepository = branchRepository;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -27,6 +37,33 @@ public class ShiftService : IShiftService
     {
         try
         {
+            if (!dto.BranchId.HasValue || dto.BranchId.Value <= 0)
+            {
+                throw new InvalidOperationException("La sede (BranchId) es obligatoria para la apertura del turno de caja.");
+            }
+
+            // Resolver CompanyId mediante cascada estricta (DTO -> Claim JWT -> Sede relacional)
+            int? resolvedCompanyId = dto.CompanyId.HasValue && dto.CompanyId.Value > 0 ? dto.CompanyId.Value : null;
+
+            if (!resolvedCompanyId.HasValue && _currentUser != null)
+            {
+                resolvedCompanyId = _currentUser.GetEffectiveCompanyId(dto.CompanyId);
+            }
+
+            if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
+            {
+                var branch = await _branchRepository.GetByIdAsync(dto.BranchId.Value, cancellationToken);
+                if (branch != null && branch.CompanyId > 0)
+                {
+                    resolvedCompanyId = branch.CompanyId;
+                }
+            }
+
+            if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
+            {
+                throw new InvalidOperationException("La empresa (CompanyId) es obligatoria para la apertura del turno de caja.");
+            }
+
             var activeShift = await _shiftRepository.GetActiveShiftByUserIdAsync(userId, dto.BranchId, cancellationToken);
             if (activeShift != null)
             {
@@ -36,7 +73,8 @@ public class ShiftService : IShiftService
             var newShift = new WorkShift
             {
                 ShiftId = Guid.NewGuid(),
-                BranchId = dto.BranchId,
+                CompanyId = resolvedCompanyId.Value,
+                BranchId = dto.BranchId.Value,
                 UserId = userId,
                 OperatorName = string.IsNullOrWhiteSpace(operatorName) ? "Operador General" : operatorName,
                 StartTimeUtc = DateTime.UtcNow,
@@ -48,6 +86,10 @@ public class ShiftService : IShiftService
 
             var created = await _shiftRepository.AddAsync(newShift, cancellationToken);
             return MapToDto(created);
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -185,6 +227,7 @@ public class ShiftService : IShiftService
         return new WorkShiftDto
         {
             ShiftId = s.ShiftId,
+            CompanyId = s.CompanyId,
             BranchId = s.BranchId,
             UserId = s.UserId,
             OperatorName = s.OperatorName,

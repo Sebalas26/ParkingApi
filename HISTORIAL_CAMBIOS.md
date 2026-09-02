@@ -2,6 +2,39 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-02 15:35:00] - Persistencia e Integridad Obligatoria de CompanyId y BranchId en Operaciones Transaccionales
+- **`💬 Prompt Original del Usuario`**:
+  > *"Se necesita que cuando se haga el ingreso de un vehiculo en el wpf siempre se guarde el id de la compañia mas bien necesito una revisión completa exaustiva que revise todas esas inserciones en la tablas transacionales que tienen la columna Company Id y la BranchId por que eso datos son vitales para todo el funcionamiento... si esa info no llega no deberia insertar... tanto en la pwa como en el wpf... haz el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Revisión y Blindaje de DTOs (`CheckInRequestDto.cs`, `CheckOutRequestDto.cs`, `ShiftDtos.cs`, `SaveVehicleIncidentDto.cs`, `VehicleIncidentDto.cs`)**:
+    - Se incorporó la propiedad `CompanyId` en todos los DTOs de entrada y salida transaccionales.
+  - **Inyección y Resolución Estricta en Cascada (`ParkingTicketService.cs`, `ShiftService.cs`, `VehicleIncidentService.cs`, `MonthlySubscriptionService.cs`)**:
+    - Se inyectaron `IBranchRepository` e `ICurrentUserService` en los servicios transaccionales.
+    - Se implementó la regla inquebrantable de integridad: Si `BranchId <= 0` o `CompanyId <= 0` (tras agotar cascada DTO -> JWT Claims -> Sede relacional), se aborta la transacción y se rechaza de inmediato con `InvalidOperationException` / HTTP 400 Bad Request.
+    - Se asignó `CompanyId = resolvedCompanyId.Value` en cada inserción a `ParkingTickets`, `WorkShifts`, `VehicleIncidents` y `MonthlySubscriptions`.
+    - En `CheckOutAsync`, si el tiquete existente tenía `CompanyId == null`, se resuelve y persiste al liquidar.
+  - **Controladores Actualizados (`ShiftsController.cs`, `MonthlySubscriptionsController.cs`)**:
+    - Se capturan las excepciones de validación de negocio (`InvalidOperationException`) retornando HTTP 400 Bad Request con mensaje descriptivo.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Tickets/CheckInRequestDto.cs`
+  - `ParkingApi.Domain/Dtos/Tickets/CheckOutRequestDto.cs`
+  - `ParkingApi.Domain/Dtos/Shifts/ShiftDtos.cs`
+  - `ParkingApi.Domain/Dtos/Incidents/SaveVehicleIncidentDto.cs`
+  - `ParkingApi.Domain/Dtos/Incidents/VehicleIncidentDto.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi.Core/Services/Shifts/ShiftService.cs`
+  - `ParkingApi.Core/Services/Incidents/VehicleIncidentService.cs`
+  - `ParkingApi.Core/Services/MonthlySubscriptions/MonthlySubscriptionService.cs`
+  - `ParkingApi/Controllers/ShiftsController.cs`
+  - `ParkingApi/Controllers/MonthlySubscriptionsController.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Bloqueo Preventivo Obligatorio para Toda Placa con Novedad Activa en `VehicleIncidents`
 - **`💬 Prompt Original del Usuario`**:
   > *"Noto que me esta permitiendo ingresar la placa apesar de que la placa se encuentra en la tabla de vehicleincidents"*

@@ -8,6 +8,7 @@ public class SaveVehicleIncidentDto
     public Guid? IncidentId { get; set; }
     public string PlateNumber { get; set; } = string.Empty;
     public int? BranchId { get; set; }
+    public int? CompanyId { get; set; }
     public bool IsGlobal { get; set; } = false;
     public List<int> BranchIds { get; set; } = new();
     public string IncidentType { get; set; } = string.Empty;

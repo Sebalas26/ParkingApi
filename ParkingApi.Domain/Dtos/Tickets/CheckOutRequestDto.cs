@@ -7,6 +7,7 @@ public class CheckOutRequestDto
 {
     public Guid TicketId { get; set; }
     public int? BranchId { get; set; }
+    public int? CompanyId { get; set; }
     public PaymentMethod PaymentMethod { get; set; }
     public decimal AmountPaid { get; set; }
     public Guid? StoreId { get; set; }

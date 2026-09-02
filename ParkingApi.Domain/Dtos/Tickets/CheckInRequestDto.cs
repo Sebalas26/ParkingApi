@@ -7,6 +7,7 @@ public class CheckInRequestDto
 {
     public Guid? TicketId { get; set; }
     public int? BranchId { get; set; }
+    public int? CompanyId { get; set; }
     public string? TicketNumber { get; set; }
     public string PlateNumber { get; set; } = string.Empty;
     public VehicleType VehicleType { get; set; }

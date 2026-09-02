@@ -9,11 +9,13 @@ using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.Agreements;
 using ParkingApi.Domain.Interfaces.Repositories.Billing;
+using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Discounts;
 using ParkingApi.Domain.Interfaces.Repositories.Incidents;
 using ParkingApi.Domain.Interfaces.Repositories.Stores;
 using ParkingApi.Domain.Interfaces.Repositories.Tickets;
 using ParkingApi.Domain.Interfaces.Repositories.VehicleRates;
+using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.Tickets;
 using ParkingApi.Domain.Models;
 
@@ -28,6 +30,8 @@ public class ParkingTicketService : IParkingTicketService
     private readonly ITicketDiscountRepository _discountRepository;
     private readonly IVehicleIncidentRepository _incidentRepository;
     private readonly IBillingResolutionRepository _resolutionRepository;
+    private readonly IBranchRepository _branchRepository;
+    private readonly ICurrentUserService _currentUser;
     private readonly ILogger<ParkingTicketService> _logger;
 
     public ParkingTicketService(
@@ -38,6 +42,8 @@ public class ParkingTicketService : IParkingTicketService
         ITicketDiscountRepository discountRepository,
         IVehicleIncidentRepository incidentRepository,
         IBillingResolutionRepository resolutionRepository,
+        IBranchRepository branchRepository,
+        ICurrentUserService currentUser,
         ILogger<ParkingTicketService> logger)
     {
         _ticketRepository = ticketRepository;
@@ -47,6 +53,8 @@ public class ParkingTicketService : IParkingTicketService
         _discountRepository = discountRepository;
         _incidentRepository = incidentRepository;
         _resolutionRepository = resolutionRepository;
+        _branchRepository = branchRepository;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -54,6 +62,33 @@ public class ParkingTicketService : IParkingTicketService
     {
         try
         {
+            if (!dto.BranchId.HasValue || dto.BranchId.Value <= 0)
+            {
+                throw new InvalidOperationException("La sede (BranchId) es obligatoria para registrar el ingreso vehicular.");
+            }
+
+            // Resolver CompanyId mediante cascada estricta (DTO -> Claim JWT -> Sede relacional)
+            int? resolvedCompanyId = dto.CompanyId.HasValue && dto.CompanyId.Value > 0 ? dto.CompanyId.Value : null;
+
+            if (!resolvedCompanyId.HasValue && _currentUser != null)
+            {
+                resolvedCompanyId = _currentUser.GetEffectiveCompanyId(dto.CompanyId);
+            }
+
+            if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
+            {
+                var branch = await _branchRepository.GetByIdAsync(dto.BranchId.Value, cancellationToken);
+                if (branch != null && branch.CompanyId > 0)
+                {
+                    resolvedCompanyId = branch.CompanyId;
+                }
+            }
+
+            if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
+            {
+                throw new InvalidOperationException("La empresa (CompanyId) es obligatoria para registrar el ingreso vehicular.");
+            }
+
             var normalizedPlate = dto.PlateNumber.Trim().ToUpperInvariant();
 
             // 1. Validar bloqueo activo por novedad / lista negra (impide ingreso tanto en WPF como API)
@@ -97,7 +132,8 @@ public class ParkingTicketService : IParkingTicketService
             var ticket = new ParkingTicket
             {
                 TicketId = ticketId,
-                BranchId = dto.BranchId,
+                CompanyId = resolvedCompanyId.Value,
+                BranchId = dto.BranchId.Value,
                 TicketNumber = ticketNumber,
                 PlateNumber = normalizedPlate,
                 VehicleType = dto.VehicleType,
@@ -163,6 +199,27 @@ public class ParkingTicketService : IParkingTicketService
             if (dto.BranchId.HasValue && ticket.BranchId == null)
             {
                 ticket.BranchId = dto.BranchId.Value;
+            }
+
+            if (!ticket.CompanyId.HasValue || ticket.CompanyId.Value <= 0)
+            {
+                int? resolvedComp = dto.CompanyId.HasValue && dto.CompanyId.Value > 0 ? dto.CompanyId.Value : null;
+                if (!resolvedComp.HasValue && _currentUser != null)
+                {
+                    resolvedComp = _currentUser.GetEffectiveCompanyId(dto.CompanyId);
+                }
+                if ((!resolvedComp.HasValue || resolvedComp.Value <= 0) && ticket.BranchId.HasValue)
+                {
+                    var branch = await _branchRepository.GetByIdAsync(ticket.BranchId.Value, cancellationToken);
+                    if (branch != null && branch.CompanyId > 0)
+                    {
+                        resolvedComp = branch.CompanyId;
+                    }
+                }
+                if (resolvedComp.HasValue && resolvedComp.Value > 0)
+                {
+                    ticket.CompanyId = resolvedComp.Value;
+                }
             }
 
             if (dto.ResolutionId.HasValue)

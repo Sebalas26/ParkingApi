@@ -6,6 +6,7 @@ namespace ParkingApi.Domain.Dtos.Shifts;
 public class OpenShiftRequestDto
 {
     public int? BranchId { get; set; }
+    public int? CompanyId { get; set; }
     public decimal BaseAmount { get; set; } = 0m;
     public string? Notes { get; set; }
 }
@@ -21,6 +22,7 @@ public class ShiftSummaryDto
 {
     public Guid ShiftId { get; set; }
     public int? BranchId { get; set; }
+    public int? CompanyId { get; set; }
     public int UserId { get; set; }
     public string OperatorName { get; set; } = string.Empty;
     public DateTime StartTimeUtc { get; set; }
@@ -43,6 +45,7 @@ public class WorkShiftDto
 {
     public Guid ShiftId { get; set; }
     public int? BranchId { get; set; }
+    public int? CompanyId { get; set; }
     public int UserId { get; set; }
     public string OperatorName { get; set; } = string.Empty;
     public DateTime StartTimeUtc { get; set; }

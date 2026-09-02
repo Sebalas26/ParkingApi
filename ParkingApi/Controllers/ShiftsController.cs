@@ -49,6 +49,10 @@ public class ShiftsController : ControllerBase
 
             return Ok(result);
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al procesar apertura de turno");

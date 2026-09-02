@@ -5,7 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Incidents;
+using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.Incidents;
+using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.Incidents;
 using ParkingApi.Domain.Models;
 
@@ -14,11 +16,19 @@ namespace ParkingApi.Core.Services.Incidents;
 public class VehicleIncidentService : IVehicleIncidentService
 {
     private readonly IVehicleIncidentRepository _repository;
+    private readonly IBranchRepository _branchRepository;
+    private readonly ICurrentUserService _currentUser;
     private readonly ILogger<VehicleIncidentService> _logger;
 
-    public VehicleIncidentService(IVehicleIncidentRepository repository, ILogger<VehicleIncidentService> logger)
+    public VehicleIncidentService(
+        IVehicleIncidentRepository repository,
+        IBranchRepository branchRepository,
+        ICurrentUserService currentUser,
+        ILogger<VehicleIncidentService> logger)
     {
         _repository = repository;
+        _branchRepository = branchRepository;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -92,12 +102,41 @@ public class VehicleIncidentService : IVehicleIncidentService
 
     public async Task<VehicleIncidentDto> CreateAsync(SaveVehicleIncidentDto dto, CancellationToken cancellationToken = default)
     {
+        // Resolver CompanyId mediante cascada estricta (DTO -> Claim JWT -> Sede relacional)
+        int? resolvedCompanyId = dto.CompanyId.HasValue && dto.CompanyId.Value > 0 ? dto.CompanyId.Value : null;
+
+        if (!resolvedCompanyId.HasValue && _currentUser != null)
+        {
+            resolvedCompanyId = _currentUser.GetEffectiveCompanyId(dto.CompanyId);
+        }
+
+        if (!resolvedCompanyId.HasValue && dto.BranchId.HasValue && dto.BranchId.Value > 0)
+        {
+            var branch = await _branchRepository.GetByIdAsync(dto.BranchId.Value, cancellationToken);
+            if (branch != null && branch.CompanyId > 0)
+            {
+                resolvedCompanyId = branch.CompanyId;
+            }
+        }
+
+        if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
+        {
+            throw new InvalidOperationException("La empresa (CompanyId) es obligatoria para registrar la novedad del vehículo.");
+        }
+
+        var isGlobal = dto.IsGlobal || (dto.BranchId == null && (dto.BranchIds == null || !dto.BranchIds.Any()));
+        if (!isGlobal && (!dto.BranchId.HasValue || dto.BranchId.Value <= 0) && (dto.BranchIds == null || !dto.BranchIds.Any()))
+        {
+            throw new InvalidOperationException("Debe asociar al menos una sede válida o marcar la novedad como global.");
+        }
+
         var entity = new VehicleIncident
         {
             IncidentId = dto.IncidentId ?? Guid.NewGuid(),
+            CompanyId = resolvedCompanyId.Value,
             PlateNumber = dto.PlateNumber.Trim().ToUpper(),
             BranchId = dto.BranchId,
-            IsGlobal = dto.IsGlobal || (dto.BranchId == null && (dto.BranchIds == null || !dto.BranchIds.Any())),
+            IsGlobal = isGlobal,
             IncidentType = dto.IncidentType.Trim(),
             IsBlocked = dto.IsBlocked,
             Description = dto.Description.Trim(),
@@ -202,6 +241,7 @@ public class VehicleIncidentService : IVehicleIncidentService
         return new VehicleIncidentDto
         {
             IncidentId = i.IncidentId,
+            CompanyId = i.CompanyId,
             PlateNumber = i.PlateNumber,
             BranchId = i.BranchId,
             BranchName = i.Branch?.Name,

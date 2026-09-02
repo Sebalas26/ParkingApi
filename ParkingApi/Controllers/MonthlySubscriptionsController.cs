@@ -125,6 +125,10 @@ public class MonthlySubscriptionsController : ControllerBase
             var created = await _subscriptionService.CreateAsync(dto, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.SubscriptionId }, created);
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al registrar mensualidad para placa {Plate}", dto?.PlateNumber);

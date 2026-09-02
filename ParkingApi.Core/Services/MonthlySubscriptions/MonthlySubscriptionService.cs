@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ParkingApi.Domain.Dtos.MonthlySubscriptions;
+using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.MonthlySubscriptions;
+using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.MonthlySubscriptions;
 using ParkingApi.Domain.Models;
 
@@ -13,10 +15,17 @@ namespace ParkingApi.Core.Services.MonthlySubscriptions;
 public class MonthlySubscriptionService : IMonthlySubscriptionService
 {
     private readonly IMonthlySubscriptionRepository _repository;
+    private readonly IBranchRepository _branchRepository;
+    private readonly ICurrentUserService _currentUser;
 
-    public MonthlySubscriptionService(IMonthlySubscriptionRepository repository)
+    public MonthlySubscriptionService(
+        IMonthlySubscriptionRepository repository,
+        IBranchRepository branchRepository,
+        ICurrentUserService currentUser)
     {
         _repository = repository;
+        _branchRepository = branchRepository;
+        _currentUser = currentUser;
     }
 
     public async Task<IReadOnlyList<MonthlySubscriptionDto>> GetAllAsync(int? companyId = null, int? branchId = null, CancellationToken cancellationToken = default)
@@ -45,11 +54,34 @@ public class MonthlySubscriptionService : IMonthlySubscriptionService
 
     public async Task<MonthlySubscriptionDto> CreateAsync(CreateMonthlySubscriptionDto dto, CancellationToken cancellationToken = default)
     {
+        if (!dto.BranchId.HasValue || dto.BranchId.Value <= 0)
+        {
+            throw new InvalidOperationException("La sede (BranchId) es obligatoria para registrar la mensualidad.");
+        }
+
+        int? resolvedCompanyId = dto.CompanyId.HasValue && dto.CompanyId.Value > 0 ? dto.CompanyId.Value : null;
+        if (!resolvedCompanyId.HasValue && _currentUser != null)
+        {
+            resolvedCompanyId = _currentUser.GetEffectiveCompanyId(dto.CompanyId);
+        }
+        if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
+        {
+            var branch = await _branchRepository.GetByIdAsync(dto.BranchId.Value, cancellationToken);
+            if (branch != null && branch.CompanyId > 0)
+            {
+                resolvedCompanyId = branch.CompanyId;
+            }
+        }
+        if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
+        {
+            throw new InvalidOperationException("La empresa (CompanyId) es obligatoria para registrar la mensualidad.");
+        }
+
         var entity = new MonthlySubscription
         {
             SubscriptionId = Guid.NewGuid(),
-            CompanyId = dto.CompanyId,
-            BranchId = dto.BranchId,
+            CompanyId = resolvedCompanyId.Value,
+            BranchId = dto.BranchId.Value,
             CustomerName = dto.CustomerName.Trim(),
             CustomerDocument = dto.CustomerDocument.Trim(),
             CustomerPhone = dto.CustomerPhone.Trim(),
