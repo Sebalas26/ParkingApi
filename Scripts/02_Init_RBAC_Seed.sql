@@ -11,8 +11,8 @@
 --   6. Inicializa el Usuario 'admin' (SuperAdmin de la Plataforma SaaS).
 --   7. Catálogo de los 16 Módulos del sistema (Terminal WPF, Administración PWA y Gestión SaaS).
 --   8. Catálogo de 7 Operaciones estándar del sistema.
---   9. Catálogo completo de 74 Acciones y Slugs canónicos del sistema (incluye companies.*).
---  10. Asigna el 100% de los 16 Módulos y el 100% de las 74 Acciones al Rol Administrador.
+--   9. Catálogo completo de 77 Acciones y Slugs canónicos del sistema (incluye companies.*, metrics, etc.).
+--  10. Asigna el 100% de los 16 Módulos y el 100% de las 77 Acciones al Rol Administrador.
 --  11. Registro en __EFMigrationsHistory para compatibilidad total con EF Core.
 -- ==================================================================================
 
@@ -408,7 +408,7 @@ CREATE TABLE IF NOT EXISTS `WorkShifts` (
 
 -- 1.19 Mensualidades y Suscripciones
 CREATE TABLE IF NOT EXISTS `MonthlySubscriptions` (
-    `Id` CHAR(36) NOT NULL,
+    `Id` INT NOT NULL AUTO_INCREMENT,
     `SubscriptionId` CHAR(36) NOT NULL,
     `CompanyId` INT NULL,
     `BranchId` INT NULL,
@@ -531,6 +531,32 @@ CREATE TABLE IF NOT EXISTS `PasswordResetToken` (
     CONSTRAINT `FK_PasswordResetToken_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 1.25 Lotes de Estacionamiento (Compatibilidad con EF Core Model)
+CREATE TABLE IF NOT EXISTS `ParkingLots` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Name` LONGTEXT NOT NULL,
+    `Description` LONGTEXT NOT NULL,
+    `ImageUrl` LONGTEXT NOT NULL,
+    `IsMainImage` TINYINT(1) NOT NULL DEFAULT 0,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.26 Relación Usuario - Lote de Estacionamiento (Compatibilidad con EF Core Model)
+CREATE TABLE IF NOT EXISTS `UserParkings` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `UserId` INT NOT NULL,
+    `ParkingLotId` INT NOT NULL,
+    PRIMARY KEY (`Id`),
+    KEY `IX_UserParkings_UserId` (`UserId`),
+    KEY `IX_UserParkings_ParkingLotId` (`ParkingLotId`),
+    CONSTRAINT `FK_UserParkings_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_UserParkings_ParkingLots_ParkingLotId` FOREIGN KEY (`ParkingLotId`) REFERENCES `ParkingLots` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==================================================================================
 -- FASE 2: INSERCIÓN DE DATOS SEMILLA (SEEDS)
 -- ==================================================================================
@@ -539,7 +565,9 @@ CREATE TABLE IF NOT EXISTS `PasswordResetToken` (
 -- 2.0 REGISTRO EN HISTORIAL DE MIGRACIONES EF CORE
 -- ----------------------------------------------------------------------------------
 INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
-VALUES ('20260831014505_Complete', '9.0.0')
+VALUES 
+    ('20260831225848_version1', '9.0.0'),
+    ('20260901170000_Versión2', '9.0.0')
 ON DUPLICATE KEY UPDATE `ProductVersion` = VALUES(`ProductVersion`);
 
 -- ----------------------------------------------------------------------------------
@@ -799,7 +827,10 @@ VALUES
     (71, 16, 2, 'Crear nueva empresa cliente y su administrador inicial', 'companies.create', 1, UTC_TIMESTAMP(), NULL),
     (72, 16, 3, 'Editar datos, sedes máximas y planes de empresa', 'companies.edit', 1, UTC_TIMESTAMP(), NULL),
     (73, 16, 5, 'Suspender o reactivar empresa por suscripción', 'companies.suspend', 1, UTC_TIMESTAMP(), NULL),
-    (74, 16, 4, 'Eliminar o dar de baja empresa del sistema', 'companies.delete', 1, UTC_TIMESTAMP(), NULL)
+    (74, 16, 4, 'Eliminar o dar de baja empresa del sistema', 'companies.delete', 1, UTC_TIMESTAMP(), NULL),
+    (75, 6,  1, 'Consultar métricas operativas y gráficas de afluencia', 'analytics.metrics', 1, UTC_TIMESTAMP(), NULL),
+    (76, 10, 4, 'Inactivar o eliminar convenio comercial', 'agreements.delete', 1, UTC_TIMESTAMP(), NULL),
+    (77, 16, 7, 'Asignar límites de sedes y capacidad SaaS', 'companies.assign_limits', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     ModuleId = new_row.ModuleId,
@@ -819,7 +850,7 @@ SELECT 1, `Id`, 1, UTC_TIMESTAMP(), 1 FROM `Module`;
 
 -- ----------------------------------------------------------------------------------
 -- 2.9 MATRIZ DE PERMISOS: ROL ACCIONES (RoleAction)
--- Asignación del 100% de las 74 Acciones ÚNICAMENTE al Rol 1 (Super Administrador) - FULL ACCESS
+-- Asignación del 100% de las 77 Acciones ÚNICAMENTE al Rol 1 (Super Administrador) - FULL ACCESS
 -- ----------------------------------------------------------------------------------
 DELETE FROM `RoleAction` WHERE `RoleId` = 1;
 

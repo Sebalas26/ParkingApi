@@ -2,6 +2,32 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-02 16:22:00] - Corrección Integral y Alineación de Script Seed RBAC Multi-Tenant (`02_Init_RBAC_Seed.sql`)
+- **`💬 Prompt Original del Usuario`**:
+  > *"Revisame@[02_Init_RBAC_Seed.sql] si esta completo o le falta algo de todo lo que se ha realizado analizalo por favor ... si dale"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Alineación de Tipos de Datos DDL**:
+    - Se corrigió la columna `Id` en la tabla `MonthlySubscriptions` de `CHAR(36)` a `INT NOT NULL AUTO_INCREMENT`, alineándola al 100% con `GeneralEntity` en EF Core y la migración `version1`.
+  - **Historial de Migraciones EF Core (`__EFMigrationsHistory`)**:
+    - Se reemplazó el registro ficticio `'20260831014505_Complete'` por las migraciones reales del repositorio: `'20260831225848_version1'` y `'20260901170000_Versión2'`. Esto previene fallos de colisión de tablas (`Table already exists`) si se inicia el API en una base de datos aprovisionada por script.
+  - **Inclusión de Tablas de Compatibilidad**:
+    - Se incorporaron las tablas DDL `ParkingLots` y `UserParkings` requeridas por los `DbSet` de compatibilidad existentes en `DataContext.cs`.
+  - **Ampliación del Catálogo RBAC a 77 Acciones**:
+    - Se añadieron los slugs faltantes que consume la UI de Angular:
+      - `analytics.metrics` (Módulo 6 / READ)
+      - `agreements.delete` (Módulo 10 / DELETE)
+      - `companies.assign_limits` (Módulo 16 / ASSIGN)
+    - Asignación dinámica garantizada al 100% para el rol Super Administrador (Id 1).
+
+- **`📦 Componentes Modificados`**:
+  - `Scripts/02_Init_RBAC_Seed.sql`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-02 15:35:00] - Persistencia e Integridad Obligatoria de CompanyId y BranchId en Operaciones Transaccionales
 - **`💬 Prompt Original del Usuario`**:
   > *"Se necesita que cuando se haga el ingreso de un vehiculo en el wpf siempre se guarde el id de la compañia mas bien necesito una revisión completa exaustiva que revise todas esas inserciones en la tablas transacionales que tienen la columna Company Id y la BranchId por que eso datos son vitales para todo el funcionamiento... si esa info no llega no deberia insertar... tanto en la pwa como en el wpf... haz el plan"*
