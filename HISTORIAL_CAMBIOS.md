@@ -2,6 +2,39 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-02 17:20:00] - Conexión Integral de Analítica y Métricas de Dashboard (Filtrado por Sede y Empresa)
+- **`💬 Prompt Original del Usuario`**:
+  > *"Puedes revisar si el dashboard todo los datos estan bien conectados revisa por que no trae nada pues aun no hemos realizado nuevos ingresos con los ajustes nuevos pero quisiera que hicieras una revisada completa y dime si todo esta bien ingresa vehiculos con los nuevos ajsutes"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Alineación de Contratos DTO de Analytics (`FinancialSummaryDto.cs` & `OccupancyStatsDto.cs`)**:
+    - Se incorporaron propiedades de compatibilidad dual:
+      - `TotalRevenue => TotalRevenueToday`, `ActiveTickets => ActiveVehiclesCount`, `CompletedTickets => CompletedTransactionsToday`, `TotalTickets`.
+      - `OccupiedSpaces => OccupiedSpots`, `AvailableSpaces => AvailableSpots`, `OccupancyPercentage => OccupancyRate`.
+  - **Actualización de Contrato de Servicio (`IAnalyticsService.cs`)**:
+    - `GetDailySummaryAsync` y `GetOccupancyStatsAsync` ahora reciben opcionalmente `branchId` y `companyId`.
+  - **Controlador (`AnalyticsController.cs`)**:
+    - Endpoints `/api/Analytics/daily-summary` y `/api/Analytics/occupancy` ahora reciben `[FromQuery] int? branchId` y `[FromQuery] int? companyId`.
+    - Se inyectó `ICurrentUserService` para resolver dinámicamente la empresa efectiva (`_currentUser.GetEffectiveCompanyId(companyId)`).
+  - **Lógica de Servicio (`AnalyticsService.cs`)**:
+    - Se inyectó `IBranchRepository` para resolver la capacidad operativa real de la sede (`branch.TotalCapacity`) o la sumatoria de sedes activas de la empresa.
+    - Se computa en tiempo real el desglose de vehículos en patio (`OccupancyByType`) consultando los tiquetes activos por sede y empresa.
+  - **Consultas en Repositorio (`ParkingTicketRepository.cs`)**:
+    - Se flexibilizó el filtro de empresa en todos los métodos de conteo y consulta (`t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value)`).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Analytics/FinancialSummaryDto.cs`
+  - `ParkingApi.Domain/Dtos/Analytics/OccupancyStatsDto.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Analytics/IAnalyticsService.cs`
+  - `ParkingApi/Controllers/AnalyticsController.cs`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Tickets/ParkingTicketRepository.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-02 16:22:00] - Corrección Integral y Alineación de Script Seed RBAC Multi-Tenant (`02_Init_RBAC_Seed.sql`)
 - **`💬 Prompt Original del Usuario`**:
   > *"Revisame@[02_Init_RBAC_Seed.sql] si esta completo o le falta algo de todo lo que se ha realizado analizalo por favor ... si dale"*

@@ -12,40 +12,47 @@ namespace ParkingApi.Controllers;
 public class AnalyticsController : ControllerBase
 {
     private readonly IAnalyticsService _analyticsService;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<AnalyticsController> _logger;
 
-    public AnalyticsController(IAnalyticsService analyticsService, ILogger<AnalyticsController> logger)
+    public AnalyticsController(
+        IAnalyticsService analyticsService,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
+        ILogger<AnalyticsController> logger)
     {
         _analyticsService = analyticsService;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
     [HttpGet("daily-summary")]
-    public async Task<IActionResult> GetDailySummary(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetDailySummary([FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var summary = await _analyticsService.GetDailySummaryAsync(cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var summary = await _analyticsService.GetDailySummaryAsync(branchId, effectiveCompanyId, cancellationToken);
             return Ok(summary);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener resumen diario");
+            _logger.LogError(ex, "Error al obtener resumen diario para sede {BranchId}, empresa {CompanyId}", branchId, companyId);
             return StatusCode(500, new { message = "Error interno al generar resumen diario." });
         }
     }
 
     [HttpGet("occupancy")]
-    public async Task<IActionResult> GetOccupancy(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetOccupancy([FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
     {
         try
         {
-            var occupancy = await _analyticsService.GetOccupancyStatsAsync(cancellationToken);
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var occupancy = await _analyticsService.GetOccupancyStatsAsync(branchId, effectiveCompanyId, cancellationToken);
             return Ok(occupancy);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener ocupación");
+            _logger.LogError(ex, "Error al obtener ocupación para sede {BranchId}, empresa {CompanyId}", branchId, companyId);
             return StatusCode(500, new { message = "Error interno al consultar ocupación." });
         }
     }

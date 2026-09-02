@@ -10,5 +10,8 @@ public class OccupancyStatsDto
     public int OccupiedSpots { get; set; }
     public int AvailableSpots => Math.Max(0, TotalCapacity - OccupiedSpots);
     public double OccupancyRate => TotalCapacity > 0 ? Math.Round((OccupiedSpots * 100.0) / TotalCapacity, 1) : 0.0;
+    public int OccupiedSpaces => OccupiedSpots;
+    public int AvailableSpaces => AvailableSpots;
+    public double OccupancyPercentage => OccupancyRate;
     public Dictionary<VehicleType, int> OccupancyByType { get; set; } = new();
 }

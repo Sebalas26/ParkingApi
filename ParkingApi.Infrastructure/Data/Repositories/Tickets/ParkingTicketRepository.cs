@@ -101,7 +101,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query
@@ -132,7 +132,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query
@@ -163,7 +163,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query
@@ -193,7 +193,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query
@@ -252,7 +252,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query.CountAsync(cancellationToken);
@@ -280,7 +280,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query.CountAsync(cancellationToken);
@@ -308,7 +308,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query.CountAsync(cancellationToken);
@@ -336,7 +336,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query.SumAsync(t => t.NetAmount, cancellationToken);

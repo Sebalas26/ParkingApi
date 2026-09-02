@@ -9,6 +9,10 @@ public class FinancialSummaryDto
     public int ActiveVehiclesCount { get; set; }
     public int CompletedTransactionsToday { get; set; }
     public double AverageDurationMinutes { get; set; }
+    public decimal TotalRevenue => TotalRevenueToday;
+    public int ActiveTickets => ActiveVehiclesCount;
+    public int CompletedTickets => CompletedTransactionsToday;
+    public int TotalTickets => ActiveVehiclesCount + CompletedTransactionsToday;
     public Dictionary<VehicleType, decimal> RevenueByVehicleType { get; set; } = new();
     public Dictionary<VehicleType, int> CountByVehicleType { get; set; } = new();
     public Dictionary<PaymentMethod, decimal> RevenueByPaymentMethod { get; set; } = new();
