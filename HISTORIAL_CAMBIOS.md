@@ -2,6 +2,28 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: Bloqueo Preventivo Obligatorio para Toda Placa con Novedad Activa en `VehicleIncidents`
+- **`💬 Prompt Original del Usuario`**:
+  > *"Noto que me esta permitiendo ingresar la placa apesar de que la placa se encuentra en la tabla de vehicleincidents"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Flexibilización de Detección de Novedades Activas (`VehicleIncidentRepository.cs` & `VehicleIncidentService.cs`)**:
+    - Se corrigió la condición que exigía exclusivamente `IsBlocked == true` para catalogar un vehículo como bloqueado.
+    - Ahora, cualquier registro en `VehicleIncidents` cuyo estado no sea resuelto (`Status != "Resuelta" && Status != "Resolved" && Status != "Inactiva" && Status != "Cerrada"`) es considerado automáticamente como **novedad activa que restringe el ingreso** (`IsBlocked = true`).
+    - Se normalizó la comparación de placas removiendo espacios y guiones para prevenir inconsistencias en consultas por placa.
+  - **Cero Errores de Compilación**:
+    - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Data/Repositories/Incidents/VehicleIncidentRepository.cs`
+  - `ParkingApi.Core/Services/Incidents/VehicleIncidentService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: Compatibilidad de Transacciones con MySqlRetryingExecutionStrategy
 - **`💬 Prompt Original del Usuario`**:
   > *"genero este error no dejo crearlo arrojo este conflicto pero esta vez ni lo creo en la bd"*

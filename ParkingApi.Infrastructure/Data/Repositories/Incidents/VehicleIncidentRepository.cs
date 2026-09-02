@@ -91,13 +91,13 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
     {
         try
         {
-            var normalizedPlate = plateNumber.Trim().ToUpper();
+            var normalizedPlate = plateNumber.Replace(" ", "").Replace("-", "").Trim().ToUpper();
             return await _context.VehicleIncidents
                 .AsNoTracking()
                 .Include(i => i.Branch)
                 .Include(i => i.IncidentBranches)
                     .ThenInclude(ib => ib.Branch)
-                .Where(i => i.PlateNumber == normalizedPlate)
+                .Where(i => i.PlateNumber == normalizedPlate || i.PlateNumber == plateNumber.Trim().ToUpper() || i.PlateNumber.Replace(" ", "").Replace("-", "").ToUpper() == normalizedPlate)
                 .OrderByDescending(i => i.CreatedAtUtc)
                 .ToListAsync(cancellationToken);
         }
@@ -112,19 +112,21 @@ public class VehicleIncidentRepository : IVehicleIncidentRepository
     {
         try
         {
-            var normalizedPlate = plateNumber.Trim().ToUpper();
+            var normalizedPlate = plateNumber.Replace(" ", "").Replace("-", "").Trim().ToUpper();
             var query = _context.VehicleIncidents
                 .AsNoTracking()
                 .Include(i => i.Branch)
                 .Include(i => i.IncidentBranches)
-                .Where(i => i.PlateNumber == normalizedPlate && i.IsBlocked && i.Status == "Activa");
+                .Where(i => 
+                    (i.PlateNumber == normalizedPlate || i.PlateNumber == plateNumber.Trim().ToUpper() || i.PlateNumber.Replace(" ", "").Replace("-", "").ToUpper() == normalizedPlate) &&
+                    (i.Status != "Resuelta" && i.Status != "Resolved" && i.Status != "Inactiva" && i.Status != "Cerrada"));
 
             if (branchId.HasValue && branchId.Value > 0)
             {
-                query = query.Where(i => i.IsGlobal || i.BranchId == branchId || i.IncidentBranches.Any(ib => ib.BranchId == branchId.Value));
+                query = query.Where(i => i.IsGlobal || i.BranchId == null || i.BranchId == branchId || i.IncidentBranches.Any(ib => ib.BranchId == branchId.Value));
             }
 
-            return await query.OrderByDescending(i => i.CreatedAtUtc).FirstOrDefaultAsync(cancellationToken);
+            return await query.OrderByDescending(i => i.IsBlocked).ThenByDescending(i => i.CreatedAtUtc).FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
