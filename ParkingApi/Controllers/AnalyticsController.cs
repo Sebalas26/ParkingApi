@@ -12,11 +12,16 @@ namespace ParkingApi.Controllers;
 public class AnalyticsController : ControllerBase
 {
     private readonly IAnalyticsService _analyticsService;
+    private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<AnalyticsController> _logger;
 
-    public AnalyticsController(IAnalyticsService analyticsService, ILogger<AnalyticsController> logger)
+    public AnalyticsController(
+        IAnalyticsService analyticsService,
+        ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
+        ILogger<AnalyticsController> logger)
     {
         _analyticsService = analyticsService;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -47,6 +52,27 @@ public class AnalyticsController : ControllerBase
         {
             _logger.LogError(ex, "Error al obtener ocupación");
             return StatusCode(500, new { message = "Error interno al consultar ocupación." });
+        }
+    }
+
+    [HttpGet("peak-traffic")]
+    public async Task<IActionResult> GetPeakTraffic(
+        [FromQuery] string? period,
+        [FromQuery] int? branchId,
+        [FromQuery] int? companyId,
+        [FromQuery] int offsetMinutes = 300,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            var report = await _analyticsService.GetPeakTrafficAsync(period, branchId, effectiveCompanyId, offsetMinutes, cancellationToken);
+            return Ok(report);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener reporte de horas pico de tráfico");
+            return StatusCode(500, new { message = "Error interno al calcular horas pico de tráfico." });
         }
     }
 }

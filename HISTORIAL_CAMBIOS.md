@@ -2,6 +2,34 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-02 17:02:00] - Endpoint y Servicio Analítico de Horas Pico de Tráfico Vehicular (`/api/Analytics/peak-traffic`)
+- **`💬 Prompt Original del Usuario`**:
+  > *"en la dashboard debajo de las graficas de recaudo por medio de pago y facturacion por resolucion, me gustaria que me agregaras otro el cual yo pueda las horas picos de mas ingresos de vehiculos en el dia o dependiendo del periodo que se tenga seleccionado, dejame esa estadistica por grafica lineal"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Nuevos DTOs Analíticos**:
+    - `HourlyTrafficDto`: `Hour` (0..23), `HourLabel` ("08:00"), `EntriesCount`.
+    - `PeakTrafficReportDto`: `Period`, `TotalEntries`, `PeakHour`, `PeakHourLabel` ("05:00 PM - 06:00 PM"), `PeakEntriesCount`, `AveragePerHour`, `HourlyData` (`List<HourlyTrafficDto>`).
+  - **Repositorio de Tiquetes (`IParkingTicketRepository` & `ParkingTicketRepository`)**:
+    - Implementación de `GetTicketsByRangeAsync(DateTime fromUtc, DateTime toUtc, int? branchId, int? companyId, CancellationToken)` con consulta eficiente `.AsNoTracking()` filtrando por rango de `EntryTimeUtc`, `BranchId` y `CompanyId`.
+  - **Cálculo Analítico de Horas Pico (`IAnalyticsService` & `AnalyticsService`)**:
+    - Implementación de `GetPeakTrafficAsync`: resolución temporal según el período (`today`, `yesterday`, `month`) y `offsetMinutes` del cliente (zona horaria local). Agrupación por hora local (0 a 23), detección automática de la hora pico con mayor flujo y cálculo de promedios.
+  - **Controlador API (`AnalyticsController`)**:
+    - Endpoint público `GET /api/Analytics/peak-traffic` con inyección de `ICurrentUserService` para aislamiento seguro por empresa/sede.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Analytics/HourlyTrafficDto.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/Tickets/IParkingTicketRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Tickets/ParkingTicketRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Analytics/IAnalyticsService.cs`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs`
+  - `ParkingApi.Controllers/AnalyticsController.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` ejecutado exitosamente (**0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-02 16:22:00] - Corrección Integral y Alineación de Script Seed RBAC Multi-Tenant (`02_Init_RBAC_Seed.sql`)
 - **`💬 Prompt Original del Usuario`**:
   > *"Revisame@[02_Init_RBAC_Seed.sql] si esta completo o le falta algo de todo lo que se ha realizado analizalo por favor ... si dale"*
