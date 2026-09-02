@@ -42,7 +42,7 @@ public class VehicleIncidentService : IVehicleIncidentService
 
     public async Task<PlateCheckResultDto> CheckPlateAsync(string plateNumber, int? branchId = null, CancellationToken cancellationToken = default)
     {
-        var cleanPlate = plateNumber.Trim().ToUpper();
+        var cleanPlate = plateNumber.Replace(" ", "").Replace("-", "").Trim().ToUpper();
         var blockedIncident = await _repository.GetActiveBlockByPlateAsync(cleanPlate, branchId, cancellationToken);
 
         if (blockedIncident != null)
@@ -52,7 +52,7 @@ public class VehicleIncidentService : IVehicleIncidentService
                 PlateNumber = cleanPlate,
                 HasIncidents = true,
                 IsBlocked = true,
-                Reason = $"VEHÍCULO BLOQUEADO: {blockedIncident.IncidentType}",
+                Reason = $"VEHÍCULO CON NOVEDAD ACTIVA / BLOQUEADO: {blockedIncident.IncidentType}",
                 IncidentType = blockedIncident.IncidentType,
                 Description = blockedIncident.Description,
                 ReportedBy = blockedIncident.ReportedBy,
@@ -61,9 +61,9 @@ public class VehicleIncidentService : IVehicleIncidentService
             };
         }
 
-        // Buscar si tiene alguna otra novedad activa no bloqueante
+        // Buscar si tiene alguna otra novedad activa
         var allIncidents = await _repository.GetByPlateAsync(cleanPlate, cancellationToken);
-        var activeIncident = allIncidents.FirstOrDefault(i => i.Status == "Activa");
+        var activeIncident = allIncidents.FirstOrDefault(i => i.Status != "Resuelta" && i.Status != "Resolved" && i.Status != "Inactiva" && i.Status != "Cerrada");
 
         if (activeIncident != null)
         {
@@ -71,8 +71,8 @@ public class VehicleIncidentService : IVehicleIncidentService
             {
                 PlateNumber = cleanPlate,
                 HasIncidents = true,
-                IsBlocked = false,
-                Reason = $"ALERTA / OBSERVACIÓN: {activeIncident.IncidentType}",
+                IsBlocked = true,
+                Reason = $"VEHÍCULO CON NOVEDAD ACTIVA / BLOQUEADO: {activeIncident.IncidentType}",
                 IncidentType = activeIncident.IncidentType,
                 Description = activeIncident.Description,
                 ReportedBy = activeIncident.ReportedBy,
