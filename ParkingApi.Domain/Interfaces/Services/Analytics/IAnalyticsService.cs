@@ -8,4 +8,5 @@ public interface IAnalyticsService
 {
     Task<FinancialSummaryDto> GetDailySummaryAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
     Task<OccupancyStatsDto> GetOccupancyStatsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<PeakTrafficReportDto> GetPeakTrafficAsync(string? period, int? branchId, int? companyId, int offsetMinutes = 300, CancellationToken cancellationToken = default);
 }

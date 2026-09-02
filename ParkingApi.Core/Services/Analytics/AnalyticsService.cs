@@ -139,4 +139,112 @@ public class AnalyticsService : IAnalyticsService
             return new OccupancyStatsDto { TotalCapacity = fallbackCapacity, OccupiedSpots = 0 };
         }
     }
+
+    public async Task<PeakTrafficReportDto> GetPeakTrafficAsync(
+        string? period,
+        int? branchId,
+        int? companyId,
+        int offsetMinutes = 300,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var normalizedPeriod = string.IsNullOrWhiteSpace(period) ? "today" : period.ToLowerInvariant();
+            var nowUtc = DateTime.UtcNow;
+            var clientNow = nowUtc.AddMinutes(-offsetMinutes);
+
+            DateTime fromLocal;
+            DateTime toLocal;
+
+            switch (normalizedPeriod)
+            {
+                case "yesterday":
+                    var yesterday = clientNow.Date.AddDays(-1);
+                    fromLocal = yesterday;
+                    toLocal = yesterday.AddDays(1).AddTicks(-1);
+                    break;
+                case "month":
+                    fromLocal = new DateTime(clientNow.Year, clientNow.Month, 1);
+                    toLocal = fromLocal.AddMonths(1).AddTicks(-1);
+                    break;
+                case "today":
+                default:
+                    normalizedPeriod = "today";
+                    fromLocal = clientNow.Date;
+                    toLocal = clientNow.Date.AddDays(1).AddTicks(-1);
+                    break;
+            }
+
+            var fromUtc = fromLocal.AddMinutes(offsetMinutes);
+            var toUtc = toLocal.AddMinutes(offsetMinutes);
+
+            var tickets = await _ticketRepository.GetTicketsByRangeAsync(fromUtc, toUtc, branchId, companyId, cancellationToken);
+
+            var countsByHour = new Dictionary<int, int>();
+            for (int h = 0; h < 24; h++)
+            {
+                countsByHour[h] = 0;
+            }
+
+            foreach (var ticket in tickets)
+            {
+                var localEntry = ticket.EntryTimeUtc.AddMinutes(-offsetMinutes);
+                var hour = localEntry.Hour;
+                if (hour >= 0 && hour < 24)
+                {
+                    countsByHour[hour]++;
+                }
+            }
+
+            var hourlyData = new List<HourlyTrafficDto>();
+            int peakHour = 0;
+            int maxCount = 0;
+
+            for (int h = 0; h < 24; h++)
+            {
+                var count = countsByHour[h];
+                if (count > maxCount)
+                {
+                    maxCount = count;
+                    peakHour = h;
+                }
+
+                hourlyData.Add(new HourlyTrafficDto
+                {
+                    Hour = h,
+                    HourLabel = $"{h:D2}:00",
+                    EntriesCount = count
+                });
+            }
+
+            var totalEntries = tickets.Count;
+            var activeHours = hourlyData.Count(d => d.EntriesCount > 0);
+            var avgPerHour = activeHours > 0 ? Math.Round((double)totalEntries / activeHours, 1) : 0.0;
+
+            string FormatHourRange(int h)
+            {
+                var start = DateTime.Today.AddHours(h).ToString("hh:mm tt");
+                var end = DateTime.Today.AddHours((h + 1) % 24).ToString("hh:mm tt");
+                return $"{start} - {end}";
+            }
+
+            return new PeakTrafficReportDto
+            {
+                Period = normalizedPeriod,
+                StartDateUtc = fromUtc,
+                EndDateUtc = toUtc,
+                TotalEntries = totalEntries,
+                PeakHour = peakHour,
+                PeakHourLabel = totalEntries > 0 ? FormatHourRange(peakHour) : "Sin ingresos",
+                PeakEntriesCount = maxCount,
+                AveragePerHour = avgPerHour,
+                HourlyData = hourlyData
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al calcular horas pico de tráfico");
+            return new PeakTrafficReportDto();
+        }
+    }
 }

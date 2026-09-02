@@ -207,6 +207,34 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
+    public async Task<IReadOnlyList<ParkingTicket>> GetTicketsByRangeAsync(DateTime fromUtc, DateTime toUtc, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = _context.ParkingTickets
+                .AsNoTracking()
+                .Where(t => t.EntryTimeUtc >= fromUtc && t.EntryTimeUtc <= toUtc);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+            }
+
+            return await query
+                .OrderBy(t => t.EntryTimeUtc)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al consultar tiquetes por rango {From} - {To}", Constants.TicketError, fromUtc, toUtc);
+            return new List<ParkingTicket>();
+        }
+    }
+
     public async Task<ParkingTicket> AddAsync(ParkingTicket ticket, CancellationToken cancellationToken = default)
     {
         try
