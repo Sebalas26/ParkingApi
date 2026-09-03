@@ -2,6 +2,30 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-03 12:25:00] - Asignación de Operador en Apertura de Turno y Validación de Operadores Asignados por Sede
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"en la pwa al abrir caja de alguna sede abre una modal pero no muestra a que usuariod esea abrirle el turno si me explico y si esa sede no tiene operadores asignados pues deberia salir una modal de alerta que no es posible abrir caja para esa sede ya que no cuenta con operadores asignados. analiza y dame plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Recepción de UserId en Apertura de Turno (`ShiftDtos.cs`, `ShiftsController.cs`)**:
+    - Se añadió `public int? UserId { get; set; }` a `OpenShiftRequestDto`.
+    - En `ShiftsController.OpenShift`, si `dto.UserId` viene informado, se asigna el turno a dicho operador y se resuelve su nombre real (`FullName`) consultando `IUserRepository.GetByIdAsync`, evitando forzar la identidad del usuario administrador autenticado.
+  - **Validación de Dotación Operativa por Sede (`ShiftService.cs`)**:
+    - En `ShiftService.OpenShiftAsync`, se valida que la sede cuente con operadores asignados (`!operationalUsers.Any()`), impidiendo abrir cajas en sedes que no tengan personal operativo registrado en `UserBranches`.
+  - **Supervisión de Turnos por Sede (`ShiftsController.cs`)**:
+    - En `GetActive`, para roles de administración (`Administrador`, `Admin`, `Super Administrador`), si no se especifica un `userId` en los query params, se consulta el turno activo de la sede (`GetActiveShiftAsync(null, branchId)`) para permitir el monitoreo y arqueo del turno en curso.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Shifts/ShiftDtos.cs`
+  - `ParkingApi/Controllers/ShiftsController.cs`
+  - `ParkingApi.Core/Services/Shifts/ShiftService.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-03 12:10:00] - Unicidad de Nombre Comercial de Sedes y Protección de Roles de Sistema
 
 - **`💬 Prompt Original del Usuario`**:

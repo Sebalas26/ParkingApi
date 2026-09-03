@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Shifts;
+using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.Shifts;
 
@@ -17,15 +18,18 @@ public class ShiftsController : ControllerBase
 {
     private readonly IShiftService _shiftService;
     private readonly ICurrentUserService _currentUser;
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<ShiftsController> _logger;
 
     public ShiftsController(
         IShiftService shiftService,
         ICurrentUserService currentUser,
+        IUserRepository userRepository,
         ILogger<ShiftsController> logger)
     {
         _shiftService = shiftService;
         _currentUser = currentUser;
+        _userRepository = userRepository;
         _logger = logger;
     }
 
@@ -35,12 +39,22 @@ public class ShiftsController : ControllerBase
         try
         {
             int userId = 1;
-            if (int.TryParse(_currentUser?.UserId, out int parsedId) && parsedId > 0)
+            string operatorName = User.FindFirstValue(ClaimTypes.Name) ?? "Operador de Turno";
+
+            if (dto.UserId.HasValue && dto.UserId.Value > 0)
+            {
+                userId = dto.UserId.Value;
+                var targetUser = await _userRepository.GetByIdAsync(userId, cancellationToken);
+                if (targetUser != null && !string.IsNullOrWhiteSpace(targetUser.FullName))
+                {
+                    operatorName = targetUser.FullName;
+                }
+            }
+            else if (int.TryParse(_currentUser?.UserId, out int parsedId) && parsedId > 0)
             {
                 userId = parsedId;
             }
 
-            var operatorName = User.FindFirstValue(ClaimTypes.Name) ?? "Operador de Turno";
             var result = await _shiftService.OpenShiftAsync(userId, operatorName, dto, cancellationToken);
             if (result == null)
             {
@@ -66,7 +80,8 @@ public class ShiftsController : ControllerBase
         try
         {
             int? queryUser = userId;
-            if (!queryUser.HasValue && int.TryParse(_currentUser?.UserId, out int parsedId) && parsedId > 0)
+            var isAdmin = User.IsInRole("Administrador") || User.IsInRole("Admin") || User.IsInRole("Super Administrador") || _currentUser?.IsSuperAdmin == true;
+            if (!queryUser.HasValue && !isAdmin && int.TryParse(_currentUser?.UserId, out int parsedId) && parsedId > 0)
             {
                 queryUser = parsedId;
             }

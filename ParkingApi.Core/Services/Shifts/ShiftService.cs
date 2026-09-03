@@ -64,6 +64,15 @@ public class ShiftService : IShiftService
                 throw new InvalidOperationException("La empresa (CompanyId) es obligatoria para la apertura del turno de caja.");
             }
 
+            // Validar que la sede cuente con operadores asignados
+            var branchUsers = await _branchRepository.GetUsersByBranchIdAsync(dto.BranchId.Value, cancellationToken);
+            var operationalUsers = branchUsers.Where(u => u.UserRoleIdNavigation == null || (!u.UserRoleIdNavigation.Role.Contains("Admin", StringComparison.OrdinalIgnoreCase) && !u.UserRoleIdNavigation.Role.Contains("Super", StringComparison.OrdinalIgnoreCase))).ToList();
+
+            if (!operationalUsers.Any())
+            {
+                throw new InvalidOperationException("No es posible abrir caja para esta sede ya que no cuenta con operadores asignados.");
+            }
+
             var activeShift = await _shiftRepository.GetActiveShiftByUserIdAsync(userId, dto.BranchId, cancellationToken);
             if (activeShift != null)
             {
