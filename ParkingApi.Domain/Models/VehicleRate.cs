@@ -13,6 +13,7 @@ public class VehicleRate
     public decimal HourRate { get; set; }
     public decimal MinuteRate { get; set; }
     public decimal FullDayRate { get; set; }
+    public decimal NightRate { get; set; }
     public int GracePeriodMinutes { get; set; } = 15;
     public string IconKey { get; set; } = "IconCar";
     public bool IsActive { get; set; } = true;

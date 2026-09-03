@@ -19,6 +19,10 @@ public class Branch : GeneralEntity
     public string? LogoBase64 { get; set; }
     public int PaperWidth { get; set; } = 80;
     public decimal DefaultInitialCash { get; set; } = 0m;
+    public bool AllowChargeByMinute { get; set; } = true;
+    public bool AllowChargeByHour { get; set; } = true;
+    public bool AllowChargeByDay { get; set; } = true;
+    public bool AllowChargeByNight { get; set; } = false;
 
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
     public virtual ICollection<BranchPaymentMethod> BranchPaymentMethods { get; set; } = new List<BranchPaymentMethod>();

@@ -20,6 +20,14 @@ public class CompanyDto
     public int BranchesCount { get; set; }
     public int UsersCount { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // Parametrizaciones Operativas Avanzadas
+    public bool AllowMultipleSessions { get; set; } = false;
+    public int MaxActiveSessionsPerUser { get; set; } = 1;
+    public bool AllowMultipleOpenShifts { get; set; } = false;
+    public int MaxOpenShiftsPerUser { get; set; } = 1;
+    public bool RequireOpenShiftToOperate { get; set; } = true;
+    public bool RequireInitialCashAmount { get; set; } = true;
 }
 
 public class CreateCompanyDto
@@ -35,6 +43,14 @@ public class CreateCompanyDto
     public string PlanType { get; set; } = "Basic";
     public int MaxBranches { get; set; } = 1;
     public DateTime? SubscriptionExpiresAt { get; set; }
+
+    // Parametrizaciones Operativas Avanzadas
+    public bool AllowMultipleSessions { get; set; } = false;
+    public int MaxActiveSessionsPerUser { get; set; } = 1;
+    public bool AllowMultipleOpenShifts { get; set; } = false;
+    public int MaxOpenShiftsPerUser { get; set; } = 1;
+    public bool RequireOpenShiftToOperate { get; set; } = true;
+    public bool RequireInitialCashAmount { get; set; } = true;
 
     // Datos del Administrador Inicial de la Empresa
     public string AdminUsername { get; set; } = string.Empty;
@@ -59,4 +75,12 @@ public class UpdateCompanyDto
     public int MaxBranches { get; set; } = 1;
     public bool IsActive { get; set; } = true;
     public DateTime? SubscriptionExpiresAt { get; set; }
+
+    // Parametrizaciones Operativas Avanzadas
+    public bool AllowMultipleSessions { get; set; } = false;
+    public int MaxActiveSessionsPerUser { get; set; } = 1;
+    public bool AllowMultipleOpenShifts { get; set; } = false;
+    public int MaxOpenShiftsPerUser { get; set; } = 1;
+    public bool RequireOpenShiftToOperate { get; set; } = true;
+    public bool RequireInitialCashAmount { get; set; } = true;
 }

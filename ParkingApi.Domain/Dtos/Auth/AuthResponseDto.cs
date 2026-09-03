@@ -19,6 +19,12 @@ public class AuthResponseDto
     public int? CompanyId { get; set; }
     public string? CompanyName { get; set; }
     public int? MaxBranches { get; set; }
+    public bool AllowMultipleSessions { get; set; }
+    public int MaxActiveSessionsPerUser { get; set; } = 1;
+    public bool RequireOpenShiftToOperate { get; set; } = true;
+    public bool AllowMultipleOpenShifts { get; set; }
+    public int MaxOpenShiftsPerUser { get; set; } = 1;
+    public bool RequireInitialCashAmount { get; set; } = true;
     public List<BranchDto> Branches { get; set; } = new();
     public List<string> Permissions { get; set; } = new();
 }

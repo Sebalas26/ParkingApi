@@ -1,6 +1,7 @@
-﻿<Solution>
+<Solution>
   <Project Path="ParkingApi.Domain/ParkingApi.Domain.csproj" />
   <Project Path="ParkingApi.Infrastructure/ParkingApi.Infrastructure.csproj" />
   <Project Path="ParkingApi.Core/ParkingApi.Core.csproj" />
   <Project Path="ParkingApi/ParkingApi.csproj" />
+  <Project Path="ParkingApi.UnitTests/ParkingApi.UnitTests.csproj" />
 </Solution>

@@ -8,6 +8,7 @@ public class OpenShiftRequestDto
     public int? BranchId { get; set; }
     public int? CompanyId { get; set; }
     public int? UserId { get; set; }
+    public string? CashRegisterName { get; set; }
     public decimal BaseAmount { get; set; } = 0m;
     public string? Notes { get; set; }
 }
@@ -26,6 +27,7 @@ public class ShiftSummaryDto
     public int? CompanyId { get; set; }
     public int UserId { get; set; }
     public string OperatorName { get; set; } = string.Empty;
+    public string CashRegisterName { get; set; } = "Caja Principal";
     public DateTime StartTimeUtc { get; set; }
     public DateTime? EndTimeUtc { get; set; }
     public decimal BaseAmount { get; set; }
@@ -49,6 +51,7 @@ public class WorkShiftDto
     public int? CompanyId { get; set; }
     public int UserId { get; set; }
     public string OperatorName { get; set; } = string.Empty;
+    public string CashRegisterName { get; set; } = "Caja Principal";
     public DateTime StartTimeUtc { get; set; }
     public DateTime? EndTimeUtc { get; set; }
     public decimal BaseAmount { get; set; }

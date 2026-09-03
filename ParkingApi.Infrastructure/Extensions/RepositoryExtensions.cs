@@ -56,6 +56,7 @@ public static class RepositoryExtensions
         services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
         services.AddScoped<ILoginRepository, LoginRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 
         // Negocio Parqueadero (Preservación 100%)
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.ParkingLots.IParkingLotRepository, ParkingApi.Infrastructure.Data.Repositories.ParkingLots.ParkingLotRepository>();

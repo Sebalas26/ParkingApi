@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Companies;
 using ParkingApi.Domain.Interfaces.Repositories.Companies;
+using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services.Companies;
+using ParkingApi.Domain.Interfaces.Services.Realtime;
 using ParkingApi.Domain.Models;
 using ParkingApi.Infrastructure.Data;
 using ParkingApi.Infrastructure.Security;
@@ -17,15 +19,21 @@ namespace ParkingApi.Core.Services.Companies;
 public class CompanyService : ICompanyService
 {
     private readonly ICompanyRepository _companyRepository;
+    private readonly IUserSessionRepository _userSessionRepository;
+    private readonly IRealtimeNotificationService _realtimeNotifier;
     private readonly DataContext _context;
     private readonly ILogger<CompanyService> _logger;
 
     public CompanyService(
         ICompanyRepository companyRepository,
+        IUserSessionRepository userSessionRepository,
+        IRealtimeNotificationService realtimeNotifier,
         DataContext context,
         ILogger<CompanyService> logger)
     {
         _companyRepository = companyRepository;
+        _userSessionRepository = userSessionRepository;
+        _realtimeNotifier = realtimeNotifier;
         _context = context;
         _logger = logger;
     }
@@ -85,6 +93,12 @@ public class CompanyService : ICompanyService
                     MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1,
                     IsActive = true,
                     SubscriptionExpiresAt = dto.SubscriptionExpiresAt,
+                    AllowMultipleSessions = dto.AllowMultipleSessions,
+                    MaxActiveSessionsPerUser = dto.AllowMultipleSessions && dto.MaxActiveSessionsPerUser > 1 ? dto.MaxActiveSessionsPerUser : 1,
+                    RequireOpenShiftToOperate = dto.RequireOpenShiftToOperate,
+                    AllowMultipleOpenShifts = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts,
+                    MaxOpenShiftsPerUser = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts && dto.MaxOpenShiftsPerUser > 1 ? dto.MaxOpenShiftsPerUser : 1,
+                    RequireInitialCashAmount = dto.RequireOpenShiftToOperate && dto.RequireInitialCashAmount,
                     ResponsibleUserId = responsibleUserId,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -106,9 +120,16 @@ public class CompanyService : ICompanyService
                 await _context.SaveChangesAsync(cancellationToken);
 
                 // 5. Asignar módulos y acciones operativas y administrativas al nuevo rol de Administrador de la empresa (Excluyendo Módulo 16 SaaS Global)
-                var tenantModules = await _context.Module
-                    .Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"))
-                    .ToListAsync(cancellationToken);
+                var tenantModulesQuery = _context.Module
+                    .Where(m => m.IsActive && m.Id != 16 && !m.Name.ToLower().Contains("saas"));
+
+                // Si la empresa no requiere abrir caja para operar, se excluye el Módulo 5 (Control de Turnos y Caja)
+                if (!company.RequireOpenShiftToOperate)
+                {
+                    tenantModulesQuery = tenantModulesQuery.Where(m => m.Id != 5 && !m.Name.ToLower().Contains("turno") && !m.Name.ToLower().Contains("caja"));
+                }
+
+                var tenantModules = await tenantModulesQuery.ToListAsync(cancellationToken);
                 foreach (var mod in tenantModules)
                 {
                     _context.UserRoleModule.Add(new UserRoleModule
@@ -121,9 +142,16 @@ public class CompanyService : ICompanyService
                     });
                 }
 
-                var tenantActions = await _context.Action
-                    .Where(a => a.IsActive && a.ModuleId != 16 && !a.Slug.StartsWith("companies."))
-                    .ToListAsync(cancellationToken);
+                var tenantActionsQuery = _context.Action
+                    .Where(a => a.IsActive && a.ModuleId != 16 && !a.Slug.StartsWith("companies."));
+
+                // Si no requiere caja, excluir las acciones de turnos y arqueos (shifts.*)
+                if (!company.RequireOpenShiftToOperate)
+                {
+                    tenantActionsQuery = tenantActionsQuery.Where(a => a.ModuleId != 5 && !a.Slug.StartsWith("shifts."));
+                }
+
+                var tenantActions = await tenantActionsQuery.ToListAsync(cancellationToken);
                 foreach (var act in tenantActions)
                 {
                     _context.RoleAction.Add(new RoleAction
@@ -263,6 +291,8 @@ public class CompanyService : ICompanyService
             throw new KeyNotFoundException($"Empresa con ID {id} no encontrada.");
         }
 
+        bool multiSessionsDisabled = company.AllowMultipleSessions && !dto.AllowMultipleSessions;
+
         company.Name = dto.Name.Trim();
         company.LegalName = dto.LegalName?.Trim();
         company.Nit = dto.Nit.Trim();
@@ -275,9 +305,32 @@ public class CompanyService : ICompanyService
         company.MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : company.MaxBranches;
         company.IsActive = dto.IsActive;
         company.SubscriptionExpiresAt = dto.SubscriptionExpiresAt;
+        company.AllowMultipleSessions = dto.AllowMultipleSessions;
+        company.MaxActiveSessionsPerUser = dto.AllowMultipleSessions && dto.MaxActiveSessionsPerUser > 1 ? dto.MaxActiveSessionsPerUser : 1;
+        company.RequireOpenShiftToOperate = dto.RequireOpenShiftToOperate;
+        company.AllowMultipleOpenShifts = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts;
+        company.MaxOpenShiftsPerUser = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts && dto.MaxOpenShiftsPerUser > 1 ? dto.MaxOpenShiftsPerUser : 1;
+        company.RequireInitialCashAmount = dto.RequireOpenShiftToOperate && dto.RequireInitialCashAmount;
         company.UpdatedAt = DateTime.UtcNow;
 
         await _companyRepository.UpdateAsync(company, cancellationToken);
+
+        if (multiSessionsDisabled)
+        {
+            var revokedJtis = await _userSessionRepository.RevokeAllSessionsByCompanyIdExceptLatestAsync(id, "CompanyPolicyDisabled", cancellationToken);
+            foreach (var jti in revokedJtis)
+            {
+                _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
+                {
+                    EventType = "UserSessionTerminated",
+                    SessionToken = jti,
+                    Title = "Sesión Finalizada por Cambio de Política",
+                    Message = "La empresa ha desactivado las sesiones concurrentes. Esta sesión ha sido cerrada automáticamente.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellationToken);
+            }
+        }
+
         return MapToDto(company);
     }
 
@@ -475,6 +528,12 @@ public class CompanyService : ICompanyService
             MaxBranches = c.MaxBranches,
             IsActive = c.IsActive,
             SubscriptionExpiresAt = c.SubscriptionExpiresAt,
+            AllowMultipleSessions = c.AllowMultipleSessions,
+            MaxActiveSessionsPerUser = c.MaxActiveSessionsPerUser,
+            AllowMultipleOpenShifts = c.AllowMultipleOpenShifts,
+            MaxOpenShiftsPerUser = c.MaxOpenShiftsPerUser,
+            RequireOpenShiftToOperate = c.RequireOpenShiftToOperate,
+            RequireInitialCashAmount = c.RequireInitialCashAmount,
             BranchesCount = c.Branches?.Count ?? 0,
             UsersCount = c.Users?.Count ?? 0,
             CreatedAt = c.CreatedAt

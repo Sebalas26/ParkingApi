@@ -17,6 +17,14 @@ public class Company : GeneralEntity
     public int MaxBranches { get; set; } = 1;
     public DateTime? SubscriptionExpiresAt { get; set; }
 
+    // Parametrizaciones Operativas Avanzadas
+    public bool AllowMultipleSessions { get; set; } = false;
+    public int MaxActiveSessionsPerUser { get; set; } = 1;
+    public bool AllowMultipleOpenShifts { get; set; } = false;
+    public int MaxOpenShiftsPerUser { get; set; } = 1;
+    public bool RequireOpenShiftToOperate { get; set; } = true;
+    public bool RequireInitialCashAmount { get; set; } = true;
+
     public string? Logo { get; set; }
     
     [NotMapped]

@@ -23,6 +23,7 @@ public class DataContext : DbContext
     public DbSet<PaymentMethod> PaymentMethod { get; set; }
     public DbSet<Login> Login { get; set; }
     public DbSet<PasswordResetToken> PasswordResetToken { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
 
     // Módulo Multi-Tenant SaaS
     public DbSet<Company> Companies { get; set; }

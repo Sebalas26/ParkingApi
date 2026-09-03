@@ -18,6 +18,10 @@ public class BranchDto
     public string? LogoBase64 { get; set; }
     public int PaperWidth { get; set; } = 80;
     public decimal DefaultInitialCash { get; set; } = 0m;
+    public bool AllowChargeByMinute { get; set; } = true;
+    public bool AllowChargeByHour { get; set; } = true;
+    public bool AllowChargeByDay { get; set; } = true;
+    public bool AllowChargeByNight { get; set; } = false;
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -36,6 +40,10 @@ public class CreateBranchDto
     public string? LogoBase64 { get; set; }
     public int PaperWidth { get; set; } = 80;
     public decimal DefaultInitialCash { get; set; } = 0m;
+    public bool AllowChargeByMinute { get; set; } = true;
+    public bool AllowChargeByHour { get; set; } = true;
+    public bool AllowChargeByDay { get; set; } = true;
+    public bool AllowChargeByNight { get; set; } = false;
 }
 
 public class UpdateBranchDto
@@ -50,6 +58,10 @@ public class UpdateBranchDto
     public string? LogoBase64 { get; set; }
     public int PaperWidth { get; set; } = 80;
     public decimal DefaultInitialCash { get; set; } = 0m;
+    public bool AllowChargeByMinute { get; set; } = true;
+    public bool AllowChargeByHour { get; set; } = true;
+    public bool AllowChargeByDay { get; set; } = true;
+    public bool AllowChargeByNight { get; set; } = false;
     public bool IsActive { get; set; }
 }
 

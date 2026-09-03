@@ -52,6 +52,7 @@ builder.Services.AddAuthentication(options =>
         OnTokenValidated = async context =>
         {
             var userRepo = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+            var sessionRepo = context.HttpContext.RequestServices.GetRequiredService<IUserSessionRepository>();
             var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
 
             var sidClaim = context.Principal?.FindFirst(ClaimTypes.Sid)?.Value;
@@ -59,20 +60,29 @@ builder.Services.AddAuthentication(options =>
 
             if (int.TryParse(sidClaim, out int userId) && !string.IsNullOrEmpty(jtiClaim))
             {
-                var cacheKey = $"ActiveToken_User_{userId}";
-                if (!cache.TryGetValue(cacheKey, out string? activeToken))
+                var sessionCacheKey = $"SessionActive_{userId}_{jtiClaim}";
+                if (!cache.TryGetValue(sessionCacheKey, out bool isSessionValid))
                 {
-                    var user = await userRepo.GetByIdAsync(userId, context.HttpContext.RequestAborted);
-                    activeToken = user?.Token;
-                    if (user != null && !string.IsNullOrEmpty(activeToken))
+                    isSessionValid = await sessionRepo.IsSessionActiveAsync(userId, jtiClaim, context.HttpContext.RequestAborted);
+
+                    if (!isSessionValid)
                     {
-                        cache.Set(cacheKey, activeToken, TimeSpan.FromSeconds(10));
+                        var user = await userRepo.GetByIdAsync(userId, context.HttpContext.RequestAborted);
+                        if (user != null && string.Equals(user.Token, jtiClaim, StringComparison.Ordinal))
+                        {
+                            isSessionValid = true;
+                        }
+                    }
+
+                    if (isSessionValid)
+                    {
+                        cache.Set(sessionCacheKey, true, TimeSpan.FromSeconds(30));
                     }
                 }
 
-                if (string.IsNullOrEmpty(activeToken) || !string.Equals(activeToken, jtiClaim, StringComparison.Ordinal))
+                if (!isSessionValid)
                 {
-                    context.Fail("Esta sesión ha sido invalidada porque se inició sesión en otro dispositivo.");
+                    context.Fail("Esta sesión ha sido invalidada porque se superó el límite de sesiones permitidas o se cerró en otro dispositivo.");
                 }
             }
         }

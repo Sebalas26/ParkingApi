@@ -45,6 +45,27 @@ public class ShiftRepository : IShiftRepository
         }
     }
 
+    public async Task<IReadOnlyList<WorkShift>> GetActiveShiftsByUserIdAsync(int userId, int? branchId = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = _context.WorkShifts
+                .Where(s => s.UserId == userId && s.Status == ShiftStatus.Open);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(s => s.BranchId == branchId.Value);
+            }
+
+            return await query.OrderBy(s => s.StartTimeUtc).ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar turnos activos para usuario {UserId} en sede {BranchId}", userId, branchId);
+            return Array.Empty<WorkShift>();
+        }
+    }
+
     public async Task<WorkShift?> GetActiveShiftAsync(int? branchId = null, CancellationToken cancellationToken = default)
     {
         try

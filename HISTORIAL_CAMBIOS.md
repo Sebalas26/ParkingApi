@@ -2,6 +2,128 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-03 16:25:00] - Multi-Tenant Limpio: Eliminación de Siembra de Empresa Inicial y Consolidación de Esquemas en 02_Init_RBAC_Seed.sql
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"@[02_Init_RBAC_Seed.sql] necesito que revises esto por que necesito que quites que crres la primera empresa lo necesitamos sin empresas nuevas la idea es iniciar de cero entrar a crear empresas nuevas y probar las nuevas configuraciones si me explico para tenerlo presente. creo que con eso tenemos claro dime si es claro lo que te digo o no para revisarlo los dos ? ... dale haz el ajuste necesario completo."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Eliminación de Siembra de Empresa Preestablecida**:
+    - Se removió la inserción fija de la empresa matriz `INSERT INTO Companies (1, 'ParkPoint Global SaaS'...)`.
+    - La base de datos aprovisionada mediante este script arranca con **cero (0) empresas**, permitiendo que el usuario `admin` (Super Administrador con `CompanyId = NULL`) ingrese desde el PWA y cree empresas limpiamente desde la interfaz web, probando los nuevos flujos de parametrización (Multisesión, Turnos/Cajas obligatorias, Múltiples cajas y Monto base inicial).
+  - **Consolidación DDL de Tablas y Columnas Operativas**:
+    - Se integraron de forma nativa en las sentencias `CREATE TABLE IF NOT EXISTS`:
+      - `Companies`: `AllowMultipleSessions`, `MaxActiveSessionsPerUser`, `AllowMultipleOpenShifts`, `MaxOpenShiftsPerUser`, `RequireOpenShiftToOperate`, `RequireInitialCashAmount`.
+      - `Branches`: `AllowChargeByMinute`, `AllowChargeByHour`, `AllowChargeByDay`, `AllowChargeByNight`, `DefaultInitialCash`, `PaperWidth`.
+      - `VehicleRates`: `NightRate`.
+      - `WorkShifts`: `CashRegisterName`.
+      - `UserSessions`: Definición completa de la tabla relacional de sesiones concurrentes con claves foráneas e índices optimizados.
+    - Se actualizaron las sentencias de migración defensiva para entornos existentes.
+
+- **`📦 Componentes Modificados`**:
+  - `Scripts/02_Init_RBAC_Seed.sql`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test` (**38 de 38 Pruebas Unitarias Superadas - 0 Errores**).
+
+---
+
+## 📌 Entrada: [2026-09-03 16:20:00] - Soporte Integral de Esquemas de Cobro por Sede, Tarifas Nocturnas y Directiva de Base Inicial Obligatoria en Backend
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"el orden es el siguiente: le muestra la primera configuracion que es si es multisesion si dice si le pregunta cuantas, despues le aparece la opcion requiere abrir caja entonces si dice [si] le aparece la 3 opcion que es un usuario puede abrir multiples cajas si dice que si pues le pregunta en un input cuantas si me explico despues aparece la 4 opcion la 3 y 4 son dependientes de la 2 si me explico entonces la 4 opcion es requiere un monto inicial en cada caja si o no eso obligaria si marca si en que cuando se creen sedes se le pida el parametro de monto base inicial si dicen no entonces esa compañia no manejaria eso... otra cosa que se debe tener encuenta es que al momento de crear la sede las cosas van a cambiar por que tambien se quiere parametrizar lo siguiente que es que le pregunte como una lista de check bien bakanos bien pro de que le diga que tipos de cobros va a tener en la sede, que son Por Minuto, Por Hora, Plena, nocturna, con eso cuando se cree en el maestro el tipo de vehiculo despues se vaya parametrizar la sede pues el sistema con ese dinamismo sabe que le debe paremetrizar a ese vehiculo de acuerdo a lo que selecciono en la sede si me explico ?... y hay algo supremamente importante que no hemos analziado y toca revisar por que el tema de roles y permisos cambiaria desde que se cree la compañia si una compañia se crea en que no necsita abrir cajas entonces para que le vamos a mostrar al administrador los modulos de cajas o que pueda asignar esos permisos de cajas si me explico debe ser todo muy coherente con lo que se esta parametrizando..."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Directivas de Cobro por Sede en Entidades y DTOs (`Branch.cs`, `BranchDtos.cs`, `BranchService.cs`)**:
+    - Se incorporaron las propiedades booleanas `AllowChargeByMinute`, `AllowChargeByHour`, `AllowChargeByDay`, `AllowChargeByNight` en `Branch` y sus contratos `BranchDto`, `CreateBranchDto`, `UpdateBranchDto`.
+    - En `BranchService.CreateBranchAsync` y `UpdateBranchAsync`, se valida que al menos un esquema de cobro permanezca habilitado y que si la empresa exige base inicial (`RequireInitialCashAmount`), el campo `DefaultInitialCash` sea estrictamente mayor a cero.
+  - **Soporte de Tarifa Nocturna (`VehicleRate.cs`, `VehicleRateDto.cs`, `PricingCalculatorService.cs`)**:
+    - Se agregó `NightRate` a `VehicleRate` y contratos asociados. En el cálculo de tarifas, se aplica la tarifa nocturna si la sede lo autoriza y la estancia coincide con la ventana horaria correspondiente.
+  - **Directiva de Base Inicial Obligatoria en Apertura de Turno (`ShiftService.cs`)**:
+    - En `ShiftService.OpenShiftAsync`, si la empresa asociada tiene `RequireInitialCashAmount == true`, se rechaza la apertura con excepción de negocio si `request.BaseAmount <= 0`.
+  - **Contratos de Sincronización y Bootstrap**:
+    - Se expusieron los esquemas de cobro en `BranchSyncDto` y `VehicleRateSyncDto` para consumo inmediato por parte de terminales WPF y clientes PWA.
+  - **Pruebas Automatizadas Unitarias**:
+    - Suite de 38 pruebas unitarias aprobada al 100% (`dotnet test` -> 0 fallos).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/Company.cs`
+  - `ParkingApi.Domain/Models/Branch.cs`
+  - `ParkingApi.Domain/Models/VehicleRate.cs`
+  - `ParkingApi.Domain/Dtos/Companies/CompanyDtos.cs`
+  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
+  - `ParkingApi.Domain/Dtos/Vehicles/VehicleRateDtos.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Services/Shifts/ShiftService.cs`
+  - `ParkingApi.Core/Services/Pricing/PricingCalculatorService.cs`
+  - `ParkingApi.UnitTests/`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+  - `dotnet test` (**38 de 38 Pruebas Unitarias Superadas - 0 Errores**).
+
+---
+
+## 📌 Entrada: [2026-09-03 15:30:00] - Parametrizaciones Operativas de Empresa, Tabla Relacional UserSessions, Concurrencia de Cajas y Suite de Pruebas Unitarias xUnit
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Necesitamos configurar algunas nuevas configuraciónes que no tuvimos encuenta cuando se crear una empresa se requiere lo siguiente, como un cajon de parametrizaciones la primera es permite multiples sesiones de los ususuarios si dice si entonces se la habilita un campo que diga cuantas osea es un int... si lo llegara a desactivar cierra las multiples sesiones de todos los usuarios instantaneo. La otra parametrización es que el tenga otro check donde le diga un usuarios puede tener varias cajas abiertas al mismo tiempo cuantas cajas... otra parametrización es que no obligue a abrir caja que no sea requjerido si no que el usuario que ingrese a la sede que tenga acceso automaticamente desde que tenga los permisos logicos de una vez operar y sacar vehiculos y ya no tener nada mas... si inicia 20 sesiones el campo de la columna en la BD se va a reventar no, eso no es mejor hacer una tabla relacional o algo diferente ?... sabes que debemos integrar en el api que no tenemos lo de pruebas unitarias por que eso nos serviria mucho para poder saber si todos los eventos o casos locos que estamos haciendo funcionen entonces sería bueno que se creara esa capa de pruebas unitarias para cada cosa que se haga en el backend se vaya realizando."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Tabla Relacional de Sesiones (`UserSessions` / `IUserSessionRepository`)**:
+    - Se descartó el almacenamiento de tokens concatenados en cadenas de texto para evitar truncamiento y desbordamiento de columnas en MySQL.
+    - Se modeló la entidad `UserSession` (`SessionId`, `UserId`, `Jti`, `DeviceInfo`, `IpAddress`, `CreatedAtUtc`, `ExpiresAtUtc`, `IsRevoked`, `RevokedAtUtc`, `RevokedReason`) con índices optimizados sobre `(UserId, IsRevoked, ExpiresAtUtc)` y `Jti`.
+    - Se creó e implementó `IUserSessionRepository` (`UserSessionRepository.cs`) con métodos especializados: `AddAsync`, `IsSessionActiveAsync`, `RevokeExcessSessionsAsync` (estrategia FIFO para límite configurable de sesiones), `RevokeAllUserSessionsExceptLatestAsync` y `RevokeAllSessionsByCompanyIdExceptLatestAsync`.
+  - **Autenticación y Validación Multi-Sesión en Caliente (`AuthService.cs`, `Program.cs`)**:
+    - En `AuthService.LoginAsync` y `LoginStandardAsync`, se valida la política de la empresa (`AllowMultipleSessions` y `MaxActiveSessionsPerUser`). Si se excede el número permitido, se expulsan las sesiones más antiguas y se notifica vía SignalR con evento `UserSessionTerminated` para desconectar los dispositivos excedentes.
+    - En `Program.cs` (`JwtBearerEvents.OnTokenValidated`), se consulta en caché y contra `UserSessions.IsSessionActiveAsync(userId, jti)` para invalidar en caliente cualquier token revocado.
+  - **Múltiples Cajas y Nombre Registradora (`WorkShifts`, `ShiftService.cs`, `ShiftsController.cs`)**:
+    - Se añadió `CashRegisterName` a `WorkShift` y a sus DTOs asociados (`OpenShiftRequestDto`, `WorkShiftDto`, `ShiftSummaryDto`).
+    - En `ShiftService.OpenShiftAsync`, se valida `AllowMultipleOpenShifts` y `MaxOpenShiftsPerUser`. Si la empresa lo autoriza, un operador puede mantener múltiples cajas abiertas simultáneamente (hasta `MaxOpenShiftsPerUser`).
+    - Se expuso el endpoint `GET /api/shifts/active-list` en `ShiftsController` para obtener la lista de cajas activas del operador o sede.
+  - **Revocación en Caliente por Política de Empresa (`CompanyService.cs`)**:
+    - En `CompanyService.UpdateCompanyAsync`, si `AllowMultipleSessions` cambia de `true` a `false`, se ejecuta `RevokeAllSessionsByCompanyIdExceptLatestAsync` cerrando automáticamente las sesiones secundarias en todos los usuarios de la empresa y notificando por SignalR.
+  - **Capa de Pruebas Unitarias Automatizadas (`ParkingApi.UnitTests`)**:
+    - Se creó el proyecto de pruebas `ParkingApi.UnitTests` con framework xUnit, `Moq`, `FluentAssertions` y `Microsoft.EntityFrameworkCore.InMemory (9.0.0)`.
+    - Pruebas implementadas y certificadas:
+      - `UserSessionsTests.cs`: Comportamiento de sesiones activas, expulsión FIFO al alcanzar tope configurable, revocación masiva por cambio de política.
+      - `ShiftPolicyTests.cs`: Apertura de múltiples cajas hasta el límite, bloqueo por superación de límite de cajas, control de caja única.
+      - `CompanyPolicyTests.cs`: Desactivación en caliente de políticas con expulsión de sesiones y disparo de notificaciones SignalR.
+  - **Script de Migración SQL (`Scripts/05_Add_Company_Settings_And_User_Sessions.sql`)**:
+    - Agregado script con `ALTER TABLE Companies`, `ALTER TABLE WorkShifts` y `CREATE TABLE UserSessions`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/Company.cs`
+  - `ParkingApi.Domain/Models/User.cs`
+  - `ParkingApi.Domain/Models/UserSession.cs` [NUEVO]
+  - `ParkingApi.Domain/Models/WorkShift.cs`
+  - `ParkingApi.Domain/Dtos/Companies/CompanyDtos.cs`
+  - `ParkingApi.Domain/Dtos/Shifts/ShiftDtos.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/Users/IUserSessionRepository.cs` [NUEVO]
+  - `ParkingApi.Domain/Interfaces/Repositories/Shifts/IShiftRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Shifts/IShiftService.cs`
+  - `ParkingApi.Infrastructure/Data/DataContext.cs`
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Users/UserSessionRepository.cs` [NUEVO]
+  - `ParkingApi.Infrastructure/Data/Repositories/Shifts/ShiftRepository.cs`
+  - `ParkingApi.Infrastructure/Extensions/RepositoryExtensions.cs`
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi.Core/Services/Shifts/ShiftService.cs`
+  - `ParkingApi/Controllers/ShiftsController.cs`
+  - `ParkingApi/Program.cs`
+  - `ParkingApi.slnx`
+  - `ParkingApi.UnitTests/` [NUEVO PROYECTO COMPLETO]
+  - `Scripts/05_Add_Company_Settings_And_User_Sessions.sql` [NUEVO]
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+  - `dotnet test` (**7 de 7 Pruebas Unitarias Superadas - 0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-03 12:25:00] - Asignación de Operador en Apertura de Turno y Validación de Operadores Asignados por Sede
 
 - **`💬 Prompt Original del Usuario`**:

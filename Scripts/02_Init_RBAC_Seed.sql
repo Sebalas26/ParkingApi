@@ -6,9 +6,9 @@
 --   1. Aprovisionamiento seguro DDL (CREATE TABLE IF NOT EXISTS) 100% alineado con Entity Framework Core.
 --   2. Soporte completo Multi-Tenant con discriminador CompanyId y aislamiento relacional por Sede (BranchId).
 --   3. Inicializa Tipos de Identificación estándar (CC, CE, NIT, PAS, PEP).
---   4. Inicializa la Empresa Matriz Global SaaS (Id 1) para el SuperAdmin.
+--   4. Multi-Tenant Limpio: Inicia con cero (0) empresas para aprovisionamiento dinámico desde el Panel SaaS.
 --   5. Inicializa ÚNICAMENTE el Rol 'Super Administrador' (Id 1) con acceso al 100% de los módulos y acciones.
---   6. Inicializa el Usuario 'admin' (SuperAdmin de la Plataforma SaaS).
+--   6. Inicializa el Usuario 'admin' (SuperAdmin de la Plataforma SaaS con CompanyId NULL).
 --   7. Catálogo de los 16 Módulos del sistema (Terminal WPF, Administración PWA y Gestión SaaS).
 --   8. Catálogo de 7 Operaciones estándar del sistema.
 --   9. Catálogo completo de 77 Acciones y Slugs canónicos del sistema (incluye companies.*, metrics, etc.).
@@ -42,6 +42,12 @@ CREATE TABLE IF NOT EXISTS `Companies` (
     `PlanType` VARCHAR(50) NOT NULL DEFAULT 'Basic',
     `MaxBranches` INT NOT NULL DEFAULT 1,
     `Logo` LONGTEXT NULL,
+    `AllowMultipleSessions` BOOLEAN NOT NULL DEFAULT 0,
+    `MaxActiveSessionsPerUser` INT NOT NULL DEFAULT 1,
+    `AllowMultipleOpenShifts` BOOLEAN NOT NULL DEFAULT 0,
+    `MaxOpenShiftsPerUser` INT NOT NULL DEFAULT 1,
+    `RequireOpenShiftToOperate` BOOLEAN NOT NULL DEFAULT 1,
+    `RequireInitialCashAmount` BOOLEAN NOT NULL DEFAULT 1,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `SubscriptionExpiresAt` DATETIME NULL,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -63,6 +69,10 @@ CREATE TABLE IF NOT EXISTS `Branches` (
     `TotalCapacity` INT NOT NULL DEFAULT 100,
     `PaperWidth` INT NOT NULL DEFAULT 80,
     `DefaultInitialCash` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `AllowChargeByMinute` BOOLEAN NOT NULL DEFAULT 1,
+    `AllowChargeByHour` BOOLEAN NOT NULL DEFAULT 1,
+    `AllowChargeByDay` BOOLEAN NOT NULL DEFAULT 1,
+    `AllowChargeByNight` BOOLEAN NOT NULL DEFAULT 0,
     `Notes` VARCHAR(500) NULL,
     `LogoBase64` LONGTEXT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
@@ -78,40 +88,102 @@ CREATE TABLE IF NOT EXISTS `Branches` (
 -- Migración Defensiva de Columnas para Bases de Datos Existentes
 SET @dbname = DATABASE();
 
--- 1.1a Logo en Companies
+-- 1.1a Columnas Operativas en Companies
 SET @tableName = "Companies";
-SET @colName = "Logo";
+
 SET @sqlCmd = (SELECT IF(
-  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = @colName) > 0,
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'Logo') > 0,
   "SELECT 1",
   "ALTER TABLE `Companies` ADD COLUMN `Logo` LONGTEXT NULL AFTER `MaxBranches`;"
 ));
-PREPARE stmtLogo FROM @sqlCmd;
-EXECUTE stmtLogo;
-DEALLOCATE PREPARE stmtLogo;
+PREPARE stmt1 FROM @sqlCmd; EXECUTE stmt1; DEALLOCATE PREPARE stmt1;
 
--- 1.1b PaperWidth en Branches
-SET @tableName = "Branches";
-SET @colName = "PaperWidth";
 SET @sqlCmd = (SELECT IF(
-  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = @colName) > 0,
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'AllowMultipleSessions') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `AllowMultipleSessions` BOOLEAN NOT NULL DEFAULT 0;"
+));
+PREPARE stmt2 FROM @sqlCmd; EXECUTE stmt2; DEALLOCATE PREPARE stmt2;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'MaxActiveSessionsPerUser') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `MaxActiveSessionsPerUser` INT NOT NULL DEFAULT 1;"
+));
+PREPARE stmt3 FROM @sqlCmd; EXECUTE stmt3; DEALLOCATE PREPARE stmt3;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'AllowMultipleOpenShifts') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `AllowMultipleOpenShifts` BOOLEAN NOT NULL DEFAULT 0;"
+));
+PREPARE stmt4 FROM @sqlCmd; EXECUTE stmt4; DEALLOCATE PREPARE stmt4;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'MaxOpenShiftsPerUser') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `MaxOpenShiftsPerUser` INT NOT NULL DEFAULT 1;"
+));
+PREPARE stmt5 FROM @sqlCmd; EXECUTE stmt5; DEALLOCATE PREPARE stmt5;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'RequireOpenShiftToOperate') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `RequireOpenShiftToOperate` BOOLEAN NOT NULL DEFAULT 1;"
+));
+PREPARE stmt6 FROM @sqlCmd; EXECUTE stmt6; DEALLOCATE PREPARE stmt6;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'RequireInitialCashAmount') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `RequireInitialCashAmount` BOOLEAN NOT NULL DEFAULT 1;"
+));
+PREPARE stmt7 FROM @sqlCmd; EXECUTE stmt7; DEALLOCATE PREPARE stmt7;
+
+-- 1.1b Columnas Operativas y Esquemas de Cobro en Branches
+SET @tableName = "Branches";
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'PaperWidth') > 0,
   "SELECT 1",
   "ALTER TABLE `Branches` ADD COLUMN `PaperWidth` INT NOT NULL DEFAULT 80 AFTER `TotalCapacity`;"
 ));
-PREPARE stmtPaper FROM @sqlCmd;
-EXECUTE stmtPaper;
-DEALLOCATE PREPARE stmtPaper;
+PREPARE stmt8 FROM @sqlCmd; EXECUTE stmt8; DEALLOCATE PREPARE stmt8;
 
--- 1.1c DefaultInitialCash en Branches
-SET @colName = "DefaultInitialCash";
 SET @sqlCmd = (SELECT IF(
-  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = @colName) > 0,
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'DefaultInitialCash') > 0,
   "SELECT 1",
   "ALTER TABLE `Branches` ADD COLUMN `DefaultInitialCash` DECIMAL(18,2) NOT NULL DEFAULT 0.00 AFTER `PaperWidth`;"
 ));
-PREPARE stmtCash FROM @sqlCmd;
-EXECUTE stmtCash;
-DEALLOCATE PREPARE stmtCash;
+PREPARE stmt9 FROM @sqlCmd; EXECUTE stmt9; DEALLOCATE PREPARE stmt9;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'AllowChargeByMinute') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `AllowChargeByMinute` BOOLEAN NOT NULL DEFAULT 1;"
+));
+PREPARE stmt10 FROM @sqlCmd; EXECUTE stmt10; DEALLOCATE PREPARE stmt10;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'AllowChargeByHour') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `AllowChargeByHour` BOOLEAN NOT NULL DEFAULT 1;"
+));
+PREPARE stmt11 FROM @sqlCmd; EXECUTE stmt11; DEALLOCATE PREPARE stmt11;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'AllowChargeByDay') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `AllowChargeByDay` BOOLEAN NOT NULL DEFAULT 1;"
+));
+PREPARE stmt12 FROM @sqlCmd; EXECUTE stmt12; DEALLOCATE PREPARE stmt12;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'AllowChargeByNight') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `AllowChargeByNight` BOOLEAN NOT NULL DEFAULT 0;"
+));
+PREPARE stmt13 FROM @sqlCmd; EXECUTE stmt13; DEALLOCATE PREPARE stmt13;
 
 -- 1.2 Tipos de Identificación
 CREATE TABLE IF NOT EXISTS `IdentificationType` (
@@ -308,6 +380,7 @@ CREATE TABLE IF NOT EXISTS `VehicleRates` (
     `HourRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `MinuteRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `FullDayRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `NightRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `GracePeriodMinutes` INT NOT NULL DEFAULT 15,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -421,6 +494,7 @@ CREATE TABLE IF NOT EXISTS `WorkShifts` (
     `BranchId` INT NULL,
     `UserId` INT NOT NULL,
     `OperatorName` VARCHAR(100) NOT NULL,
+    `CashRegisterName` VARCHAR(100) NOT NULL DEFAULT 'Caja Principal',
     `StartTimeUtc` DATETIME(6) NOT NULL,
     `EndTimeUtc` DATETIME(6) NULL,
     `ClosedAtUtc` DATETIME(6) NULL,
@@ -598,6 +672,24 @@ CREATE TABLE IF NOT EXISTS `UserParkings` (
     CONSTRAINT `FK_UserParkings_ParkingLots_ParkingLotId` FOREIGN KEY (`ParkingLotId`) REFERENCES `ParkingLots` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 1.27 Control de Sesiones Concurrentes (UserSessions)
+CREATE TABLE IF NOT EXISTS `UserSessions` (
+    `SessionId` CHAR(36) NOT NULL,
+    `UserId` INT NOT NULL,
+    `Jti` VARCHAR(64) NOT NULL,
+    `DeviceInfo` VARCHAR(150) NULL,
+    `IpAddress` VARCHAR(45) NULL,
+    `CreatedAtUtc` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `ExpiresAtUtc` DATETIME NOT NULL,
+    `IsRevoked` BOOLEAN NOT NULL DEFAULT 0,
+    `RevokedAtUtc` DATETIME NULL,
+    `RevokedReason` VARCHAR(50) NULL,
+    PRIMARY KEY (`SessionId`),
+    KEY `IX_UserSessions_UserId_IsRevoked_ExpiresAtUtc` (`UserId`, `IsRevoked`, `ExpiresAtUtc`),
+    KEY `IX_UserSessions_Jti` (`Jti`),
+    CONSTRAINT `FK_UserSessions_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ==================================================================================
 -- FASE 2: INSERCIÓN DE DATOS SEMILLA (SEEDS)
 -- ==================================================================================
@@ -612,18 +704,11 @@ VALUES
 ON DUPLICATE KEY UPDATE `ProductVersion` = VALUES(`ProductVersion`);
 
 -- ----------------------------------------------------------------------------------
--- 2.1 EMPRESA MATRIZ GLOBAL (Companies) - Plataforma SaaS
+-- 2.1 INICIALIZACIÓN SIN EMPRESAS PRE-SEMBRADAS (Multi-Tenant Limpio)
+-- NOTA: No se insertan empresas en este seed. La plataforma inicia desde cero (0 empresas)
+-- para que el Super Administrador ('admin') cree empresas dinámicamente desde el PWA
+-- parametrizando sus políticas operativas, sedes y tarifas de manera personalizada.
 -- ----------------------------------------------------------------------------------
-INSERT INTO Companies (Id, Name, LegalName, Nit, Email, Phone, Address, City, PlanType, MaxBranches, IsActive, CreatedAt)
-VALUES
-    (1, 'ParkPoint Global SaaS', 'ParkPoint Solutions S.A.S', '900000000-1', 'soporte@parkpoint.local', '+57 300 000 0000', 'Calle Principal # 1-00', 'Bogotá', 'Enterprise', 99, 1, UTC_TIMESTAMP())
-AS new_row
-ON DUPLICATE KEY UPDATE 
-    Name = new_row.Name,
-    Nit = new_row.Nit,
-    PlanType = new_row.PlanType,
-    MaxBranches = new_row.MaxBranches,
-    IsActive = 1;
 
 -- ----------------------------------------------------------------------------------
 -- 2.2 TIPOS DE IDENTIFICACIÓN (IdentificationType)

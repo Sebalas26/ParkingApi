@@ -9,6 +9,7 @@ namespace ParkingApi.Domain.Interfaces.Repositories.Shifts;
 public interface IShiftRepository
 {
     Task<WorkShift?> GetActiveShiftByUserIdAsync(int userId, int? branchId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<WorkShift>> GetActiveShiftsByUserIdAsync(int userId, int? branchId = null, CancellationToken cancellationToken = default);
     Task<WorkShift?> GetActiveShiftAsync(int? branchId = null, CancellationToken cancellationToken = default);
     Task<WorkShift?> GetByIdAsync(Guid shiftId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<WorkShift>> GetHistoryAsync(DateTime? fromDate, DateTime? toDate, int? branchId = null, CancellationToken cancellationToken = default);

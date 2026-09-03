@@ -101,6 +101,28 @@ public class ShiftsController : ControllerBase
         }
     }
 
+    [HttpGet("active-list")]
+    public async Task<IActionResult> GetActiveList([FromQuery] int? userId, [FromQuery] int? branchId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            int? queryUser = userId;
+            var isAdmin = User.IsInRole("Administrador") || User.IsInRole("Admin") || User.IsInRole("Super Administrador") || _currentUser?.IsSuperAdmin == true;
+            if (!queryUser.HasValue && !isAdmin && int.TryParse(_currentUser?.UserId, out int parsedId) && parsedId > 0)
+            {
+                queryUser = parsedId;
+            }
+
+            var shifts = await _shiftService.GetActiveShiftsAsync(queryUser, branchId, cancellationToken);
+            return Ok(shifts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar lista de turnos activos");
+            return StatusCode(500, new { message = "Error interno al consultar turnos activos." });
+        }
+    }
+
     [HttpGet("summary/{shiftId}")]
     public async Task<IActionResult> GetSummary(Guid shiftId, CancellationToken cancellationToken)
     {

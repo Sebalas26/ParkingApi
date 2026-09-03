@@ -108,6 +108,11 @@ public class BranchService : IBranchService
             throw new InvalidOperationException($"Ya existe una sede registrada con el nombre comercial '{dto.Name.Trim()}' en esta empresa.");
         }
 
+        if (company.RequireInitialCashAmount && dto.DefaultInitialCash <= 0)
+        {
+            throw new InvalidOperationException("Para esta empresa es obligatorio configurar un monto base inicial por defecto para la sede.");
+        }
+
         var branch = new Branch
         {
             CompanyId = dto.CompanyId.Value,
@@ -121,6 +126,10 @@ public class BranchService : IBranchService
             LogoBase64 = dto.LogoBase64?.Trim(),
             PaperWidth = dto.PaperWidth > 0 ? dto.PaperWidth : 80,
             DefaultInitialCash = dto.DefaultInitialCash >= 0 ? dto.DefaultInitialCash : 0m,
+            AllowChargeByMinute = dto.AllowChargeByMinute,
+            AllowChargeByHour = dto.AllowChargeByHour,
+            AllowChargeByDay = dto.AllowChargeByDay,
+            AllowChargeByNight = dto.AllowChargeByNight,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -140,6 +149,12 @@ public class BranchService : IBranchService
             throw new InvalidOperationException($"Ya existe otra sede registrada con el nombre comercial '{dto.Name.Trim()}' en esta empresa.");
         }
 
+        var company = await _companyRepository.GetByIdAsync(branch.CompanyId, cancellationToken);
+        if (company != null && company.RequireInitialCashAmount && dto.DefaultInitialCash <= 0)
+        {
+            throw new InvalidOperationException("Para esta empresa es obligatorio configurar un monto base inicial por defecto para la sede.");
+        }
+
         if (!string.IsNullOrWhiteSpace(dto.Code))
         {
             branch.Code = dto.Code.Trim().ToUpperInvariant();
@@ -152,6 +167,10 @@ public class BranchService : IBranchService
         branch.Notes = dto.Notes?.Trim();
         branch.PaperWidth = dto.PaperWidth > 0 ? dto.PaperWidth : 80;
         branch.DefaultInitialCash = dto.DefaultInitialCash >= 0 ? dto.DefaultInitialCash : branch.DefaultInitialCash;
+        branch.AllowChargeByMinute = dto.AllowChargeByMinute;
+        branch.AllowChargeByHour = dto.AllowChargeByHour;
+        branch.AllowChargeByDay = dto.AllowChargeByDay;
+        branch.AllowChargeByNight = dto.AllowChargeByNight;
         if (dto.LogoBase64 != null)
         {
             branch.LogoBase64 = dto.LogoBase64.Trim();
@@ -230,6 +249,10 @@ public class BranchService : IBranchService
         LogoBase64 = b.LogoBase64,
         PaperWidth = b.PaperWidth > 0 ? b.PaperWidth : 80,
         DefaultInitialCash = b.DefaultInitialCash,
+        AllowChargeByMinute = b.AllowChargeByMinute,
+        AllowChargeByHour = b.AllowChargeByHour,
+        AllowChargeByDay = b.AllowChargeByDay,
+        AllowChargeByNight = b.AllowChargeByNight,
         IsActive = b.IsActive,
         CreatedAt = b.CreatedAt
     };

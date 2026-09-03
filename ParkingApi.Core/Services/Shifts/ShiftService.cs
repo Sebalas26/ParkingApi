@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Shifts;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
+using ParkingApi.Domain.Interfaces.Repositories.Companies;
 using ParkingApi.Domain.Interfaces.Repositories.Shifts;
 using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.Shifts;
@@ -18,17 +19,20 @@ public class ShiftService : IShiftService
 {
     private readonly IShiftRepository _shiftRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly ICompanyRepository _companyRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<ShiftService> _logger;
 
     public ShiftService(
         IShiftRepository shiftRepository,
         IBranchRepository branchRepository,
+        ICompanyRepository companyRepository,
         ICurrentUserService currentUser,
         ILogger<ShiftService> logger)
     {
         _shiftRepository = shiftRepository;
         _branchRepository = branchRepository;
+        _companyRepository = companyRepository;
         _currentUser = currentUser;
         _logger = logger;
     }
@@ -73,11 +77,38 @@ public class ShiftService : IShiftService
                 throw new InvalidOperationException("No es posible abrir caja para esta sede ya que no cuenta con operadores asignados.");
             }
 
-            var activeShift = await _shiftRepository.GetActiveShiftByUserIdAsync(userId, dto.BranchId, cancellationToken);
-            if (activeShift != null)
+            var company = await _companyRepository.GetByIdAsync(resolvedCompanyId.Value, cancellationToken);
+            var activeShifts = await _shiftRepository.GetActiveShiftsByUserIdAsync(userId, null, cancellationToken);
+
+            if (company != null && company.AllowMultipleOpenShifts)
             {
-                return MapToDto(activeShift);
+                int maxShifts = company.MaxOpenShiftsPerUser > 1 ? company.MaxOpenShiftsPerUser : 1;
+                if (activeShifts.Count >= maxShifts)
+                {
+                    throw new InvalidOperationException($"Has alcanzado el límite máximo de {maxShifts} caja(s) abierta(s) simultáneamente permitidas para tu empresa.");
+                }
             }
+            else
+            {
+                if (activeShifts.Any())
+                {
+                    var existingForBranch = activeShifts.FirstOrDefault(s => s.BranchId == dto.BranchId.Value);
+                    if (existingForBranch != null)
+                    {
+                        return MapToDto(existingForBranch);
+                    }
+                    return MapToDto(activeShifts.First());
+                }
+            }
+
+            if (company != null && company.RequireInitialCashAmount && dto.BaseAmount <= 0)
+            {
+                throw new InvalidOperationException("Para esta empresa es obligatorio ingresar un monto base inicial mayor a cero para abrir la caja.");
+            }
+
+            string registerName = string.IsNullOrWhiteSpace(dto.CashRegisterName)
+                ? (activeShifts.Count > 0 ? $"Caja {activeShifts.Count + 1}" : "Caja Principal")
+                : dto.CashRegisterName.Trim();
 
             var newShift = new WorkShift
             {
@@ -86,6 +117,7 @@ public class ShiftService : IShiftService
                 BranchId = dto.BranchId.Value,
                 UserId = userId,
                 OperatorName = string.IsNullOrWhiteSpace(operatorName) ? "Operador General" : operatorName,
+                CashRegisterName = registerName,
                 StartTimeUtc = DateTime.UtcNow,
                 BaseAmount = dto.BaseAmount,
                 Status = ShiftStatus.Open,
@@ -104,6 +136,26 @@ public class ShiftService : IShiftService
         {
             _logger.LogError(ex, "Error al abrir turno para usuario {UserId} en sede {BranchId}", userId, dto.BranchId);
             return null;
+        }
+    }
+
+    public async Task<IReadOnlyList<WorkShiftDto>> GetActiveShiftsAsync(int? userId, int? branchId = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (userId.HasValue && userId.Value > 0)
+            {
+                var shifts = await _shiftRepository.GetActiveShiftsByUserIdAsync(userId.Value, branchId, cancellationToken);
+                return shifts.Select(MapToDto).ToList();
+            }
+
+            var single = await _shiftRepository.GetActiveShiftAsync(branchId, cancellationToken);
+            return single != null ? new List<WorkShiftDto> { MapToDto(single) } : new List<WorkShiftDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar turnos activos para usuario {UserId} en sede {BranchId}", userId, branchId);
+            return new List<WorkShiftDto>();
         }
     }
 
@@ -240,6 +292,7 @@ public class ShiftService : IShiftService
             BranchId = s.BranchId,
             UserId = s.UserId,
             OperatorName = s.OperatorName,
+            CashRegisterName = s.CashRegisterName ?? "Caja Principal",
             StartTimeUtc = s.StartTimeUtc,
             EndTimeUtc = s.EndTimeUtc,
             BaseAmount = s.BaseAmount,

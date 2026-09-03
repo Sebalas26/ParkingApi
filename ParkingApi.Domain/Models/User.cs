@@ -32,4 +32,5 @@ public class User
     public virtual ICollection<Login> Logins { get; set; } = new List<Login>();
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
+    public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
 }

@@ -244,6 +244,7 @@ public class MultiBranchConfigurations :
         builder.Property(c => c.City).HasMaxLength(50);
         builder.Property(c => c.PlanType).IsRequired().HasMaxLength(50).HasDefaultValue("Basic");
         builder.Property(c => c.MaxBranches).HasDefaultValue(1);
+        builder.Property(c => c.RequireInitialCashAmount).HasDefaultValue(true);
         builder.Property(c => c.Logo).HasColumnType("longtext").IsRequired(false);
         builder.Ignore(c => c.LogoBase64);
 
@@ -268,6 +269,10 @@ public class MultiBranchConfigurations :
         builder.Property(b => b.Notes).HasMaxLength(500);
         builder.Property(b => b.PaperWidth).HasDefaultValue(80);
         builder.Property(b => b.DefaultInitialCash).HasPrecision(18, 2).HasDefaultValue(0m);
+        builder.Property(b => b.AllowChargeByMinute).HasDefaultValue(true);
+        builder.Property(b => b.AllowChargeByHour).HasDefaultValue(true);
+        builder.Property(b => b.AllowChargeByDay).HasDefaultValue(true);
+        builder.Property(b => b.AllowChargeByNight).HasDefaultValue(false);
 
         builder.HasIndex(b => new { b.CompanyId, b.Code }).IsUnique();
         builder.HasIndex(b => b.CompanyId);
@@ -342,6 +347,7 @@ public class ParkingBusinessConfigurations :
         builder.Property(r => r.HourRate).HasPrecision(18, 2);
         builder.Property(r => r.MinuteRate).HasPrecision(18, 2);
         builder.Property(r => r.FullDayRate).HasPrecision(18, 2);
+        builder.Property(r => r.NightRate).HasPrecision(18, 2);
 
         builder.HasIndex(r => r.BranchId);
         builder.HasIndex(r => r.CompanyId);
@@ -466,6 +472,7 @@ public class ParkingBusinessConfigurations :
         builder.ToTable("WorkShifts");
         builder.HasKey(ws => ws.ShiftId);
         builder.Property(ws => ws.OperatorName).IsRequired().HasMaxLength(100);
+        builder.Property(ws => ws.CashRegisterName).IsRequired().HasMaxLength(100).HasDefaultValue("Caja Principal");
         builder.Property(ws => ws.BaseAmount).HasPrecision(18, 2);
         builder.Property(ws => ws.TotalCashCollected).HasPrecision(18, 2);
         builder.Property(ws => ws.TotalCardCollected).HasPrecision(18, 2);
@@ -607,3 +614,25 @@ public class ParkingBusinessConfigurations :
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public class UserSessionConfiguration : IEntityTypeConfiguration<UserSession>
+{
+    public void Configure(EntityTypeBuilder<UserSession> builder)
+    {
+        builder.ToTable("UserSessions");
+        builder.HasKey(s => s.SessionId);
+        builder.Property(s => s.Jti).IsRequired().HasMaxLength(64);
+        builder.Property(s => s.DeviceInfo).HasMaxLength(150);
+        builder.Property(s => s.IpAddress).HasMaxLength(45);
+        builder.Property(s => s.RevokedReason).HasMaxLength(50);
+
+        builder.HasIndex(s => new { s.UserId, s.IsRevoked, s.ExpiresAtUtc });
+        builder.HasIndex(s => s.Jti);
+
+        builder.HasOne(s => s.User)
+            .WithMany(u => u.UserSessions)
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+

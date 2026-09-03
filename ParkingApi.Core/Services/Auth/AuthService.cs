@@ -28,6 +28,7 @@ public class AuthService : IAuthService
 {
     private readonly IUserService _userService;
     private readonly IUserRepository _userRepository;
+    private readonly IUserSessionRepository _userSessionRepository;
     private readonly IBranchRepository _branchRepository;
     private readonly IRoleActionRepository _roleActionRepository;
     private readonly ILoginService _loginService;
@@ -40,6 +41,7 @@ public class AuthService : IAuthService
     public AuthService(
         IUserService userService,
         IUserRepository userRepository,
+        IUserSessionRepository userSessionRepository,
         IBranchRepository branchRepository,
         IRoleActionRepository roleActionRepository,
         ILoginService loginService,
@@ -51,6 +53,7 @@ public class AuthService : IAuthService
     {
         _userService = userService;
         _userRepository = userRepository;
+        _userSessionRepository = userSessionRepository;
         _branchRepository = branchRepository;
         _roleActionRepository = roleActionRepository;
         _loginService = loginService;
@@ -136,26 +139,62 @@ public class AuthService : IAuthService
 
             var jwtResult = user.CreateJwt(roleName, _options);
 
-            var oldToken = user.Token;
+            // Control de sesiones concurrentes por empresa
+            bool allowMultiSessions = user.Company != null && user.Company.AllowMultipleSessions;
+            int maxSessions = user.Company != null && user.Company.MaxActiveSessionsPerUser > 1
+                ? user.Company.MaxActiveSessionsPerUser
+                : 1;
+
+            IReadOnlyList<string> evictedJtis;
+            if (allowMultiSessions)
+            {
+                evictedJtis = await _userSessionRepository.RevokeExcessSessionsAsync(user.Id, maxSessions, "MaxSessionsExceeded", cancellation);
+            }
+            else
+            {
+                evictedJtis = await _userSessionRepository.RevokeAllUserSessionsExceptLatestAsync(user.Id, "SingleSessionPolicy", cancellation);
+                if (!string.IsNullOrEmpty(user.Token) && !evictedJtis.Contains(user.Token))
+                {
+                    await _userSessionRepository.RevokeSessionByJtiAsync(user.Token, "SingleSessionPolicy", cancellation);
+                    var list = evictedJtis.ToList();
+                    list.Add(user.Token);
+                    evictedJtis = list;
+                }
+            }
+
+            foreach (var evictedJti in evictedJtis)
+            {
+                _cache.Remove($"SessionActive_{user.Id}_{evictedJti}");
+                _ = _realtimeNotifier.NotifyCustomAsync(new ConfigNotificationDto
+                {
+                    EventType = "UserSessionTerminated",
+                    UserId = user.Id,
+                    SessionToken = evictedJti,
+                    Title = "Sesión Cerrada en Otro Dispositivo",
+                    Message = $"Tu sesión fue cerrada porque se superó el límite de sesiones activas o se inició en otro dispositivo.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellation);
+            }
+
+            var newSession = new UserSession
+            {
+                SessionId = Guid.NewGuid(),
+                UserId = user.Id,
+                Jti = jwtResult.Jti,
+                DeviceInfo = "Sesión Móvil",
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes),
+                CreatedAtUtc = DateTime.UtcNow,
+                IsRevoked = false
+            };
+            await _userSessionRepository.AddAsync(newSession, cancellation);
+
             user.Token = jwtResult.Jti;
             user.ExpirationDate = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellation);
 
+            _cache.Set($"SessionActive_{user.Id}_{jwtResult.Jti}", true, TimeSpan.FromMinutes(_options.AccessTokenMinutes));
             _cache.Set($"ActiveToken_User_{user.Id}", jwtResult.Jti, TimeSpan.FromMinutes(_options.AccessTokenMinutes));
-
-            if (!string.IsNullOrEmpty(oldToken) && !string.Equals(oldToken, jwtResult.Jti, StringComparison.Ordinal))
-            {
-                _ = _realtimeNotifier.NotifyCustomAsync(new ConfigNotificationDto
-                {
-                    EventType = "UserSessionTerminated",
-                    UserId = user.Id,
-                    SessionToken = jwtResult.Jti,
-                    Title = "Sesión Cerrada en Otro Dispositivo",
-                    Message = $"Se ha iniciado una nueva sesión para '{user.Username}' desde otra ubicación o dispositivo.",
-                    TimestampUtc = DateTime.UtcNow
-                }, cancellation);
-            }
 
             IReadOnlyList<Branch> userBranches;
             if (isSuperAdmin)
@@ -241,26 +280,62 @@ public class AuthService : IAuthService
 
             var jwtResult = user.CreateJwt(roleName, _options);
 
-            var oldToken = user.Token;
+            // Control de sesiones concurrentes por empresa
+            bool allowMultiSessions = user.Company != null && user.Company.AllowMultipleSessions;
+            int maxSessions = user.Company != null && user.Company.MaxActiveSessionsPerUser > 1
+                ? user.Company.MaxActiveSessionsPerUser
+                : 1;
+
+            IReadOnlyList<string> evictedJtis;
+            if (allowMultiSessions)
+            {
+                evictedJtis = await _userSessionRepository.RevokeExcessSessionsAsync(user.Id, maxSessions, "MaxSessionsExceeded", cancellationToken);
+            }
+            else
+            {
+                evictedJtis = await _userSessionRepository.RevokeAllUserSessionsExceptLatestAsync(user.Id, "SingleSessionPolicy", cancellationToken);
+                if (!string.IsNullOrEmpty(user.Token) && !evictedJtis.Contains(user.Token))
+                {
+                    await _userSessionRepository.RevokeSessionByJtiAsync(user.Token, "SingleSessionPolicy", cancellationToken);
+                    var list = evictedJtis.ToList();
+                    list.Add(user.Token);
+                    evictedJtis = list;
+                }
+            }
+
+            foreach (var evictedJti in evictedJtis)
+            {
+                _cache.Remove($"SessionActive_{user.Id}_{evictedJti}");
+                _ = _realtimeNotifier.NotifyCustomAsync(new ConfigNotificationDto
+                {
+                    EventType = "UserSessionTerminated",
+                    UserId = user.Id,
+                    SessionToken = evictedJti,
+                    Title = "Sesión Cerrada en Otro Dispositivo",
+                    Message = $"Tu sesión fue cerrada porque se superó el límite de sesiones activas o se inició en otro dispositivo.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellationToken);
+            }
+
+            var newSession = new UserSession
+            {
+                SessionId = Guid.NewGuid(),
+                UserId = user.Id,
+                Jti = jwtResult.Jti,
+                DeviceInfo = "Sesión Web/POS",
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes),
+                CreatedAtUtc = DateTime.UtcNow,
+                IsRevoked = false
+            };
+            await _userSessionRepository.AddAsync(newSession, cancellationToken);
+
             user.Token = jwtResult.Jti;
             user.ExpirationDate = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateUser(user, cancellationToken);
 
+            _cache.Set($"SessionActive_{user.Id}_{jwtResult.Jti}", true, TimeSpan.FromMinutes(_options.AccessTokenMinutes));
             _cache.Set($"ActiveToken_User_{user.Id}", jwtResult.Jti, TimeSpan.FromMinutes(_options.AccessTokenMinutes));
-
-            if (!string.IsNullOrEmpty(oldToken) && !string.Equals(oldToken, jwtResult.Jti, StringComparison.Ordinal))
-            {
-                _ = _realtimeNotifier.NotifyCustomAsync(new ConfigNotificationDto
-                {
-                    EventType = "UserSessionTerminated",
-                    UserId = user.Id,
-                    SessionToken = jwtResult.Jti,
-                    Title = "Sesión Cerrada en Otro Dispositivo",
-                    Message = $"Se ha iniciado una nueva sesión para '{user.Username}' desde otra ubicación o dispositivo.",
-                    TimestampUtc = DateTime.UtcNow
-                }, cancellationToken);
-            }
 
             IReadOnlyList<Branch> userBranches;
             if (isSuperAdmin)
@@ -296,6 +371,12 @@ public class AuthService : IAuthService
                 City = b.City,
                 TotalCapacity = b.TotalCapacity,
                 Notes = b.Notes,
+                PaperWidth = b.PaperWidth,
+                DefaultInitialCash = b.DefaultInitialCash,
+                AllowChargeByMinute = b.AllowChargeByMinute,
+                AllowChargeByHour = b.AllowChargeByHour,
+                AllowChargeByDay = b.AllowChargeByDay,
+                AllowChargeByNight = b.AllowChargeByNight,
                 IsActive = b.IsActive,
                 CreatedAt = b.CreatedAt
             }).ToList();
@@ -324,6 +405,12 @@ public class AuthService : IAuthService
                 CompanyId = user.CompanyId,
                 CompanyName = user.Company?.Name,
                 MaxBranches = user.Company?.MaxBranches,
+                AllowMultipleSessions = user.Company?.AllowMultipleSessions ?? false,
+                MaxActiveSessionsPerUser = user.Company?.MaxActiveSessionsPerUser ?? 1,
+                RequireOpenShiftToOperate = user.Company?.RequireOpenShiftToOperate ?? true,
+                AllowMultipleOpenShifts = user.Company?.AllowMultipleOpenShifts ?? false,
+                MaxOpenShiftsPerUser = user.Company?.MaxOpenShiftsPerUser ?? 1,
+                RequireInitialCashAmount = user.Company?.RequireInitialCashAmount ?? true,
                 Branches = branchDtos,
                 Permissions = rolePermissions
             };
@@ -383,6 +470,12 @@ public class AuthService : IAuthService
                 City = b.City,
                 TotalCapacity = b.TotalCapacity,
                 Notes = b.Notes,
+                PaperWidth = b.PaperWidth,
+                DefaultInitialCash = b.DefaultInitialCash,
+                AllowChargeByMinute = b.AllowChargeByMinute,
+                AllowChargeByHour = b.AllowChargeByHour,
+                AllowChargeByDay = b.AllowChargeByDay,
+                AllowChargeByNight = b.AllowChargeByNight,
                 IsActive = b.IsActive,
                 CreatedAt = b.CreatedAt
             }).ToList();
@@ -410,6 +503,12 @@ public class AuthService : IAuthService
                 CompanyId = user.CompanyId,
                 CompanyName = user.Company?.Name,
                 MaxBranches = user.Company?.MaxBranches,
+                AllowMultipleSessions = user.Company?.AllowMultipleSessions ?? false,
+                MaxActiveSessionsPerUser = user.Company?.MaxActiveSessionsPerUser ?? 1,
+                RequireOpenShiftToOperate = user.Company?.RequireOpenShiftToOperate ?? true,
+                AllowMultipleOpenShifts = user.Company?.AllowMultipleOpenShifts ?? false,
+                MaxOpenShiftsPerUser = user.Company?.MaxOpenShiftsPerUser ?? 1,
+                RequireInitialCashAmount = user.Company?.RequireInitialCashAmount ?? true,
                 Branches = branchDtos,
                 Permissions = rolePermissions
             };
