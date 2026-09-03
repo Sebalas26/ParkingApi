@@ -17,4 +17,5 @@ public interface IUserSessionRepository
     Task<IReadOnlyList<string>> RevokeExcessSessionsAsync(int userId, int maxAllowed, string reason = "MaxSessionsExceeded", CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> RevokeAllUserSessionsExceptLatestAsync(int userId, string reason = "CompanyPolicyDisabled", CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> RevokeAllSessionsByCompanyIdExceptLatestAsync(int companyId, string reason = "CompanyPolicyDisabled", CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<(int UserId, string Jti)>> RevokeAllSessionsByCompanyIdAsync(int companyId, string reason = "CompanyPolicyDisabled", CancellationToken cancellationToken = default);
 }

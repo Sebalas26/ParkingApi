@@ -64,20 +64,7 @@ builder.Services.AddAuthentication(options =>
                 if (!cache.TryGetValue(sessionCacheKey, out bool isSessionValid))
                 {
                     isSessionValid = await sessionRepo.IsSessionActiveAsync(userId, jtiClaim, context.HttpContext.RequestAborted);
-
-                    if (!isSessionValid)
-                    {
-                        var user = await userRepo.GetByIdAsync(userId, context.HttpContext.RequestAborted);
-                        if (user != null && string.Equals(user.Token, jtiClaim, StringComparison.Ordinal))
-                        {
-                            isSessionValid = true;
-                        }
-                    }
-
-                    if (isSessionValid)
-                    {
-                        cache.Set(sessionCacheKey, true, TimeSpan.FromSeconds(30));
-                    }
+                    cache.Set(sessionCacheKey, isSessionValid, TimeSpan.FromSeconds(isSessionValid ? 30 : 600));
                 }
 
                 if (!isSessionValid)

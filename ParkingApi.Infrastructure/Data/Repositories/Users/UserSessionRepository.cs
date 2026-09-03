@@ -154,4 +154,32 @@ public class UserSessionRepository : IUserSessionRepository
 
         return allRevokedJtis;
     }
+
+    public async Task<IReadOnlyList<(int UserId, string Jti)>> RevokeAllSessionsByCompanyIdAsync(int companyId, string reason = "CompanyPolicyDisabled", CancellationToken cancellationToken = default)
+    {
+        var companyUserIds = await _context.User
+            .Where(u => u.CompanyId == companyId)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+
+        var activeSessions = await _context.UserSessions
+            .Where(s => companyUserIds.Contains(s.UserId) && !s.IsRevoked && s.ExpiresAtUtc > DateTime.UtcNow)
+            .ToListAsync(cancellationToken);
+
+        var revoked = new List<(int UserId, string Jti)>();
+        foreach (var s in activeSessions)
+        {
+            s.IsRevoked = true;
+            s.RevokedAtUtc = DateTime.UtcNow;
+            s.RevokedReason = reason;
+            revoked.Add((s.UserId, s.Jti));
+        }
+
+        if (revoked.Count > 0)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return revoked;
+    }
 }

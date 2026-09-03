@@ -2,6 +2,36 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-03 17:05:00] - Revocación Instantánea de Sesiones y Eliminación de Siembra Residual en Creación de Empresas
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Tenemos un error, estamos probando las nuevas parametrizaciones, sucede y acontese que creamos una empresa con la opción de que multiple sesiones le colocamos 2 bien accedimos a una tercera y bien super bien cerraba como la ultima que iniciaba bien y así en secuencia pero entramos a editar la empresa y le quitamos la opción de multisesion me acuerdo que te habia dicho que deberia cerrar todas las sesiones de los dispositivos que de la empresa que estuvieran iniciados si me explico pues con el fin de la nueva parametrización si me epxlico ? eso no sucedio. analiza eso . esto en version web sale así en movil si sale como deberia pues como no hay anda cargado no deberia mockup nada eso es plenamente dinamico y de acuerod a lo que se cree sucede lo mismo con la siguiente imagen eso tambien esta en movil y en web y eso ya se habia solucionado no entiendo en que parte del codigo esta eso qumado eso no deberia ser quemado ni nada si me explico."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Eliminación de Datos Quemados/Siembras en Creación de Empresa**:
+    - En `CompanyService.CreateCompanyAsync`, se eliminó la inserción automática de 5 tarifas vehiculares (`Automóvil / Sedán`, `Motocicleta`, `Camioneta / SUV`, `Vehículo Pesado / Camión`, `Bicicleta`) y la "Resolución POS Inicial" que generaban que el dashboard del PWA mostrara datos con 0 en vez de sus estados vacíos dinámicos.
+    - Las empresas nuevas ahora nacen con **cero (0) tarifas y cero (0) resoluciones**, 100% dinámicas y limpias.
+  - **Revocación Masiva de Sesiones de Empresa**:
+    - Se agregó el método `RevokeAllSessionsByCompanyIdAsync` en `IUserSessionRepository` y `UserSessionRepository`.
+    - En `CompanyService.UpdateCompanyAsync`, al cambiar `AllowMultipleSessions` a `false`, se revoca el 100% de las sesiones de los usuarios de esa empresa.
+    - Se inyectó `IMemoryCache` en `CompanyService` para purgar de inmediato las llaves `SessionActive_{userId}_{jti}`, evitando que el backend siga autorizando tokens revocados en memoria.
+    - En `Program.cs`, se endureció `JwtBearerEvents.OnTokenValidated` para rechazar de inmediato peticiones con tokens revocados.
+    - Se agregó la propiedad `CompanyId` a `ConfigNotificationDto` para notificaciones específicas de empresa.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Repositories/Users/IUserSessionRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Users/UserSessionRepository.cs`
+  - `ParkingApi.Domain/Dtos/Realtime/ConfigNotificationDto.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi/Program.cs`
+  - `ParkingApi.UnitTests/CompanyPolicyTests.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test` (**38 de 38 Pruebas Unitarias Superadas - 0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-03 16:25:00] - Multi-Tenant Limpio: Eliminación de Siembra de Empresa Inicial y Consolidación de Esquemas en 02_Init_RBAC_Seed.sql
 
 - **`💬 Prompt Original del Usuario`**:

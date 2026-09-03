@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Companies;
 using ParkingApi.Domain.Interfaces.Repositories.Companies;
@@ -23,19 +24,22 @@ public class CompanyService : ICompanyService
     private readonly IRealtimeNotificationService _realtimeNotifier;
     private readonly DataContext _context;
     private readonly ILogger<CompanyService> _logger;
+    private readonly IMemoryCache? _cache;
 
     public CompanyService(
         ICompanyRepository companyRepository,
         IUserSessionRepository userSessionRepository,
         IRealtimeNotificationService realtimeNotifier,
         DataContext context,
-        ILogger<CompanyService> logger)
+        ILogger<CompanyService> logger,
+        IMemoryCache? cache = null)
     {
         _companyRepository = companyRepository;
         _userSessionRepository = userSessionRepository;
         _realtimeNotifier = realtimeNotifier;
         _context = context;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<IReadOnlyList<CompanyDto>> GetAllCompaniesAsync(CancellationToken cancellationToken = default)
@@ -222,38 +226,7 @@ public class CompanyService : ICompanyService
                     ResponsibleUserId = responsibleUserId
                 });
 
-                // 9. Sembrar Catálogo Inicial de Tarifas de Vehículos para la Empresa (CompanyId)
-                var defaultRates = new List<VehicleRate>
-                {
-                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Car, DisplayName = "Automóvil / Sedán", HourRate = 3000, MinuteRate = 50, FullDayRate = 25000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Motorcycle, DisplayName = "Motocicleta", HourRate = 1500, MinuteRate = 25, FullDayRate = 12000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Suv, DisplayName = "Camioneta / SUV", HourRate = 3500, MinuteRate = 60, FullDayRate = 30000, GracePeriodMinutes = 15, IconKey = "IconCar", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Truck, DisplayName = "Vehículo Pesado / Camión", HourRate = 5000, MinuteRate = 90, FullDayRate = 45000, GracePeriodMinutes = 15, IconKey = "IconTruck", IsActive = true, CreatedAtUtc = DateTime.UtcNow },
-                    new() { RateId = Guid.NewGuid(), CompanyId = company.Id, BranchId = null, VehicleType = Domain.Common.Enums.VehicleType.Bicycle, DisplayName = "Bicicleta", HourRate = 1000, MinuteRate = 15, FullDayRate = 8000, GracePeriodMinutes = 15, IconKey = "IconBike", IsActive = true, CreatedAtUtc = DateTime.UtcNow }
-                };
-                _context.VehicleRates.AddRange(defaultRates);
-
-                // 10. Sembrar Resolución de Facturación Inicial para la Empresa (CompanyId)
-                var defaultResolution = new BillingResolution
-                {
-                    ResolutionId = Guid.NewGuid(),
-                    CompanyId = company.Id,
-                    BranchId = defaultBranch.Id,
-                    Name = "Resolución POS Inicial",
-                    DocumentType = "Documento equivalente electrónico del tiquete de máquina registradora con sistema P.O.S.",
-                    Prefix = "POS",
-                    ResolutionNumber = "18764000001",
-                    FromNumber = 1,
-                    ToNumber = 100000,
-                    CurrentNumber = 1,
-                    ValidFrom = DateTime.UtcNow.Date,
-                    ValidTo = DateTime.UtcNow.Date.AddYears(2),
-                    IsActive = true,
-                    CreatedAtUtc = DateTime.UtcNow
-                };
-                _context.BillingResolutions.Add(defaultResolution);
-
-                // 11. Habilitar Medios de Pago Activos para la Sede Inicial
+                // 9. Habilitar Medios de Pago Activos para la Sede Inicial (si existen en la plataforma)
                 var activePaymentMethods = await _context.PaymentMethod.Where(p => p.IsActive).ToListAsync(cancellationToken);
                 foreach (var pm in activePaymentMethods)
                 {
@@ -317,12 +290,16 @@ public class CompanyService : ICompanyService
 
         if (multiSessionsDisabled)
         {
-            var revokedJtis = await _userSessionRepository.RevokeAllSessionsByCompanyIdExceptLatestAsync(id, "CompanyPolicyDisabled", cancellationToken);
-            foreach (var jti in revokedJtis)
+            var revokedSessions = await _userSessionRepository.RevokeAllSessionsByCompanyIdAsync(id, "CompanyPolicyDisabled", cancellationToken);
+            foreach (var (userId, jti) in revokedSessions)
             {
+                _cache?.Remove($"SessionActive_{userId}_{jti}");
+                _cache?.Set($"SessionActive_{userId}_{jti}", false, TimeSpan.FromMinutes(10));
+
                 _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
                 {
                     EventType = "UserSessionTerminated",
+                    CompanyId = id,
                     SessionToken = jti,
                     Title = "Sesión Finalizada por Cambio de Política",
                     Message = "La empresa ha desactivado las sesiones concurrentes. Esta sesión ha sido cerrada automáticamente.",

@@ -60,8 +60,8 @@ public class CompanyPolicyTests
             .ReturnsAsync(existingCompany);
 
         // Retornar 2 tokens revocados al desactivar
-        _sessionRepoMock.Setup(r => r.RevokeAllSessionsByCompanyIdExceptLatestAsync(5, "CompanyPolicyDisabled", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<string> { "token-revocado-1", "token-revocado-2" });
+        _sessionRepoMock.Setup(r => r.RevokeAllSessionsByCompanyIdAsync(5, "CompanyPolicyDisabled", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<(int UserId, string Jti)> { (1, "token-revocado-1"), (2, "token-revocado-2") });
 
         var updateDto = new UpdateCompanyDto
         {
@@ -79,8 +79,8 @@ public class CompanyPolicyTests
         result.AllowMultipleSessions.Should().BeFalse();
         result.MaxActiveSessionsPerUser.Should().Be(1);
 
-        // Debe haber invocado la revocación masiva
-        _sessionRepoMock.Verify(r => r.RevokeAllSessionsByCompanyIdExceptLatestAsync(5, "CompanyPolicyDisabled", It.IsAny<CancellationToken>()), Times.Once);
+        // Debe haber invocado la revocación masiva total
+        _sessionRepoMock.Verify(r => r.RevokeAllSessionsByCompanyIdAsync(5, "CompanyPolicyDisabled", It.IsAny<CancellationToken>()), Times.Once);
 
         // Debe haber notificado a los 2 sockets revocados
         _realtimeMock.Verify(r => r.NotifyCustomAsync(It.Is<ConfigNotificationDto>(n => n.EventType == "UserSessionTerminated"), It.IsAny<CancellationToken>()), Times.Exactly(2));
