@@ -40,7 +40,7 @@ public class BranchRepository : IBranchRepository
     {
         return await _context.Branches
             .AsNoTracking()
-            .Where(b => b.CompanyId == companyId && b.IsActive)
+            .Where(b => b.CompanyId == companyId)
             .OrderBy(b => b.Name)
             .ToListAsync(cancellationToken);
     }
@@ -140,7 +140,7 @@ public class BranchRepository : IBranchRepository
             await _context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        return false;
+        return true;
     }
 
     public async Task<IReadOnlyList<BranchPaymentMethod>> GetPaymentMethodsByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)

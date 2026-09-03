@@ -2,6 +2,37 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-03 10:50:00] - Dimensiones de Impresión, Base Inicial de Caja, Sedes Inactivas y Aislamiento de Consecutivos
+- **`💬 Prompt Original del Usuario`**:
+  > *"🗄️ 3. Backend, Base de Datos y API (Nuevos Requerimientos): Dimensiones de Impresión en Branch (56mm/80mm), Resoluciones por Sede en DIAN, Histórico de Novedades y Soluciones, Valor Inicial de Caja en Sede. ⚙️ 2.4 Consecutivo de Tickets aislado por empresa..."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Dimensiones de Impresión y Base Inicial Predeterminada (`Branch.cs`, `BranchDtos.cs`, `EntityConfigurations.cs`, `BranchService.cs`)**:
+    - Se agregaron las propiedades `PaperWidth` (int, default 80mm) y `DefaultInitialCash` (decimal, default 0) a la entidad `Branch`, a sus configuraciones de EF Core y a sus DTOs (`BranchDto`, `CreateBranchDto`, `UpdateBranchDto`).
+  - **Sedes Inactivas Visibles para Administradores (`BranchRepository.cs`)**:
+    - En `GetBranchesByCompanyIdAsync` se retiró la condición `&& b.IsActive` para que el módulo de configuración y supervisión administrativa de sedes devuelva tanto sedes activas como inactivas.
+  - **Desasignación Idempotente de Operadores (`BranchRepository.cs`)**:
+    - En `UnassignUserAsync` se retorna `true` cuando la asociación no existe o ya fue removida, evitando falsos errores al sincronizar la matriz de asignación de usuarios.
+  - **Aislamiento Estricto de Consecutivos de Tiquetes por Empresa (`ParkingTicketService.cs`)**:
+    - Se actualizó el generador de secuencias de tiquetes para filtrar el conteo del día estrictamente por `CompanyId` y generar el formato `PKF-C{companyId}-{today:yyyyMMdd}-{seq:D3}`, garantizando que las empresas no compartan numeración.
+  - **Exposición de Rol en Consulta de Usuarios (`GetUsersDto.cs`)**:
+    - Se expuso la propiedad calculada `RoleName => UserRoleDto?.RoleName ?? string.Empty` para proveer el nombre del rol directamente a los clientes de consumo sin intermediación.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/Branch.cs`
+  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
+  - `ParkingApi.Domain/Dtos/Users/GetUsersDto.cs`
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `Scripts/02_Init_RBAC_Seed.sql`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-02 17:20:00] - Conexión Integral de Analítica y Métricas de Dashboard (Filtrado por Sede y Empresa)
 - **`💬 Prompt Original del Usuario`**:
   > *"Puedes revisar si el dashboard todo los datos estan bien conectados revisa por que no trae nada pues aun no hemos realizado nuevos ingresos con los ajustes nuevos pero quisiera que hicieras una revisada completa y dime si todo esta bien ingresa vehiculos con los nuevos ajsutes"*

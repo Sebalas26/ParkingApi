@@ -25,5 +25,6 @@ public class GetUsersDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public GetUserRoleDto? UserRoleDto { get; set; }
+    public string RoleName => UserRoleDto?.RoleName ?? string.Empty;
     public GetIdentificationTypeDto? IdentificationTypeDto { get; set; }
 }

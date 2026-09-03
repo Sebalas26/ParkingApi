@@ -17,6 +17,8 @@ public class Branch : GeneralEntity
     public virtual Company Company { get; set; } = null!;
 
     public string? LogoBase64 { get; set; }
+    public int PaperWidth { get; set; } = 80;
+    public decimal DefaultInitialCash { get; set; } = 0m;
 
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
     public virtual ICollection<BranchPaymentMethod> BranchPaymentMethods { get; set; } = new List<BranchPaymentMethod>();

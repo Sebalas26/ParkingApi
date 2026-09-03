@@ -266,6 +266,8 @@ public class MultiBranchConfigurations :
         builder.Property(b => b.Phone).HasMaxLength(30);
         builder.Property(b => b.City).HasMaxLength(50);
         builder.Property(b => b.Notes).HasMaxLength(500);
+        builder.Property(b => b.PaperWidth).HasDefaultValue(80);
+        builder.Property(b => b.DefaultInitialCash).HasPrecision(18, 2).HasDefaultValue(0m);
 
         builder.HasIndex(b => new { b.CompanyId, b.Code }).IsUnique();
         builder.HasIndex(b => b.CompanyId);

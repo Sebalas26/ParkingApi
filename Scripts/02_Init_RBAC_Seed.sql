@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS `Companies` (
     `City` VARCHAR(50) NULL,
     `PlanType` VARCHAR(50) NOT NULL DEFAULT 'Basic',
     `MaxBranches` INT NOT NULL DEFAULT 1,
+    `Logo` LONGTEXT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `SubscriptionExpiresAt` DATETIME NULL,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -60,6 +61,8 @@ CREATE TABLE IF NOT EXISTS `Branches` (
     `Phone` VARCHAR(30) NULL,
     `City` VARCHAR(50) NULL,
     `TotalCapacity` INT NOT NULL DEFAULT 100,
+    `PaperWidth` INT NOT NULL DEFAULT 80,
+    `DefaultInitialCash` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `Notes` VARCHAR(500) NULL,
     `LogoBase64` LONGTEXT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
@@ -67,10 +70,48 @@ CREATE TABLE IF NOT EXISTS `Branches` (
     `UpdatedAt` DATETIME(6) NULL,
     `ResponsibleUserId` INT NULL,
     PRIMARY KEY (`Id`),
-    UNIQUE KEY `UX_Branches_Code` (`Code`),
+    UNIQUE KEY `UX_Branches_Company_Code` (`CompanyId`, `Code`),
     KEY `IX_Branches_CompanyId` (`CompanyId`),
     CONSTRAINT `FK_Branches_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Migración Defensiva de Columnas para Bases de Datos Existentes
+SET @dbname = DATABASE();
+
+-- 1.1a Logo en Companies
+SET @tableName = "Companies";
+SET @colName = "Logo";
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = @colName) > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `Logo` LONGTEXT NULL AFTER `MaxBranches`;"
+));
+PREPARE stmtLogo FROM @sqlCmd;
+EXECUTE stmtLogo;
+DEALLOCATE PREPARE stmtLogo;
+
+-- 1.1b PaperWidth en Branches
+SET @tableName = "Branches";
+SET @colName = "PaperWidth";
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = @colName) > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `PaperWidth` INT NOT NULL DEFAULT 80 AFTER `TotalCapacity`;"
+));
+PREPARE stmtPaper FROM @sqlCmd;
+EXECUTE stmtPaper;
+DEALLOCATE PREPARE stmtPaper;
+
+-- 1.1c DefaultInitialCash en Branches
+SET @colName = "DefaultInitialCash";
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = @colName) > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `DefaultInitialCash` DECIMAL(18,2) NOT NULL DEFAULT 0.00 AFTER `PaperWidth`;"
+));
+PREPARE stmtCash FROM @sqlCmd;
+EXECUTE stmtCash;
+DEALLOCATE PREPARE stmtCash;
 
 -- 1.2 Tipos de Identificación
 CREATE TABLE IF NOT EXISTS `IdentificationType` (

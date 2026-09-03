@@ -119,14 +119,14 @@ public class ParkingTicketService : IParkingTicketService
                 var existingWithNumber = await _ticketRepository.GetByTicketNumberAsync(ticketNumber, cancellationToken);
                 if (existingWithNumber != null)
                 {
-                    var countToday = await _ticketRepository.CountTodayTotalAsync(dto.BranchId, null, cancellationToken) + 1;
-                    ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+                    var countToday = await _ticketRepository.CountTodayTotalAsync(null, resolvedCompanyId.Value, cancellationToken) + 1;
+                    ticketNumber = $"PKF-C{resolvedCompanyId.Value}-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
                 }
             }
             else
             {
-                var countToday = await _ticketRepository.CountTodayTotalAsync(dto.BranchId, null, cancellationToken) + 1;
-                ticketNumber = $"PKF-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
+                var countToday = await _ticketRepository.CountTodayTotalAsync(null, resolvedCompanyId.Value, cancellationToken) + 1;
+                ticketNumber = $"PKF-C{resolvedCompanyId.Value}-{DateTime.UtcNow:yyyyMMdd}-{countToday:D3}";
             }
 
             var ticket = new ParkingTicket

@@ -16,6 +16,8 @@ public class BranchDto
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
     public string? LogoBase64 { get; set; }
+    public int PaperWidth { get; set; } = 80;
+    public decimal DefaultInitialCash { get; set; } = 0m;
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -32,6 +34,8 @@ public class CreateBranchDto
     public int TotalCapacity { get; set; } = 100;
     public string? Notes { get; set; }
     public string? LogoBase64 { get; set; }
+    public int PaperWidth { get; set; } = 80;
+    public decimal DefaultInitialCash { get; set; } = 0m;
 }
 
 public class UpdateBranchDto
@@ -44,6 +48,8 @@ public class UpdateBranchDto
     public int TotalCapacity { get; set; }
     public string? Notes { get; set; }
     public string? LogoBase64 { get; set; }
+    public int PaperWidth { get; set; } = 80;
+    public decimal DefaultInitialCash { get; set; } = 0m;
     public bool IsActive { get; set; }
 }
 
