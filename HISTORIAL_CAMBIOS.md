@@ -2,6 +2,27 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-03 12:10:00] - Unicidad de Nombre Comercial de Sedes y Protección de Roles de Sistema
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"...otra cosa esta dejando crear sede en la compañia con el mismos nombre no deberia si ya existe la sede con ese nombre distinguiendo de mayusculas y minusculas no deja pasar por que ya existe en la compañia me explico... pero tambien el administador el entra en roles y le da por modificar su propio rol entonces pues dañaria esa validación debemos dejar que ese rol de administrador no se pueda modificar el nombre por el mismo administrador de la compañia si me explico ?"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Unicidad de Nombre Comercial de Sede por Empresa (`BranchService.cs`)**:
+    - En `CreateAsync`, se añadió la validación `existingBranches.Any(b => b.Name.Equals(dto.Name.Trim(), StringComparison.OrdinalIgnoreCase))`, arrojando `InvalidOperationException` si ya existe una sede con ese nombre en la misma empresa.
+    - En `UpdateAsync`, se validó que ninguna otra sede (`b.Id != branchId`) comparta el mismo nombre comercial.
+  - **Protección de Roles Base del Sistema (`UserRoleService.cs`)**:
+    - En `SaveOrEditUserRole`, si el rol a editar corresponde a un rol base del sistema (`Super Administrador`, `Administrador`, `Admin`), se preserva de manera inmutable su nombre original (`saveData.Role = existingRole.RoleName;`), impidiendo que incluso mediante llamadas de API directas se altere el nombre del rol del administrador.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Services/UserRoles/UserRoleService.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` (**0 Errores**).
+
+---
+
 ## 📌 Entrada: [2026-09-03 10:50:00] - Dimensiones de Impresión, Base Inicial de Caja, Sedes Inactivas y Aislamiento de Consecutivos
 - **`💬 Prompt Original del Usuario`**:
   > *"🗄️ 3. Backend, Base de Datos y API (Nuevos Requerimientos): Dimensiones de Impresión en Branch (56mm/80mm), Resoluciones por Sede en DIAN, Histórico de Novedades y Soluciones, Valor Inicial de Caja en Sede. ⚙️ 2.4 Consecutivo de Tickets aislado por empresa..."*

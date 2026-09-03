@@ -103,6 +103,11 @@ public class BranchService : IBranchService
             }
         }
 
+        if (existingBranches.Any(b => b.Name.Equals(dto.Name.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException($"Ya existe una sede registrada con el nombre comercial '{dto.Name.Trim()}' en esta empresa.");
+        }
+
         var branch = new Branch
         {
             CompanyId = dto.CompanyId.Value,
@@ -128,6 +133,12 @@ public class BranchService : IBranchService
     {
         var branch = await _branchRepository.GetByIdAsync(branchId, cancellationToken);
         if (branch == null) return null;
+
+        var existingBranches = await _branchRepository.GetBranchesByCompanyIdAsync(branch.CompanyId, cancellationToken);
+        if (existingBranches.Any(b => b.Id != branchId && b.Name.Equals(dto.Name.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException($"Ya existe otra sede registrada con el nombre comercial '{dto.Name.Trim()}' en esta empresa.");
+        }
 
         if (!string.IsNullOrWhiteSpace(dto.Code))
         {

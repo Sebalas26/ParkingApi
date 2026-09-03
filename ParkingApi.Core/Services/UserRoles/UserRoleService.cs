@@ -62,6 +62,17 @@ public class UserRoleService : IUserRoleService
                 CreatedAt = userRole.CreatedAt ?? DateTime.UtcNow
             };
 
+            if (saveData.Id > 0)
+            {
+                var existingRole = await _userRoleRepository.GetUserRoleById(saveData.Id, cancellation);
+                if (existingRole != null && (existingRole.RoleName.Equals("Super Administrador", StringComparison.OrdinalIgnoreCase) ||
+                                             existingRole.RoleName.Equals("Administrador", StringComparison.OrdinalIgnoreCase) ||
+                                             existingRole.RoleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+                {
+                    saveData.Role = existingRole.RoleName;
+                }
+            }
+
             var isExist = await ValidateRole(userRole.RoleName, userRole.CompanyId, cancellation);
             if (saveData.Id == 0 && !isExist)
             {
