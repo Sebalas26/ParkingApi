@@ -359,4 +359,19 @@ public class UserRepository : IUserRepository
             return new List<User>();
         }
     }
+
+    public async Task<int> GetCountByCompanyIdAsync(int companyId, CancellationToken cancellation = default)
+    {
+        try
+        {
+            return await _context.User
+                .AsNoTracking()
+                .CountAsync(u => (u.CompanyId == companyId || u.UserBranches.Any(ub => ub.Branch.CompanyId == companyId)) && u.IsActive, cancellation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al contar usuarios de la empresa {CompanyId}", companyId);
+            return 0;
+        }
+    }
 }

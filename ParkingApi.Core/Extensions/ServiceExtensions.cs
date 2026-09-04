@@ -67,6 +67,7 @@ public static class ServiceExtensions
         services.AddScoped<ParkingApi.Domain.Interfaces.Services.Companies.ICompanyService, ParkingApi.Core.Services.Companies.CompanyService>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Services.Billing.IBillingResolutionService, ParkingApi.Core.Services.Billing.BillingResolutionService>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Services.Incidents.IVehicleIncidentService, ParkingApi.Core.Services.Incidents.VehicleIncidentService>();
+        services.AddScoped<ParkingApi.Domain.Interfaces.Services.Plans.IPlanService, ParkingApi.Core.Services.Plans.PlanService>();
 
         return services;
     }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Common.Constants;
 using ParkingApi.Domain.Dtos.Users;
+using ParkingApi.Domain.Interfaces.Repositories.Companies;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services.Users;
 using ParkingApi.Domain.Models;
@@ -16,11 +17,16 @@ namespace ParkingApi.Core.Services.Users;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly ICompanyRepository _companyRepository;
     private readonly ILogger<UserService> _logger;
 
-    public UserService(IUserRepository userRepository, ILogger<UserService> logger)
+    public UserService(
+        IUserRepository userRepository,
+        ICompanyRepository companyRepository,
+        ILogger<UserService> logger)
     {
         _userRepository = userRepository;
+        _companyRepository = companyRepository;
         _logger = logger;
     }
 
@@ -70,6 +76,19 @@ public class UserService : IUserService
             var isExist = await ValidateExist(userDto.Username, userDto.IdentificationNumber, cancellation);
             if (userDto.Id == 0 && !isExist)
             {
+                if (userDto.CompanyId.HasValue && userDto.CompanyId.Value > 0)
+                {
+                    var company = await _companyRepository.GetByIdAsync(userDto.CompanyId.Value, cancellation);
+                    if (company != null && company.MaxUsers > 0)
+                    {
+                        var currentUsersCount = await _userRepository.GetCountByCompanyIdAsync(userDto.CompanyId.Value, cancellation);
+                        if (currentUsersCount >= company.MaxUsers)
+                        {
+                            throw new InvalidOperationException($"Has alcanzado el límite máximo contratado de cuentas de usuario ({company.MaxUsers}) para tu empresa. Si necesitas más cuentas, comunícate con el administrador.");
+                        }
+                    }
+                }
+
                 var newUser = new User
                 {
                     CompanyId = userDto.CompanyId,
@@ -125,6 +144,10 @@ public class UserService : IUserService
                 return await _userRepository.GetUserById(existingUser.Id, cancellation);
             }
             return null;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

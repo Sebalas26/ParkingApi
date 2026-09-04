@@ -27,6 +27,7 @@ public class DataContext : DbContext
 
     // Módulo Multi-Tenant SaaS
     public DbSet<Company> Companies { get; set; }
+    public DbSet<SaaSPlan> Plans { get; set; }
 
     // Módulo Multi-Sede / Multi-Parqueadero
     public DbSet<Branch> Branches { get; set; }

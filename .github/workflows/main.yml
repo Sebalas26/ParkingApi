@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - Dev
+      - PruebaMiguel
 
 jobs:
   build-and-deploy-api:

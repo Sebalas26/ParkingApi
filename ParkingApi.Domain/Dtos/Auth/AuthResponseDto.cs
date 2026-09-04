@@ -19,6 +19,9 @@ public class AuthResponseDto
     public int? CompanyId { get; set; }
     public string? CompanyName { get; set; }
     public int? MaxBranches { get; set; }
+    public int? MaxUsers { get; set; }
+    public bool HasDesktopAccess { get; set; } = true;
+    public bool HasWebAccess { get; set; } = true;
     public bool AllowMultipleSessions { get; set; }
     public int MaxActiveSessionsPerUser { get; set; } = 1;
     public bool RequireOpenShiftToOperate { get; set; } = true;

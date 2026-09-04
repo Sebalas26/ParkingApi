@@ -22,6 +22,7 @@ public class CompanyRepository : ICompanyRepository
     {
         return await _context.Companies
             .AsNoTracking()
+            .Include(c => c.Plan)
             .Include(c => c.Branches)
             .Include(c => c.Users)
             .OrderBy(c => c.Name)
@@ -32,6 +33,7 @@ public class CompanyRepository : ICompanyRepository
     {
         return await _context.Companies
             .AsNoTracking()
+            .Include(c => c.Plan)
             .Where(c => c.IsActive)
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
@@ -40,6 +42,7 @@ public class CompanyRepository : ICompanyRepository
     public async Task<Company?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Companies
+            .Include(c => c.Plan)
             .Include(c => c.Branches)
             .Include(c => c.Users)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);

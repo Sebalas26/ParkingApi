@@ -82,7 +82,31 @@ public class CompanyService : ICompanyService
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                // 3. Crear Empresa
+                // 3. Resolver Plan y Parámetros
+                int? planId = dto.PlanId;
+                string planType = dto.PlanType?.Trim() ?? "Personalizado";
+                int maxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1;
+                int maxUsers = dto.MaxUsers > 0 ? dto.MaxUsers : 5;
+                bool hasDesktop = dto.HasDesktopAccess;
+                bool hasWeb = dto.HasWebAccess;
+                bool isCustomPlan = dto.IsCustomPlan;
+
+                if (dto.PlanId.HasValue && dto.PlanId.Value > 0 && !dto.IsCustomPlan)
+                {
+                    var selectedPlan = await _context.Plans.FindAsync(new object[] { dto.PlanId.Value }, cancellationToken);
+                    if (selectedPlan != null)
+                    {
+                        planId = selectedPlan.Id;
+                        planType = selectedPlan.Name;
+                        maxBranches = selectedPlan.MaxBranches;
+                        maxUsers = selectedPlan.MaxUsers;
+                        hasDesktop = selectedPlan.HasDesktopAccess;
+                        hasWeb = selectedPlan.HasWebAccess;
+                        isCustomPlan = false;
+                    }
+                }
+
+                // Crear Empresa
                 var company = new Company
                 {
                     Name = dto.Name.Trim(),
@@ -93,8 +117,15 @@ public class CompanyService : ICompanyService
                     Address = dto.Address?.Trim(),
                     City = dto.City?.Trim(),
                     Logo = dto.Logo?.Trim(),
-                    PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? "Basic" : dto.PlanType.Trim(),
-                    MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : 1,
+                    PlanId = planId,
+                    PlanType = planType,
+                    IsCustomPlan = isCustomPlan,
+                    MaxBranches = maxBranches,
+                    MaxUsers = maxUsers,
+                    HasDesktopAccess = hasDesktop,
+                    HasWebAccess = hasWeb,
+                    CustomModulesWebJson = dto.CustomModulesWebJson,
+                    CustomModulesDesktopJson = dto.CustomModulesDesktopJson,
                     IsActive = true,
                     SubscriptionExpiresAt = dto.SubscriptionExpiresAt,
                     AllowMultipleSessions = dto.AllowMultipleSessions,
@@ -274,8 +305,45 @@ public class CompanyService : ICompanyService
         company.Address = dto.Address?.Trim();
         company.City = dto.City?.Trim();
         company.Logo = dto.Logo?.Trim();
-        company.PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? company.PlanType : dto.PlanType.Trim();
-        company.MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : company.MaxBranches;
+
+        if (dto.PlanId.HasValue && dto.PlanId.Value > 0 && !dto.IsCustomPlan)
+        {
+            var selectedPlan = await _context.Plans.FindAsync(new object[] { dto.PlanId.Value }, cancellationToken);
+            if (selectedPlan != null)
+            {
+                company.PlanId = selectedPlan.Id;
+                company.PlanType = selectedPlan.Name;
+                company.MaxBranches = selectedPlan.MaxBranches;
+                company.MaxUsers = selectedPlan.MaxUsers;
+                company.HasDesktopAccess = selectedPlan.HasDesktopAccess;
+                company.HasWebAccess = selectedPlan.HasWebAccess;
+                company.IsCustomPlan = false;
+            }
+        }
+        else if (dto.IsCustomPlan)
+        {
+            company.PlanId = dto.PlanId;
+            company.IsCustomPlan = true;
+            company.PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? "Personalizado" : dto.PlanType.Trim();
+            company.MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : company.MaxBranches;
+            company.MaxUsers = dto.MaxUsers > 0 ? dto.MaxUsers : company.MaxUsers;
+            company.HasDesktopAccess = dto.HasDesktopAccess;
+            company.HasWebAccess = dto.HasWebAccess;
+            company.CustomModulesWebJson = dto.CustomModulesWebJson;
+            company.CustomModulesDesktopJson = dto.CustomModulesDesktopJson;
+        }
+        else
+        {
+            company.PlanId = dto.PlanId;
+            company.PlanType = string.IsNullOrWhiteSpace(dto.PlanType) ? company.PlanType : dto.PlanType.Trim();
+            company.MaxBranches = dto.MaxBranches > 0 ? dto.MaxBranches : company.MaxBranches;
+            company.MaxUsers = dto.MaxUsers > 0 ? dto.MaxUsers : company.MaxUsers;
+            company.HasDesktopAccess = dto.HasDesktopAccess;
+            company.HasWebAccess = dto.HasWebAccess;
+            company.CustomModulesWebJson = dto.CustomModulesWebJson;
+            company.CustomModulesDesktopJson = dto.CustomModulesDesktopJson;
+        }
+
         company.IsActive = dto.IsActive;
         company.SubscriptionExpiresAt = dto.SubscriptionExpiresAt;
         company.AllowMultipleSessions = dto.AllowMultipleSessions;
@@ -522,7 +590,15 @@ public class CompanyService : ICompanyService
             City = c.City,
             Logo = c.Logo,
             PlanType = c.PlanType,
+            PlanId = c.PlanId,
+            PlanName = c.Plan?.Name,
+            IsCustomPlan = c.IsCustomPlan,
             MaxBranches = c.MaxBranches,
+            MaxUsers = c.MaxUsers,
+            HasDesktopAccess = c.HasDesktopAccess,
+            HasWebAccess = c.HasWebAccess,
+            CustomModulesWebJson = c.CustomModulesWebJson,
+            CustomModulesDesktopJson = c.CustomModulesDesktopJson,
             IsActive = c.IsActive,
             SubscriptionExpiresAt = c.SubscriptionExpiresAt,
             AllowMultipleSessions = c.AllowMultipleSessions,

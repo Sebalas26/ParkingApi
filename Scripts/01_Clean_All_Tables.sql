@@ -1,8 +1,8 @@
 -- ==================================================================================
 -- SCRIPT: 01_Clean_All_Tables.sql
--- DESCRIPCIÓN: Limpieza segura de todas las tablas existentes para el servidor MySQL.
+-- DESCRIPCIÓN: Limpieza segura y completa de todas las tablas para MySQL / MariaDB.
 -- NOTA: No ejecuta DROP DATABASE para preservar la base de datos y usuario del hosting.
--- FECHA: 2026-08-27
+-- FECHA ACTUALIZACIÓN: 2026-09-03
 -- ==================================================================================
 
 -- 1. Desactivar validación de claves foráneas temporalmente
@@ -28,10 +28,12 @@ DROP TABLE IF EXISTS `parkinglots`;
 DROP TABLE IF EXISTS `ParkingLots`;
 DROP TABLE IF EXISTS `ParkingLot`;
 
--- 3. Eliminar tablas maestras, seguridad, sedes y empresas
+-- 3. Eliminar tablas maestras, seguridad, sesiones, sedes, planes y empresas
+DROP TABLE IF EXISTS `UserSessions`;
 DROP TABLE IF EXISTS `Branches`;
 DROP TABLE IF EXISTS `Companies`;
 DROP TABLE IF EXISTS `Company`;
+DROP TABLE IF EXISTS `Plans`;
 DROP TABLE IF EXISTS `PasswordResetToken`;
 DROP TABLE IF EXISTS `Login`;
 DROP TABLE IF EXISTS `RoleAction`;
@@ -50,4 +52,4 @@ DROP TABLE IF EXISTS `__EFMigrationsHistory`;
 -- 5. Reactivar validación de claves foráneas
 SET FOREIGN_KEY_CHECKS = 1;
 
-SELECT 'Todas las tablas han sido eliminadas exitosamente. La base de datos está lista para la migración o creación DDL.' AS Resultado;
+SELECT 'Todas las tablas han sido eliminadas exitosamente. La base de datos está lista para la migración o creación DDL limpia.' AS Resultado;

@@ -2,6 +2,98 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-03 21:50:00] - Depuración y Actualización de Scripts SQL de Inicialización Limpia (01_Clean_All_Tables & 02_Init_RBAC_Seed) y Auditoría de Cero Siembra Automática en Backend
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"actualiza estos dos archivos por favor para tenerlos claro para el arranque inicial, ya sabes que se va arranar solo el usuario superadmin pero nada nada creado nada es nada deber revisar de una vez que el bakckend no cree nada solo automatico si me explico. ??"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Auditoría del Backend (`Program.cs`, `DatabaseSeeder.cs`, Context)**:
+    - Se auditó exhaustivamente el pipeline de inicialización en `ParkingApi/Program.cs`. Se certificó que el backend ÚNICAMENTE ejecuta validaciones defensivas de DDL (`information_schema.COLUMNS` para columnas faltantes e `information_schema.TABLES`), pero **NO realiza siembra automática de datos, ni `context.Database.Migrate()` en caliente, ni inserción de empresas, planes o sedes**.
+    - La clase `DatabaseSeeder.cs` se encuentra desacoplada y no es invocada en el ciclo de vida del runtime.
+  - **Script de Limpieza `01_Clean_All_Tables.sql`**:
+    - Se incorporaron las sentencias `DROP TABLE IF EXISTS Plans;` y `DROP TABLE IF EXISTS UserSessions;`.
+    - Preserva la base de datos sin ejecutar `DROP DATABASE` y suspende/restablece temporalmente `FOREIGN_KEY_CHECKS` para un borrado seguro de todas las tablas y del historial `__EFMigrationsHistory`.
+  - **Script de Inicialización DDL y RBAC `02_Init_RBAC_Seed.sql`**:
+    - **DDL Completo y Actualizado**: Incluye definición de tabla `Plans` (matching con `SaaSPlan.cs`: `PriceCop`, `AnnualPriceCop`, `MaxBranches`, `MaxUsers`, flags de plataformas, JSON de módulos incluidos) y columnas SaaS en `Companies` (`PlanId`, `IsCustomPlan`, `MaxUsers`, `HasDesktopAccess`, `HasWebAccess`, etc.).
+    - **Arranque Limpio Estricto ("Nada Creado")**:
+      - **Cero (0) Empresas**: No se crea ninguna empresa de prueba.
+      - **Cero (0) Sedes**: No se crea ninguna sede por defecto.
+      - **Cero (0) Planes**: El catálogo de planes arranca vacío para aprovisionamiento manual por el SuperAdmin.
+      - **Cero (0) Datos Operativos**: Sin tarifas, convenios, turnos, tiquetes ni cajas.
+    - **RBAC Inicial Mínimo**:
+      - 5 Tipos de Identificación (`CC`, `CE`, `NIT`, `PAS`, `PEP`).
+      - Único Rol: `Id = 1` (`Super Administrador`).
+      - Único Usuario: `admin` (`Super Administrador SaaS`, `CompanyId = NULL`).
+      - 17 Módulos de plataforma (incluyendo Módulo 17: `Planes y Suscripciones SaaS`).
+      - 82 Acciones y Slugs canónicos (incluyendo las 5 acciones de planes: `plans.view`, `plans.create`, `plans.edit`, `plans.toggle_status`, `plans.delete`).
+      - Asignación del 100% de los 17 módulos y 82 acciones exclusivamente al Rol 1.
+    - Registro de compatibilidad en `__EFMigrationsHistory` (`20260831014505_Complete` y `20260903212909_VersionBase`).
+    - Consulta final de auditoría que verifica: 1 Usuario (`admin`), 0 Empresas, 0 Sedes, 0 Planes, 17 Módulos y 82 Acciones.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Scripts/01_Clean_All_Tables.sql` (Actualizado con Plans, UserSessions y drop integral)
+  - `ParkingApi/Scripts/02_Init_RBAC_Seed.sql` (Actualizado DDL Plans/Companies, Módulo 17, 82 Slugs, Siembra limpia de 0 empresas/sedes/planes, 1 único SuperAdmin)
+  - `HISTORIAL_CAMBIOS.md` (Registro de versión y directiva técnica)
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test`: **341 pruebas pasadas (0 fallos, 0 errores)**.
+  - `dotnet build`: **0 Errores**.
+  - `npm run build` (ParkingFlowPWa): **0 Errores, 0 Advertencias**.
+
+---
+
+## 📌 Entrada: [2026-09-03 21:35:00] - Arquitectura de Suscripciones SaaS COP, Dinámica de Planes/Personalizado, Control de Cupo de Usuarios y Restricción Bilateral de Plataformas
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Pero si se va a crear los planes y en los planes se va a definir las cosas que se van a tener entonces si selecciono en la creación de empresa un plan ya se tendriá claro cuantas sedes, si va con el wpf y que modulos lleva el plan, otra cosa es que cuando este creando la empresa y le de plan personalizado hay si se desbloquea las opciones y deja modificar las sedes, y seleccionar los modulos que lleva, otra cosa es que no me hablaste de la cantidad de usuarios que puede tener una empresa eso tambien va en el plan, otra cosa es que las plataformas pueden ser (solo web, solo wpf, web y wpf) eso tambien deberia ser configurable en el plan y en el plan personalizado. y en base a eso se deberia restringir el acceso a la plataforma si no lo tiene. Moneda COP, catalogo de planes desde cero."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Entidad y Repositorio de Planes (`SaaSPlan.cs`, `IPlanRepository.cs`, `PlanRepository.cs`)**:
+    - Se creó la entidad de dominio `SaaSPlan` mapeada en `DataContext.cs` con tarifas estrictas en Pesos Colombianos (COP) (`PriceCop`, `AnnualPriceCop`), cuotas (`MaxBranches`, `MaxUsers`), banderas de acceso por plataforma (`HasDesktopAccess`, `HasWebAccess`) y serialización JSON de módulos asignados.
+    - Catálogo inicial arrancado desde cero (0 planes sembrados).
+  - **Ampliación de Entidad Company (`Company.cs`, `CompanyDtos.cs`)**:
+    - Se añadieron `PlanId`, `IsCustomPlan`, `MaxUsers`, `HasDesktopAccess`, `HasWebAccess`, `CustomModulesWebJson`, `CustomModulesDesktopJson`.
+  - **Servicio y Controlador de Planes (`PlanService.cs`, `PlansController.cs`)**:
+    - Endpoints REST completos: `GET /api/plans`, `GET /api/plans/active`, `GET /api/plans/{id}`, `POST /api/plans`, `PUT /api/plans/{id}`, `PATCH /api/plans/{id}/toggle-status`, `DELETE /api/plans/{id}`.
+  - **Validación Estricta de Cupo de Usuarios (`UserService.cs`, `UsersController.cs`)**:
+    - En `UserService.CreateOrEditUserAsync`, se inyectó `ICompanyRepository` y `IUserRepository.GetCountByCompanyIdAsync`.
+    - Si la empresa tiene configurado `MaxUsers > 0` y la creación de un nuevo usuario excede dicho límite, se arroja `InvalidOperationException` y `UsersController` retorna HTTP 400 Bad Request con mensaje descriptivo.
+  - **Sincronización de Flags en Autenticación (`AuthResponseDto.cs`, `AuthService.cs`)**:
+    - `AuthResponseDto` incluye ahora `MaxUsers`, `HasDesktopAccess`, `HasWebAccess` resolviendo permisos dinámicamente según la empresa y plan asignado.
+  - **Pruebas Unitarias Backend**:
+    - `PlansControllerTests.cs` (13 pruebas unitarias exhaustivas con patrón AAA).
+    - `UserQuotaPolicyTests.cs` (2 pruebas verificando el bloqueo estricto de cupo de usuarios).
+    - `dotnet test`: **341 / 341 pruebas superadas (0 fallos, 0 errores)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/SaaSPlan.cs` (Creado)
+  - `ParkingApi.Domain/Models/Company.cs` (Actualizado con plan y cuotas)
+  - `ParkingApi.Domain/Dtos/Plans/PlanDtos.cs` (Creado)
+  - `ParkingApi.Domain/Dtos/Companies/CompanyDtos.cs` (Actualizado con campos de plan)
+  - `ParkingApi.Domain/Dtos/Auth/AuthResponseDto.cs` (Actualizado con flags de plataforma)
+  - `ParkingApi.Domain/Interfaces/Repositories/Plans/IPlanRepository.cs` (Creado)
+  - `ParkingApi.Infrastructure/Repositories/Plans/PlanRepository.cs` (Creado)
+  - `ParkingApi.Domain/Interfaces/Services/Plans/IPlanService.cs` (Creado)
+  - `ParkingApi.Core/Services/Plans/PlanService.cs` (Creado)
+  - `ParkingApi/Controllers/PlansController.cs` (Creado)
+  - `ParkingApi.Infrastructure/Data/DataContext.cs` (DbSet SaaSPlan registrado)
+  - `ParkingApi.Infrastructure/Extensions/RepositoryExtensions.cs` (Inyección de dependencias)
+  - `ParkingApi.Core/Extensions/ServiceExtensions.cs` (Inyección de dependencias)
+  - `ParkingApi.Core/Services/Users/UserService.cs` (Validación de límite de usuarios)
+  - `ParkingApi/Controllers/UsersController.cs` (Manejo 400 Bad Request de cupo)
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs` (Mapeo de plan y plataformas)
+  - `ParkingApi.Core/Services/Auth/AuthService.cs` (Respuesta de autenticación con flags)
+  - `ParkingApi.UnitTests/Controllers/PlansControllerTests.cs` (Creado - 13 tests)
+  - `ParkingApi.UnitTests/UserQuotaPolicyTests.cs` (Creado - 2 tests)
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test`: **341 pruebas pasadas (0 fallos, 0 errores)**.
+  - `dotnet build`: **0 Errores**.
+
+---
+
 ## 📌 Entrada: [2026-09-03 20:10:00] - Sincronización Reactiva en Tiempo Real (SignalR) para Límites de Sedes y Configuración de Empresa
 
 - **`💬 Prompt Original del Usuario`**:
