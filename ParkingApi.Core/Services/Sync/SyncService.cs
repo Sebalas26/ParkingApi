@@ -175,7 +175,7 @@ public class SyncService : ISyncService
 
             var allRates = await _rateRepository.GetAllAsync(targetCompanyId, cancellationToken);
             var rates = branchId.HasValue
-                ? allRates.Where(r => r.IsActive && (r.BranchId == null || r.BranchId == branchId.Value)).ToList()
+                ? allRates.Where(r => r.IsActive && r.BranchId == branchId.Value).ToList()
                 : allRates.Where(r => r.IsActive).ToList();
 
             var allStores = await _storeRepository.GetAllAsync(targetCompanyId, cancellationToken);

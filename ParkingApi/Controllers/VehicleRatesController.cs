@@ -85,7 +85,16 @@ public class VehicleRatesController : ControllerBase
             }
 
             var created = await _rateService.CreateRateAsync(rate, cancellationToken);
-            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifa de Vehículos Creada", "Se ha agregado una nueva tarifa al sistema.", cancellationToken);
+            if (created.BranchId.HasValue && created.BranchId.Value > 0)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
+                    created.BranchId.Value, 
+                    "Tarifa de Vehículos Creada", 
+                    "Se ha agregado una nueva tarifa para la sede.", 
+                    "RatesChanged", 
+                    cancellationToken);
+            }
+
             return CreatedAtAction(nameof(GetById), new { id = created.RateId }, created);
         }
         catch (Exception ex)
@@ -103,7 +112,16 @@ public class VehicleRatesController : ControllerBase
             rate.RateId = id;
             var updated = await _rateService.UpdateRateAsync(rate, cancellationToken);
 
-            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifas Actualizadas", "Se han modificado las tarifas y minutos de gracia en la plataforma.", cancellationToken);
+            if (updated.BranchId.HasValue && updated.BranchId.Value > 0)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
+                    updated.BranchId.Value, 
+                    "Tarifas Actualizadas", 
+                    "Se han modificado las tarifas y minutos de gracia en la sede.", 
+                    "RatesChanged", 
+                    cancellationToken);
+            }
+
             return Ok(updated);
         }
         catch (KeyNotFoundException)
@@ -122,13 +140,29 @@ public class VehicleRatesController : ControllerBase
     {
         try
         {
+            var existing = await _rateService.GetByIdAsync(id, cancellationToken);
+            if (existing == null)
+            {
+                return NotFound(new { message = "Tarifa no encontrada o no se pudo eliminar." });
+            }
+
+            var branchId = existing.BranchId;
             var deleted = await _rateService.DeleteRateAsync(id, cancellationToken);
             if (!deleted)
             {
                 return NotFound(new { message = "Tarifa no encontrada o no se pudo eliminar." });
             }
 
-            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("RatesChanged", "Tarifa Eliminada", "Se ha eliminado una tarifa vehicular del sistema.", cancellationToken);
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
+                    branchId.Value, 
+                    "Tarifa Eliminada", 
+                    "Se ha eliminado una tarifa vehicular de la sede.", 
+                    "RatesChanged", 
+                    cancellationToken);
+            }
+
             return Ok(new { success = true, message = "Tarifa eliminada exitosamente." });
         }
         catch (Exception ex)
@@ -138,3 +172,4 @@ public class VehicleRatesController : ControllerBase
         }
     }
 }
+

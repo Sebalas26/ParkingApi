@@ -2,6 +2,31 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 17:20:00] - Aislamiento por Sede de Notificaciones SignalR y Sincronización de Tarifas
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"tenemos un error grave por que en la empresa se esta creando los tipos de vehiculos pero no se les asocio a la sede el tipo de vehiculo el sistema de una vez detecto los cambios creo que por lo del signal pero eso deberia ir asociado es por sede si me explico no cuando se cree el tipo de vehjciulo esta mal el hub cuando se dispara por que se deberia disparar cuando se le asocie a la sede si me explico, por que es por sede las parametrizaciones analiza eso"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  > 1. **Aislamiento de Notificaciones SignalR en `VehicleRatesController.cs`**:
+  >    - Se erradicó la invocación a `NotifyGlobalConfigChangedAsync` (`Clients.All`) en `Create`, `Update` y `Delete`.
+  >    - Si la tarifa cuenta con `BranchId.HasValue && BranchId.Value > 0` (tarifa parametrizada para una sede específica), se emite `NotifyBranchConfigChangedAsync` exclusivamente al grupo SignalR de esa sede (`Branch_{branchId}`).
+  >    - Si `BranchId == null` (definición de catálogo general de tipos de vehículos a nivel de empresa), **no se emite alerta a las terminales de las sedes**, evitando que los puntos de venta reciban notificaciones de sincronización prematuras.
+  > 2. **Filtro Estricto en Sincronización Bootstrap (`SyncService.cs`)**:
+  >    - Se eliminó la cláusula permisiva `(r.BranchId == null || r.BranchId == branchId.Value)` en `GetBootstrapDataAsync`.
+  >    - Ahora se filtra estrictamente por `r.BranchId == branchId.Value`, impidiendo que las plantillas de catálogo general sin tarifas configuradas ($0.00 / hora) se envíen a las terminales locales.
+  > 3. **Pruebas Unitarias (`VehicleRatesControllerTests.cs`)**:
+  >    - Se actualizaron las pruebas unitarias para validar que `NotifyBranchConfigChangedAsync` se ejecuta únicamente cuando `BranchId` está presente, y que `NotifyGlobalConfigChangedAsync` no es llamado.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Controllers/VehicleRatesController.cs`
+  - `ParkingApi.Core/Services/Sync/SyncService.cs`
+  - `ParkingApi.UnitTests/Controllers/VehicleRatesControllerTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` → **0 Errores, 8 Advertencias (previas NU1903/CS8601)**
+  - `dotnet test ParkingApi.slnx` → **345 Pruebas Superadas, 0 Fallos**
+
 ## 📌 Entrada: [2026-09-04 16:50:00] - Desacople RBAC Total PWA/WPF, Sembrado de Acciones wpf.* y Directivas Corporativas en Bootstrap
 
 - **`💬 Prompt Original del Usuario`**:

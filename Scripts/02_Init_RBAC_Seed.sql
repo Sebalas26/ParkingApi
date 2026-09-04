@@ -1,3 +1,6 @@
+
+use db_acd7d6_parking;
+
 -- ==================================================================================
 -- SCRIPT: 02_Init_RBAC_Seed.sql
 -- DESCRIPCIÓN: Script Oficial y Completo de Inicialización de Esquema Multi-Tenant SaaS y RBAC Seed.

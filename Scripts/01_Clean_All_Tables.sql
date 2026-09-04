@@ -1,3 +1,6 @@
+
+use db_acd7d6_parking;
+
 -- ==================================================================================
 -- SCRIPT: 01_Clean_All_Tables.sql
 -- DESCRIPCIÓN: Limpieza segura y completa de todas las tablas para MySQL / MariaDB.

@@ -142,10 +142,10 @@ public class VehicleRatesControllerTests
     }
 
     [Fact]
-    public async Task Create_WhenSuccessful_ShouldReturnCreatedAtActionAndNotify()
+    public async Task Create_WhenSuccessfulWithBranch_ShouldReturnCreatedAtActionAndNotifyBranch()
     {
         // Arrange
-        var rate = new VehicleRate { RateId = Guid.NewGuid(), DisplayName = "Camioneta", CompanyId = 1 };
+        var rate = new VehicleRate { RateId = Guid.NewGuid(), BranchId = 2, DisplayName = "Camioneta", CompanyId = 1 };
         _currentUserMock.Setup(c => c.IsSuperAdmin).Returns(true);
         _currentUserMock.Setup(c => c.CompanyId).Returns(1);
         _rateServiceMock.Setup(r => r.CreateRateAsync(rate, It.IsAny<CancellationToken>()))
@@ -157,11 +157,41 @@ public class VehicleRatesControllerTests
         // Assert
         result.Should().BeOfType<CreatedAtActionResult>()
             .Which.Value.Should().BeEquivalentTo(rate);
-        _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "RatesChanged",
+        _notifierMock.Verify(n => n.NotifyBranchConfigChangedAsync(
+            2,
             "Tarifa de Vehículos Creada",
             It.IsAny<string>(),
+            "RatesChanged",
             It.IsAny<CancellationToken>()), Times.Once);
+        _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Create_WhenSuccessfulWithoutBranch_ShouldNotNotifyBranch()
+    {
+        // Arrange
+        var rate = new VehicleRate { RateId = Guid.NewGuid(), BranchId = null, DisplayName = "Moto Catalogo", CompanyId = 1 };
+        _currentUserMock.Setup(c => c.IsSuperAdmin).Returns(true);
+        _currentUserMock.Setup(c => c.CompanyId).Returns(1);
+        _rateServiceMock.Setup(r => r.CreateRateAsync(rate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rate);
+
+        // Act
+        var result = await _controller.Create(rate, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<CreatedAtActionResult>()
+            .Which.Value.Should().BeEquivalentTo(rate);
+        _notifierMock.Verify(n => n.NotifyBranchConfigChangedAsync(
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -183,11 +213,11 @@ public class VehicleRatesControllerTests
     }
 
     [Fact]
-    public async Task Update_WhenSuccessful_ShouldReturnOkAndNotify()
+    public async Task Update_WhenSuccessfulWithBranch_ShouldReturnOkAndNotifyBranch()
     {
         // Arrange
         var id = Guid.NewGuid();
-        var rate = new VehicleRate { RateId = id, DisplayName = "Carro Actualizado" };
+        var rate = new VehicleRate { RateId = id, BranchId = 3, DisplayName = "Carro Actualizado" };
         _rateServiceMock.Setup(r => r.UpdateRateAsync(rate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(rate);
 
@@ -197,10 +227,11 @@ public class VehicleRatesControllerTests
         // Assert
         result.Should().BeOfType<OkObjectResult>()
             .Which.Value.Should().BeEquivalentTo(rate);
-        _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "RatesChanged",
+        _notifierMock.Verify(n => n.NotifyBranchConfigChangedAsync(
+            3,
             "Tarifas Actualizadas",
             It.IsAny<string>(),
+            "RatesChanged",
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -238,10 +269,13 @@ public class VehicleRatesControllerTests
     }
 
     [Fact]
-    public async Task Delete_WhenSuccessful_ShouldReturnOkAndNotify()
+    public async Task Delete_WhenSuccessfulWithBranch_ShouldReturnOkAndNotifyBranch()
     {
         // Arrange
         var id = Guid.NewGuid();
+        var existing = new VehicleRate { RateId = id, BranchId = 4, DisplayName = "Tarifa Borrada" };
+        _rateServiceMock.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
         _rateServiceMock.Setup(r => r.DeleteRateAsync(id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -250,10 +284,11 @@ public class VehicleRatesControllerTests
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
-        _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "RatesChanged",
+        _notifierMock.Verify(n => n.NotifyBranchConfigChangedAsync(
+            4,
             "Tarifa Eliminada",
             It.IsAny<string>(),
+            "RatesChanged",
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -277,6 +312,9 @@ public class VehicleRatesControllerTests
     {
         // Arrange
         var id = Guid.NewGuid();
+        var existing = new VehicleRate { RateId = id, BranchId = 1 };
+        _rateServiceMock.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
         _rateServiceMock.Setup(r => r.DeleteRateAsync(id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Error"));
 

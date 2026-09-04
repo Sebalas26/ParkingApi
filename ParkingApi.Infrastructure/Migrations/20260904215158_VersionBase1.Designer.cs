@@ -12,8 +12,8 @@ using ParkingApi.Infrastructure.Data;
 namespace ParkingApi.Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260904172352_VersionBase")]
-    partial class VersionBase
+    [Migration("20260904215158_VersionBase1")]
+    partial class VersionBase1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
