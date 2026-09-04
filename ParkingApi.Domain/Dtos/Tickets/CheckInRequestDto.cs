@@ -15,4 +15,5 @@ public class CheckInRequestDto
     public string? Notes { get; set; }
     public string OperatorName { get; set; } = string.Empty;
     public DateTime? EntryTimeUtc { get; set; }
+    public decimal? HourlyRate { get; set; }
 }

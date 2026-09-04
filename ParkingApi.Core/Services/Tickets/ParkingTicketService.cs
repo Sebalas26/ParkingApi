@@ -105,8 +105,20 @@ public class ParkingTicketService : IParkingTicketService
                 throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
             }
 
-            var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, cancellationToken);
-            var hourRate = rate?.HourRate ?? 3000m;
+            // 3. Obtener tarifa horaria: prioridad DTO -> tarifa específica de la sede -> tarifa de empresa
+            decimal hourRate = 0m;
+            if (dto.HourlyRate.HasValue && dto.HourlyRate.Value > 0)
+            {
+                hourRate = dto.HourlyRate.Value;
+            }
+            else
+            {
+                var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, dto.BranchId, resolvedCompanyId, cancellationToken);
+                if (rate != null && rate.HourRate > 0)
+                {
+                    hourRate = rate.HourRate;
+                }
+            }
 
             var ticketId = dto.TicketId.HasValue && dto.TicketId.Value != Guid.Empty
                 ? dto.TicketId.Value
@@ -173,18 +185,46 @@ public class ParkingTicketService : IParkingTicketService
             var exitTime = dto.ExitTimeUtc ?? DateTime.UtcNow;
             var totalMinutes = (int)Math.Max(0, (exitTime - ticket.EntryTimeUtc).TotalMinutes);
             var billableHours = (int)Math.Max(1, Math.Ceiling(totalMinutes / 60.0));
-            var gross = billableHours * ticket.HourlyRate;
-            var net = Math.Max(0m, gross - dto.DiscountAmount);
+
+            // Determinar monto bruto: prioridad valor liquidado por terminal -> cálculo por tarifa horaria -> monto pagado
+            decimal gross;
+            if (dto.GrossAmount.HasValue && dto.GrossAmount.Value > 0)
+            {
+                gross = dto.GrossAmount.Value;
+            }
+            else if (ticket.HourlyRate > 0)
+            {
+                gross = billableHours * ticket.HourlyRate;
+            }
+            else
+            {
+                gross = dto.AmountPaid;
+            }
+
+            // Determinar monto neto
+            decimal net;
+            if (dto.NetAmount.HasValue && dto.NetAmount.Value > 0)
+            {
+                net = dto.NetAmount.Value;
+            }
+            else
+            {
+                net = Math.Max(0m, gross - dto.DiscountAmount);
+                if (net == 0 && dto.AmountPaid > 0)
+                {
+                    net = dto.AmountPaid;
+                }
+            }
 
             ticket.ExitTimeUtc = exitTime;
             ticket.TotalDurationMinutes = totalMinutes;
             ticket.GrossAmount = gross;
             ticket.DiscountAmount = dto.DiscountAmount;
             ticket.NetAmount = net;
-            ticket.AmountPaid = dto.AmountPaid;
-            ticket.ChangeGiven = Math.Max(0m, dto.AmountPaid - net);
+            ticket.AmountPaid = dto.AmountPaid > 0 ? dto.AmountPaid : net;
+            ticket.ChangeGiven = Math.Max(0m, ticket.AmountPaid - net);
             ticket.PaymentMethod = (Domain.Common.Enums.PaymentMethod)(int)dto.PaymentMethod;
-            // Guardar el ID real del catálogo maestro (tiene prioridad para analytics y dashboard)
+            // Guardar el ID real del catálogo maestro de medios de pago
             ticket.PaymentMethodId = dto.PaymentMethodId.HasValue && dto.PaymentMethodId.Value > 0
                 ? dto.PaymentMethodId.Value
                 : (int)dto.PaymentMethod;

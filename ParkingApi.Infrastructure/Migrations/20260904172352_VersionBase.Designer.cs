@@ -12,7 +12,7 @@ using ParkingApi.Infrastructure.Data;
 namespace ParkingApi.Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260904144753_VersionBase")]
+    [Migration("20260904172352_VersionBase")]
     partial class VersionBase
     {
         /// <inheritdoc />
@@ -845,6 +845,9 @@ namespace ParkingApi.Infrastructure.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<int?>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentMethodId")
                         .HasColumnType("int");
 
                     b.Property<string>("PlateNumber")

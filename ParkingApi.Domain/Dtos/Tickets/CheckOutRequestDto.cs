@@ -21,4 +21,6 @@ public class CheckOutRequestDto
     public Guid? ResolutionId { get; set; }
     public string? ResolutionName { get; set; }
     public string? FiscalInvoiceNumber { get; set; }
+    public decimal? GrossAmount { get; set; }
+    public decimal? NetAmount { get; set; }
 }

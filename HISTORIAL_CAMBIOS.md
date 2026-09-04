@@ -2,6 +2,32 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 14:35:00] - Recaudación por Medios de Pago 100% Dinámica y Aislamiento Multi-Sede (Zero Hardcoding)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"mira tenemos este problema la grafica si esta pintando, bien dinamica de acuerdo a los medios de pago de la sede excelenmte, pero se necesita que vaya sumando ya hicimos salidas de vehiculos pero no esta mostrando que medio de pago ha tenido mas recaudo si me explico entonces se requiere revisar eso. Pero no quiero nada quemado todo debe ser dinamica si desde la pwa si no se guardaba el valor cobrado de salida listo pero eso ya estaba entonces no que comot e mande eso como ejemplo tomes que así va y quemes el codigo eso es por que cree esos tipos de medios de pago pero eso debería funcionar con todo si me explico entonces analisa eso y dame nuevamente el plan... ten presente que eso es diferente por cada sede de la compañia si me explico eso claro ? lo tenes presente en el plan es que no veo que lo hables ..."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  > **Causa Raíz:** Al liquidar salidas en patio, el backend recalculaba el monto bruto multiplicando horas por `ticket.HourlyRate`. Si la tarifa del ticket era 0 (o no estaba configurada para la sede), el backend asignaba `GrossAmount = 0.00` y `NetAmount = 0.00`, asumiendo todo el dinero pagado por el cliente como "cambio entregado" (`ChangeGiven`). El valor neto cobrado quedaba en $0, por lo que `AnalyticsService` sumaba $0 a todos los métodos de pago. Además, existían heurísticas de texto quemadas (`"Cash"`, `"Efectivo"`).
+  >
+  > **Solución 100% Dinámica y Multi-Sede:**
+  > 1. `CheckOutRequestDto`: Se agregaron `GrossAmount` y `NetAmount`. En `ParkingTicketService.CheckOutAsync`, si el cliente envía el monto liquidado, se respeta prioritariamente; si no y la tarifa es 0 pero hubo un cobro (`AmountPaid > 0`), se asigna `gross = dto.AmountPaid` y `net = dto.AmountPaid`, impidiendo que el ingreso se pierda. `ticket.NetAmount = net` y `ticket.ChangeGiven = Math.Max(0, ticket.AmountPaid - net)`.
+  > 2. `CheckInRequestDto` / `IVehicleRateRepository`: Se añadió soporte para `HourlyRate` y se sobrecargó `GetByTypeAsync(VehicleType, branchId, companyId)` para resolver prioritariamente la tarifa de la sede activa (`BranchId`).
+  > 3. `AnalyticsService.cs`: Se eliminaron todas las cadenas y heurísticas fijas. Si se consulta por sede (`branchId`), se obtienen los métodos asignados a esa sede vía `_branchRepository.GetPaymentMethodsByBranchIdAsync(branchId.Value)` y se indexa dinámicamente por `PaymentMethodId` numérico y Nombre de base de datos.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Tickets/CheckOutRequestDto.cs` → `GrossAmount`, `NetAmount`
+  - `ParkingApi.Domain/Dtos/Tickets/CheckInRequestDto.cs` → `HourlyRate`
+  - `ParkingApi.Domain/Interfaces/Repositories/VehicleRates/IVehicleRateRepository.cs` → sobrecargas de `GetByTypeAsync`
+  - `ParkingApi.Infrastructure/Data/Repositories/VehicleRates/VehicleRateRepository.cs` → resolución por `branchId` y `HourRate > 0`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs` → `CheckInAsync` con tarifa de sede y `CheckOutAsync` con preservación de cobro
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs` → mapeo dinámico por sede sin cadenas quemadas
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` → **0 Errores**
+  - `dotnet test` → **344 Passed, 0 Failed**
+  - Regularización de tiquetes de prueba en BD de producción exitosa.
+
 ## 📌 Entrada: [2026-09-04 11:54:00] - Fix Definitivo Gráficas Dashboard: Campo PaymentMethodId en ParkingTicket
 
 - **`💬 Prompt Original del Usuario`**:

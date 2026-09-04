@@ -63,17 +63,32 @@ public class AnalyticsService : IAnalyticsService
                 .GroupBy(t => t.VehicleType)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            // 1. Mapeo Robusto de Medios de Pago por ID, Nombre y Fallbacks
-            var paymentMethods = (await _paymentMethodRepository.GetAllAsync(effectiveCompanyId, cancellationToken)).ToList();
-            var methodMap = paymentMethods.ToDictionary(m => m.Id, m => m.Name);
+            // 1. Mapeo Dinámico de Medios de Pago por Sede o Empresa (Cero código quemado)
+            Dictionary<int, string> methodMap;
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                var branchMethods = await _branchRepository.GetPaymentMethodsByBranchIdAsync(branchId.Value, cancellationToken);
+                methodMap = branchMethods
+                    .Where(bm => bm.PaymentMethod != null)
+                    .ToDictionary(bm => bm.PaymentMethodId, bm => bm.PaymentMethod.Name);
+
+                if (methodMap.Count == 0)
+                {
+                    var companyMethods = await _paymentMethodRepository.GetAllAsync(effectiveCompanyId, cancellationToken);
+                    methodMap = companyMethods.ToDictionary(m => m.Id, m => m.Name);
+                }
+            }
+            else
+            {
+                var companyMethods = await _paymentMethodRepository.GetAllAsync(effectiveCompanyId, cancellationToken);
+                methodMap = companyMethods.ToDictionary(m => m.Id, m => m.Name);
+            }
 
             var revenueByPayment = new Dictionary<string, decimal>();
             var countByPayment = new Dictionary<string, int>();
 
             foreach (var ticket in todayTickets)
             {
-                // Priorizar PaymentMethodId (ID real del catálogo maestro de BD)
-                // Fallback al valor del enum sólo para tiquetes históricos sin el nuevo campo
                 int rawMethodId = ticket.PaymentMethodId.HasValue && ticket.PaymentMethodId.Value > 0
                     ? ticket.PaymentMethodId.Value
                     : (ticket.PaymentMethod.HasValue ? (int)ticket.PaymentMethod.Value : 0);
@@ -81,22 +96,10 @@ public class AnalyticsService : IAnalyticsService
                 string idKey = rawMethodId.ToString();
                 string nameKey = methodMap.TryGetValue(rawMethodId, out var name)
                     ? name
-                    : (rawMethodId == 0 ? "Efectivo" : $"Método #{rawMethodId}");
+                    : (rawMethodId > 0 ? $"Método #{rawMethodId}" : "Sin Método");
 
                 revenueByPayment[idKey] = (revenueByPayment.TryGetValue(idKey, out var currRev) ? currRev : 0m) + ticket.NetAmount;
                 revenueByPayment[nameKey] = (revenueByPayment.TryGetValue(nameKey, out var currRevName) ? currRevName : 0m) + ticket.NetAmount;
-
-                // Indexación de respaldo para tiquetes históricos con enum=0 (Cash/Efectivo)
-                if (rawMethodId == 0)
-                {
-                    revenueByPayment["Cash"] = revenueByPayment[idKey];
-                    var cashMethod = paymentMethods.FirstOrDefault(m => m.Name.Contains("Efectivo", StringComparison.OrdinalIgnoreCase));
-                    if (cashMethod != null)
-                    {
-                        revenueByPayment[cashMethod.Id.ToString()] = revenueByPayment[idKey];
-                        revenueByPayment[cashMethod.Name] = revenueByPayment[idKey];
-                    }
-                }
 
                 countByPayment[idKey] = (countByPayment.TryGetValue(idKey, out var currCount) ? currCount : 0) + 1;
                 countByPayment[nameKey] = (countByPayment.TryGetValue(nameKey, out var currCountName) ? currCountName : 0) + 1;

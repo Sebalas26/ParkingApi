@@ -57,17 +57,40 @@ public class VehicleRateRepository : IVehicleRateRepository
         }
     }
 
-    public async Task<VehicleRate?> GetByTypeAsync(VehicleType type, CancellationToken cancellationToken = default)
+    public Task<VehicleRate?> GetByTypeAsync(VehicleType type, CancellationToken cancellationToken = default)
+        => GetByTypeAsync(type, null, null, cancellationToken);
+
+    public async Task<VehicleRate?> GetByTypeAsync(VehicleType type, int? branchId, int? companyId, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _context.VehicleRates
+            var query = _context.VehicleRates
                 .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.VehicleType == type && r.IsActive, cancellationToken);
+                .Where(r => r.VehicleType == type && r.IsActive);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                var branchRate = await query
+                    .Where(r => r.BranchId == branchId.Value && r.HourRate > 0)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (branchRate != null) return branchRate;
+            }
+
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                var companyRate = await query
+                    .Where(r => (r.CompanyId == companyId.Value || r.BranchId == null) && r.HourRate > 0)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (companyRate != null) return companyRate;
+            }
+
+            return await query
+                .Where(r => r.HourRate > 0)
+                .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Error}: Error al consultar tarifa por tipo {Type}", Constants.RateError, type);
+            _logger.LogError(ex, "{Error}: Error al consultar tarifa por tipo {Type} para sede {BranchId}", Constants.RateError, type, branchId);
             return null;
         }
     }
