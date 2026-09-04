@@ -39,6 +39,14 @@ public class BootstrapSyncDto
     public List<ParkingTicket> RecentTickets { get; set; } = new();
     public List<VehicleIncident> Incidents { get; set; } = new();
     public List<BillingResolution> Resolutions { get; set; } = new();
+
+    // Directivas Operativas de la Empresa
+    public bool RequireOpenShiftToOperate { get; set; } = true;
+    public bool RequireInitialCashAmount { get; set; } = true;
+    public bool AllowMultipleSessions { get; set; } = false;
+    public int MaxActiveSessionsPerUser { get; set; } = 1;
+    public bool AllowMultipleOpenShifts { get; set; } = false;
+    public int MaxOpenShiftsPerUser { get; set; } = 1;
 }
 
 public class PendingSyncBatchDto

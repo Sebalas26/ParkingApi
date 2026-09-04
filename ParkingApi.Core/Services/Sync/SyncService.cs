@@ -85,12 +85,14 @@ public class SyncService : ISyncService
             List<User> users;
             List<PaymentMethod> paymentMethods;
             int? targetCompanyId = null;
+            Company? targetCompany = null;
 
             if (branchId.HasValue)
             {
                 var branch = await _branchRepository.GetByIdAsync(branchId.Value, cancellationToken);
                 if (branch != null)
                 {
+                    targetCompany = branch.Company;
                     targetCompanyId = branch.CompanyId;
                     totalCapacity = branch.TotalCapacity;
                     branches = new List<Branch> { branch };
@@ -229,6 +231,12 @@ public class SyncService : ISyncService
             {
                 ServerTimeUtc = DateTime.UtcNow,
                 TotalCapacity = totalCapacity,
+                RequireOpenShiftToOperate = targetCompany?.RequireOpenShiftToOperate ?? true,
+                RequireInitialCashAmount = targetCompany?.RequireInitialCashAmount ?? true,
+                AllowMultipleSessions = targetCompany?.AllowMultipleSessions ?? false,
+                MaxActiveSessionsPerUser = targetCompany?.MaxActiveSessionsPerUser ?? 1,
+                AllowMultipleOpenShifts = targetCompany?.AllowMultipleOpenShifts ?? false,
+                MaxOpenShiftsPerUser = targetCompany?.MaxOpenShiftsPerUser ?? 1,
                 Branches = branches,
                 Users = users,
                 UserRoles = userRoles,

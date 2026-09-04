@@ -179,4 +179,99 @@ public static class DatabaseSeeder
         // Las Sedes (Branches), Medios de Pago (PaymentMethods), Tarifas Vehiculares (VehicleRates) y Convenios (Stores/Agreements)
         // se deben crear MANUALMENTE desde la PWA (Zero-Data Bootstrap).
     }
+
+    public static async Task SeedWpfActionsAsync(DataContext context)
+    {
+        try
+        {
+            var wpfActions = new List<(string Slug, string Name, int ModuleId, int OperationId)>
+            {
+                // Módulo 1: CheckIn WPF POS
+                ("wpf.checkin.view", "Ver terminal de ingreso WPF", 1, 1),
+                ("wpf.checkin.create", "Generar e imprimir tiquete en terminal WPF", 1, 2),
+                ("wpf.checkin.reprint", "Reimprimir tiquete de ingreso en terminal WPF", 1, 6),
+                ("wpf.checkin.edit_plate", "Editar datos o placa en ingreso WPF", 1, 3),
+                ("wpf.checkin.manual_barrier", "Abrir barrera de entrada manualmente en terminal WPF", 1, 5),
+
+                // Módulo 2: CheckOut WPF POS
+                ("wpf.checkout.view", "Ver terminal de cobro y salida WPF", 2, 1),
+                ("wpf.checkout.process_payment", "Liquidar y cobrar tiquete en terminal WPF", 2, 2),
+                ("wpf.checkout.apply_discount", "Aplicar convenios y descuentos en terminal WPF", 2, 2),
+                ("wpf.checkout.waive_fee", "Exonerar cobro de tiquete en terminal WPF", 2, 3),
+                ("wpf.checkout.reprint_receipt", "Reimprimir factura o comprobante en terminal WPF", 2, 6),
+                ("wpf.checkout.manual_barrier", "Abrir barrera de salida manualmente en terminal WPF", 2, 5),
+
+                // Módulo 3: Mensualidades y Abonados WPF POS
+                ("wpf.subscriptions.view", "Ver catálogo de mensualidades en terminal WPF", 3, 1),
+                ("wpf.subscriptions.create", "Registrar nuevo abonado en terminal WPF", 3, 2),
+                ("wpf.subscriptions.renew", "Renovar mensualidad en terminal WPF", 3, 3),
+                ("wpf.subscriptions.cancel", "Cancelar suscripción en terminal WPF", 3, 4),
+
+                // Módulo 4: Monitoreo de Patio WPF POS
+                ("wpf.monitoring.view_occupancy", "Ver mapa de ocupación en terminal WPF", 4, 1),
+                ("wpf.monitoring.search_vehicles", "Buscar vehículos adentro en terminal WPF", 4, 1),
+                ("wpf.monitoring.force_exit", "Forzar salida manual en terminal WPF", 4, 3),
+                ("wpf.monitoring.export", "Exportar vehículos activos desde terminal WPF", 4, 1),
+
+                // Módulo 5: Control de Turnos y Caja WPF POS
+                ("wpf.shifts.view_current", "Ver turno actual y balance en terminal WPF", 5, 1),
+                ("wpf.shifts.open", "Abrir turno con base en terminal WPF", 5, 2),
+                ("wpf.shifts.blind_count", "Arqueo ciego / retiro de efectivo en terminal WPF", 5, 5),
+                ("wpf.shifts.close", "Cerrar turno de caja y corte Z en terminal WPF", 5, 5),
+                ("wpf.shifts.view_history", "Ver historial de turnos en terminal WPF", 5, 1),
+                ("wpf.shifts.reprint_closure", "Reimprimir comprobante de cierre en terminal WPF", 5, 6)
+            };
+
+            bool hasChanges = false;
+            var existingActions = await context.Action.Where(a => a.Slug.StartsWith("wpf.")).ToListAsync();
+            var existingSlugs = existingActions.Select(a => a.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var def in wpfActions)
+            {
+                if (!existingSlugs.Contains(def.Slug))
+                {
+                    var newAction = new Action
+                    {
+                        Slug = def.Slug,
+                        Name = def.Name,
+                        ModuleId = def.ModuleId,
+                        OperationId = def.OperationId,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    context.Action.Add(newAction);
+                    hasChanges = true;
+                }
+            }
+
+            if (hasChanges)
+            {
+                await context.SaveChangesAsync();
+            }
+
+            // Asignar al Rol 1 (Super Administrador)
+            var unassignedSuperAdmin = await context.Action
+                .Where(a => a.Slug.StartsWith("wpf.") && !context.RoleAction.Any(ra => ra.RoleId == 1 && ra.ActionId == a.Id))
+                .ToListAsync();
+
+            if (unassignedSuperAdmin.Any())
+            {
+                foreach (var act in unassignedSuperAdmin)
+                {
+                    context.RoleAction.Add(new RoleAction
+                    {
+                        RoleId = 1,
+                        ActionId = act.Id,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                await context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SeedWpfActionsAsync] Error sembrando acciones wpf.*: {ex.Message}");
+        }
+    }
 }

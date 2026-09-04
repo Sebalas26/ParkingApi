@@ -2,6 +2,28 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 16:50:00] - Desacople RBAC Total PWA/WPF, Sembrado de Acciones wpf.* y Directivas Corporativas en Bootstrap
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"El WPF dejo pasar del login con el usuario que me logueey eso que el usuario no tiene permisos asignados pero si los tiene completamente ya revise desde el administrador desde la pwa y tiene los permisos correspondientes... otra cosa es que me di cuenta que al editar el rol le estaba asignando permisos de solo wpf pero asignaba uno y automaticamente se asignaba a pwa ? por que si son independiente no que se le asigne a uno se le asigna al otro si me explico eso es un bug terrible... aparte medio vi que el wpf no esta parametrizado con todo lo que ya se ha hecho de parametriaación de que si no se requiere abrir caja por que así se creo la empresa no debe por que exigirlo..."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  > 1. **Acciones Dedicadas de Terminal WPF (`wpf.*`)**: Se crearon y registraron 25 acciones dedicadas en base de datos (`wpf.checkin.*`, `wpf.checkout.*`, `wpf.monitoring.*`, `wpf.shifts.*`, `wpf.subscriptions.*`) mediante los scripts `Scripts/08_Add_WPF_Dedicated_Actions.sql`, `Scripts/02_Init_RBAC_Seed.sql` y `DatabaseSeeder.SeedWpfActionsAsync`. Esto desacopla al 100% las selecciones de permisos en el gestor de roles entre la plataforma Web (PWA) y el terminal POS de garita (WPF).
+  > 2. **Sincronización de Directivas Corporativas en Bootstrap**: Se extendió `BootstrapSyncDto` con las propiedades de control de turnos y sesiones de la empresa (`RequireOpenShiftToOperate`, `RequireInitialCashAmount`, `AllowMultipleSessions`, `MaxActiveSessionsPerUser`, `AllowMultipleOpenShifts`, `MaxOpenShiftsPerUser`).
+  > 3. En `SyncService.cs`, se mapearon estas propiedades desde `targetCompany` (obtenido a través de `branch.Company` en `BranchRepository.GetByIdAsync`) para enviarlas al cliente WPF en cada sincronización de arranque y cambio de sede.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Sync/SyncDtos.cs` → Directivas corporativas en `BootstrapSyncDto`.
+  - `ParkingApi.Infrastructure/Data/DatabaseSeeder.cs` → `SeedWpfActionsAsync()` para siembra automática de `wpf.*` en MySQL.
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs` → Include de `Company` en `GetByIdAsync`.
+  - `ParkingApi.Core/Services/Sync/SyncService.cs` → Mapeo de directivas corporativas a `BootstrapSyncDto`.
+  - `ParkingApi/Program.cs` → Ejecución de `SeedWpfActionsAsync` al arrancar.
+  - `Scripts/08_Add_WPF_Dedicated_Actions.sql` y `Scripts/02_Init_RBAC_Seed.sql` → Scripts DDL/DML.
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` → **0 Errores, 8 Advertencias (previas NU1903)**
+  - `dotnet test` → **344 Pruebas Superadas, 0 Errores**
+
 ## 📌 Entrada: [2026-09-04 15:45:00] - Cálculo Progresivo Puro de Tarifas, Sincronización y Validaciones Multi-Sede
 
 - **`💬 Prompt Original del Usuario`**:

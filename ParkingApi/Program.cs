@@ -261,6 +261,9 @@ try
         cmd.ExecuteNonQuery();
         Console.WriteLine("[Schema Init] Columnas de resolución agregadas a ParkingTickets en MySQL.");
     }
+
+    await ParkingApi.Infrastructure.Data.DatabaseSeeder.SeedWpfActionsAsync(db);
+    Console.WriteLine("[RBAC Init] Acciones dedicadas de terminal WPF (wpf.*) sembradas/verificadas exitosamente.");
 }
 catch (Exception ex)
 {

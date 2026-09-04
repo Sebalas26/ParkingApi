@@ -48,6 +48,7 @@ public class BranchRepository : IBranchRepository
     public async Task<Branch?> GetByIdAsync(int branchId, CancellationToken cancellationToken = default)
     {
         return await _context.Branches
+            .Include(b => b.Company)
             .Include(b => b.BranchPaymentMethods)
                 .ThenInclude(bpm => bpm.PaymentMethod)
             .FirstOrDefaultAsync(b => b.Id == branchId, cancellationToken);

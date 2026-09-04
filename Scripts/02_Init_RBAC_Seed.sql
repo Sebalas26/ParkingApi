@@ -1058,7 +1058,45 @@ VALUES
     (79, 17, 2, 'Crear nuevo plan SaaS en COP', 'plans.create', 1, UTC_TIMESTAMP(), NULL),
     (80, 17, 3, 'Editar precios, cuotas y módulos de plan', 'plans.edit', 1, UTC_TIMESTAMP(), NULL),
     (81, 17, 5, 'Activar o inactivar plan de suscripción', 'plans.toggle_status', 1, UTC_TIMESTAMP(), NULL),
-    (82, 17, 4, 'Eliminar plan de suscripción', 'plans.delete', 1, UTC_TIMESTAMP(), NULL)
+    (82, 17, 4, 'Eliminar plan de suscripción', 'plans.delete', 1, UTC_TIMESTAMP(), NULL),
+
+    -- ==============================================================================
+    -- MÓDULOS DE TERMINAL POS GARITA (WPF Dedicado e Independiente)
+    -- ==============================================================================
+    -- MÓDULO 1: INGRESO DE VEHÍCULOS (CheckIn WPF POS)
+    (83,  1, 1, 'Ver terminal de ingreso WPF', 'wpf.checkin.view', 1, UTC_TIMESTAMP(), NULL),
+    (84,  1, 2, 'Generar e imprimir tiquete en terminal WPF', 'wpf.checkin.create', 1, UTC_TIMESTAMP(), NULL),
+    (85,  1, 6, 'Reimprimir tiquete de ingreso en terminal WPF', 'wpf.checkin.reprint', 1, UTC_TIMESTAMP(), NULL),
+    (86,  1, 3, 'Editar datos o placa en ingreso WPF', 'wpf.checkin.edit_plate', 1, UTC_TIMESTAMP(), NULL),
+    (87,  1, 5, 'Abrir barrera de entrada manualmente en terminal WPF', 'wpf.checkin.manual_barrier', 1, UTC_TIMESTAMP(), NULL),
+
+    -- MÓDULO 2: SALIDA Y COBRO (CheckOut WPF POS)
+    (88,  2, 1, 'Ver terminal de cobro y salida WPF', 'wpf.checkout.view', 1, UTC_TIMESTAMP(), NULL),
+    (89,  2, 2, 'Liquidar y cobrar tiquete en terminal WPF', 'wpf.checkout.process_payment', 1, UTC_TIMESTAMP(), NULL),
+    (90,  2, 2, 'Aplicar convenios y descuentos en terminal WPF', 'wpf.checkout.apply_discount', 1, UTC_TIMESTAMP(), NULL),
+    (91,  2, 3, 'Exonerar cobro de tiquete en terminal WPF', 'wpf.checkout.waive_fee', 1, UTC_TIMESTAMP(), NULL),
+    (92,  2, 6, 'Reimprimir factura o comprobante en terminal WPF', 'wpf.checkout.reprint_receipt', 1, UTC_TIMESTAMP(), NULL),
+    (93,  2, 5, 'Abrir barrera de salida manualmente en terminal WPF', 'wpf.checkout.manual_barrier', 1, UTC_TIMESTAMP(), NULL),
+
+    -- MÓDULO 3: MENSUALIDADES Y ABONADOS (WPF POS)
+    (94,  3, 1, 'Ver catálogo de mensualidades en terminal WPF', 'wpf.subscriptions.view', 1, UTC_TIMESTAMP(), NULL),
+    (95,  3, 2, 'Registrar nuevo abonado en terminal WPF', 'wpf.subscriptions.create', 1, UTC_TIMESTAMP(), NULL),
+    (96,  3, 3, 'Renovar mensualidad en terminal WPF', 'wpf.subscriptions.renew', 1, UTC_TIMESTAMP(), NULL),
+    (97,  3, 4, 'Cancelar suscripción en terminal WPF', 'wpf.subscriptions.cancel', 1, UTC_TIMESTAMP(), NULL),
+
+    -- MÓDULO 4: MONITOREO DE PATIO (WPF POS)
+    (98,  4, 1, 'Ver mapa de ocupación en terminal WPF', 'wpf.monitoring.view_occupancy', 1, UTC_TIMESTAMP(), NULL),
+    (99,  4, 1, 'Buscar vehículos adentro en terminal WPF', 'wpf.monitoring.search_vehicles', 1, UTC_TIMESTAMP(), NULL),
+    (100, 4, 3, 'Forzar salida manual en terminal WPF', 'wpf.monitoring.force_exit', 1, UTC_TIMESTAMP(), NULL),
+    (101, 4, 1, 'Exportar vehículos activos desde terminal WPF', 'wpf.monitoring.export', 1, UTC_TIMESTAMP(), NULL),
+
+    -- MÓDULO 5: CONTROL DE TURNOS Y CAJA (WPF POS)
+    (102, 5, 1, 'Ver turno actual y balance en terminal WPF', 'wpf.shifts.view_current', 1, UTC_TIMESTAMP(), NULL),
+    (103, 5, 2, 'Abrir turno con base en terminal WPF', 'wpf.shifts.open', 1, UTC_TIMESTAMP(), NULL),
+    (104, 5, 5, 'Arqueo ciego / retiro de efectivo en terminal WPF', 'wpf.shifts.blind_count', 1, UTC_TIMESTAMP(), NULL),
+    (105, 5, 5, 'Cerrar turno de caja y corte Z en terminal WPF', 'wpf.shifts.close', 1, UTC_TIMESTAMP(), NULL),
+    (106, 5, 1, 'Ver historial de turnos en terminal WPF', 'wpf.shifts.view_history', 1, UTC_TIMESTAMP(), NULL),
+    (107, 5, 6, 'Reimprimir comprobante de cierre en terminal WPF', 'wpf.shifts.reprint_closure', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     ModuleId = new_row.ModuleId,
