@@ -20,6 +20,8 @@ public interface IBranchRepository
     Task<bool> UnassignUserAsync(int userId, int branchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BranchPaymentMethod>> GetPaymentMethodsByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> SetPaymentMethodsAsync(int branchId, IEnumerable<int> paymentMethodIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BranchCommercialAgreement>> GetAgreementsByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<bool> SetAgreementsAsync(int branchId, IEnumerable<Guid> agreementIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<User>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default);
 }

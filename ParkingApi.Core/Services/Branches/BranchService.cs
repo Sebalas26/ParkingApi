@@ -212,6 +212,29 @@ public class BranchService : IBranchService
         return await _branchRepository.SetPaymentMethodsAsync(dto.BranchId, dto.PaymentMethodIds, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<BranchAgreementDto>> GetAgreementsAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        var list = await _branchRepository.GetAgreementsByBranchIdAsync(branchId, cancellationToken);
+        return list.Select(bca => new BranchAgreementDto
+        {
+            Id = bca.Id,
+            BranchId = bca.BranchId,
+            AgreementId = bca.AgreementId,
+            AgreementName = bca.CommercialAgreement?.Name ?? string.Empty,
+            DiscountPercentage = bca.CommercialAgreement?.DiscountPercentage,
+            DiscountFixedAmount = bca.CommercialAgreement?.DiscountFixedAmount,
+            MaxHoursApplicable = bca.CommercialAgreement?.MaxHoursApplicable,
+            MaxMinutesApplicable = bca.CommercialAgreement?.MaxMinutesApplicable,
+            ImageUrl = bca.CommercialAgreement?.ImageUrl,
+            IsActive = bca.IsActive
+        }).ToList();
+    }
+
+    public async Task<bool> ConfigureAgreementsAsync(ConfigureBranchAgreementsDto dto, CancellationToken cancellationToken = default)
+    {
+        return await _branchRepository.SetAgreementsAsync(dto.BranchId, dto.AgreementIds, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Domain.Dtos.Users.GetUsersDto>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)
     {
         var users = await _branchRepository.GetUsersByBranchIdAsync(branchId, cancellationToken);

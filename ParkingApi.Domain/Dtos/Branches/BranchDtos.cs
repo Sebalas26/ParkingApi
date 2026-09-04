@@ -88,3 +88,23 @@ public class ConfigureBranchPaymentMethodsDto
     public int BranchId { get; set; }
     public List<int> PaymentMethodIds { get; set; } = new();
 }
+
+public class BranchAgreementDto
+{
+    public int Id { get; set; }
+    public int BranchId { get; set; }
+    public Guid AgreementId { get; set; }
+    public string AgreementName { get; set; } = string.Empty;
+    public decimal? DiscountPercentage { get; set; }
+    public decimal? DiscountFixedAmount { get; set; }
+    public int? MaxHoursApplicable { get; set; }
+    public int? MaxMinutesApplicable { get; set; }
+    public string? ImageUrl { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class ConfigureBranchAgreementsDto
+{
+    public int BranchId { get; set; }
+    public List<Guid> AgreementIds { get; set; } = new();
+}

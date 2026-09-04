@@ -31,4 +31,5 @@ public class Branch : GeneralEntity
     public virtual ICollection<WorkShift> WorkShifts { get; set; } = new List<WorkShift>();
     public virtual ICollection<Store> Stores { get; set; } = new List<Store>();
     public virtual ICollection<MonthlySubscription> MonthlySubscriptions { get; set; } = new List<MonthlySubscription>();
+    public virtual ICollection<BranchCommercialAgreement> BranchCommercialAgreements { get; set; } = new List<BranchCommercialAgreement>();
 }

@@ -33,6 +33,7 @@ public class DataContext : DbContext
     public DbSet<Branch> Branches { get; set; }
     public DbSet<UserBranch> UserBranches { get; set; }
     public DbSet<BranchPaymentMethod> BranchPaymentMethods { get; set; }
+    public DbSet<BranchCommercialAgreement> BranchCommercialAgreements { get; set; }
 
     // Módulo Negocio Parqueadero (Preservación 100%)
     public DbSet<ParkingLot> ParkingLots { get; set; }

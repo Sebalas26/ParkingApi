@@ -2,6 +2,67 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 09:20:00] - Soporte de Minutos en Convenios Comerciales, Parametrización Relacional de Convenios por Sede (BranchCommercialAgreements), Exposición de Configuración de Caja en ValidateSession y Reactivación de Medios de Pago en Catálogo Maestro
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Cuando se le habilita la parametrización a la empresa de que si tenga caja si se ve como que hace el laoder pero no se actualzia me toca cerrar y volver a ingresar para que aparezca el modulo.*
+  > *cuando se intenta abrir caja no esta tomando el valor de caja inicial que se configuro en la creación de la sede esta trayendo información como quemada si me explico eso aplica tanto para el pwa como para el wpf.*
+  > *la alerta de cuando se quiere registrar el ingreso de un vehiculo y no se tiene medios de pago bien ya muestra la modal super pero lo manda a configuración deberia ser mas explicito y mandarlo a medios de pago si me explico*
+  > *Se tiene un error los medios de pago estan quedando inactivos desde creación y la lista no muestra inactivos deberia mostrar inactivos e activos.*
+  > *yo como administrador tenia 3 sedes elimine 2 bien las dejo eliminar pero en el select de arriba siguen apareciendo las 3 sedes no deberia eso debe ser reactivo si me explico.*
+  > *el input del porcentaje de descuento en la creación del convenio no esta dejando ingresar bien el porcentaje ademas no deberia dejar mas de 3 digitos e maximo 100%*
+  > *en la tab de convenios en la creación no se si se deberia colocar minutos por que las horas son enteras si se puede colocar minutos opcional si me explico.*
+  > *en la tab de sedes en parametrización falto la tab de convenios, parametrizar convenios que se vea que convenios tiene esa sede y que si se quiere inhabilitar o habilitar uno para esa sede se pueda hacer"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Migración SQL y Modelo Relacional (`Scripts/07_Add_Agreement_Minutes_And_Branch_Agreements.sql`)**:
+     - Se añadió la columna `MaxMinutesApplicable INT NULL` en la tabla `CommercialAgreements`.
+     - Se creó la tabla `BranchCommercialAgreements` (`Id INT IDENTITY PK`, `BranchId INT FK`, `CommercialAgreementId UNIQUEIDENTIFIER FK`, `IsActive BIT`, `CreatedAt DATETIME2`, `UpdatedAt DATETIME2`) con índice único sobre `(BranchId, CommercialAgreementId)` y eliminación en cascada.
+  2. **Entidades y Configuración EF Core (`BranchCommercialAgreement.cs`, `EntityConfigurations.cs`, `DataContext.cs`)**:
+     - Se creó la entidad `BranchCommercialAgreement` en `ParkingApi.Domain/Entities/Branches/`.
+     - En `EntityConfigurations.cs`, se configuró la relación muchos-a-muchos vía entidad puente `BranchCommercialAgreement` vinculando `Branch` y `CommercialAgreement`.
+     - En `DataContext.cs`, se registró `DbSet<BranchCommercialAgreement> BranchCommercialAgreements`.
+  3. **Repositorios y Servicios de Convenios por Sede (`IBranchRepository`, `BranchRepository`, `IBranchService`, `BranchService`, `BranchesController`)**:
+     - Se crearon los contratos y métodos `GetAgreementsByBranchIdAsync(int branchId)` y `SetAgreementsAsync(int branchId, IEnumerable<Guid> agreementIds)`.
+     - En `BranchesController.cs`:
+       - `[HttpGet("{id:int}/agreements")]`: Retorna `List<BranchAgreementDto>` cruzando los convenios maestros de la empresa con las parametrizaciones activas para esa sede específica.
+       - `[HttpPost("configure-agreements")]`: Configura atómicamente la lista de convenios habilitados para la sede física.
+     - En `DeleteAsync` de `BranchRepository.cs`, se agregó la remoción en cascada de `BranchCommercialAgreements`.
+  4. **Persistencia de Minutos en Convenios (`CommercialAgreementRepository.cs`)**:
+     - En `UpdateAsync`, se aseguró el mapeo explícito de `entity.MaxMinutesApplicable = model.MaxMinutesApplicable`.
+  5. **Mapeo de Configuración de Caja en Sesión (`AuthController.cs`, `AuthService.cs`)**:
+     - En `AuthController.ValidateSession()`, se enriqueció el payload de respuesta incluyendo `requireOpenShiftToOperate`, `requireInitialCashAmount`, `maxActiveSessionsPerUser`, `allowMultipleSessions`, `maxOpenShiftsPerUser` y `allowMultipleOpenShifts`. Esto permite que el refresh de sesión en PWA actualice la visibilidad reactiva de Caja sin requerir re-login.
+     - En `AuthService.LoginStandardAsync()`, se incluyó la asignación de `DefaultInitialCash`, `PaperWidth` y las banderas de cobro (`AllowChargeByMinute`, `AllowChargeByHour`, `AllowChargeByDay`, `AllowChargeByNight`) en la proyección de `UserBranchDto`.
+  6. **Reactivación de Medios de Pago Inactivos (`IPaymentMethodRepository.cs`, `PaymentMethodRepository.cs`, `PaymentMethodService.cs`)**:
+     - En `ValidateExist`, se añadió el parámetro `int companyId` para restringir la validación al ámbito de la empresa del inquilino actual.
+     - En `PaymentMethodService.CreateAsync`, cuando un medio de pago ya existe en el catálogo maestro pero está inactivo (`IsActive == false`), en lugar de rechazarlo con error, se reactiva automáticamente (`IsActive = true`), se actualiza su icono y nombre si variaron, y se retorna como exitoso.
+
+- **`📦 Componentes Modificados`**:
+  - `Scripts/07_Add_Agreement_Minutes_And_Branch_Agreements.sql` (Script SQL de migración)
+  - `ParkingApi.Domain/Entities/CommercialAgreements/CommercialAgreement.cs` (Propiedad MaxMinutesApplicable y colección BranchCommercialAgreements)
+  - `ParkingApi.Domain/Entities/Branches/BranchCommercialAgreement.cs` (Nueva entidad de dominio)
+  - `ParkingApi.Domain/Entities/Branches/Branch.cs` (Colección BranchCommercialAgreements)
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs` (Configuración de entidad y relaciones EF Core)
+  - `ParkingApi.Infrastructure/Data/Context/DataContext.cs` (DbSet BranchCommercialAgreements)
+  - `ParkingApi.Infrastructure/Data/Repositories/CommercialAgreements/CommercialAgreementRepository.cs` (Mapeo de MaxMinutesApplicable en UpdateAsync)
+  - `ParkingApi.Domain/Interfaces/Repositories/Branches/IBranchRepository.cs` (Contratos GetAgreementsByBranchIdAsync y SetAgreementsAsync)
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs` (Implementación de consultas y asignación de convenios por sede)
+  - `ParkingApi.Domain/DTOs/Branches/BranchDtos.cs` (DTOs BranchAgreementDto y ConfigureBranchAgreementsDto)
+  - `ParkingApi.Domain/Interfaces/Services/Branches/IBranchService.cs` (Contratos de servicio para convenios por sede)
+  - `ParkingApi.Core/Services/Branches/BranchService.cs` (Lógica de negocio de convenios de sede)
+  - `ParkingApi/Controllers/BranchesController.cs` (Endpoints GET {id}/agreements y POST configure-agreements)
+  - `ParkingApi/Controllers/AuthController.cs` (Proyección de requireOpenShiftToOperate y límites de empresa en ValidateSession)
+  - `ParkingApi.Core/Services/Auth/AuthService.cs` (Proyección de DefaultInitialCash y banderas de cobro en UserBranchDto de LoginStandardAsync)
+  - `ParkingApi.Domain/Interfaces/Repositories/PaymentMethods/IPaymentMethodRepository.cs` (Parámetro companyId en ValidateExist)
+  - `ParkingApi.Infrastructure/Data/Repositories/PaymentMethods/PaymentMethodRepository.cs` (Filtrado por companyId en ValidateExist)
+  - `ParkingApi.Core/Services/PaymentMethods/PaymentMethodService.cs` (Reactivación automática de medios de pago inactivos)
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: Compilación exitosa (**0 Errores**).
+  - `dotnet test`: 341 pruebas unitarias ejecutadas y aprobadas (**341 Superadas, 0 Fallos**).
+
+---
+
 ## 📌 Entrada: [2026-09-04 08:12:00] - Eliminación Real de Sedes, Proyección de Roles de Operador y Auto-Habilitación Dinámica de Módulo de Caja en Actualización de Empresa
 
 - **`💬 Prompt Original del Usuario`**:

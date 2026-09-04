@@ -75,7 +75,7 @@ public class PaymentMethodService : IPaymentMethodService
                 IsActive = paymentMethod.IsActive
             };
 
-            var existing = await _repository.ValidateExist(paymentMethod.Name, cancellation);
+            var existing = await _repository.ValidateExist(paymentMethod.Name, paymentMethod.CompanyId, cancellation);
             if (data.Id == 0 && existing == null)
             {
                 data.CreatedAt = DateTime.UtcNow;
@@ -83,11 +83,15 @@ public class PaymentMethodService : IPaymentMethodService
             }
             else
             {
+                if (data.Id == 0 && existing != null)
+                {
+                    data.Id = existing.Id;
+                }
                 data.UpdatedAt = DateTime.UtcNow;
                 await _repository.UpdateAsync(data, cancellation);
             }
 
-            result = await _repository.ValidateExist(data.Name, cancellation) ?? new();
+            result = await _repository.ValidateExist(data.Name, data.CompanyId, cancellation) ?? new();
         }
         catch (Exception ex)
         {

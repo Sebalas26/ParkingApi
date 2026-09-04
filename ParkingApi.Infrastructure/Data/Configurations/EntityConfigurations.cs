@@ -229,7 +229,8 @@ public class MultiBranchConfigurations :
     IEntityTypeConfiguration<Company>,
     IEntityTypeConfiguration<Branch>,
     IEntityTypeConfiguration<UserBranch>,
-    IEntityTypeConfiguration<BranchPaymentMethod>
+    IEntityTypeConfiguration<BranchPaymentMethod>,
+    IEntityTypeConfiguration<BranchCommercialAgreement>
 {
     public void Configure(EntityTypeBuilder<Company> builder)
     {
@@ -322,6 +323,24 @@ public class MultiBranchConfigurations :
         builder.HasOne(bpm => bpm.PaymentMethod)
             .WithMany()
             .HasForeignKey(bpm => bpm.PaymentMethodId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    public void Configure(EntityTypeBuilder<BranchCommercialAgreement> builder)
+    {
+        builder.ToTable("BranchCommercialAgreements");
+        builder.HasKey(bca => bca.Id);
+
+        builder.HasIndex(bca => new { bca.BranchId, bca.AgreementId }).IsUnique();
+
+        builder.HasOne(bca => bca.Branch)
+            .WithMany(b => b.BranchCommercialAgreements)
+            .HasForeignKey(bca => bca.BranchId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(bca => bca.CommercialAgreement)
+            .WithMany(a => a.BranchCommercialAgreements)
+            .HasForeignKey(bca => bca.AgreementId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

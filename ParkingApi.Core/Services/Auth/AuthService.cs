@@ -230,6 +230,12 @@ public class AuthService : IAuthService
                 City = b.City,
                 TotalCapacity = b.TotalCapacity,
                 Notes = b.Notes,
+                PaperWidth = b.PaperWidth,
+                DefaultInitialCash = b.DefaultInitialCash,
+                AllowChargeByMinute = b.AllowChargeByMinute,
+                AllowChargeByHour = b.AllowChargeByHour,
+                AllowChargeByDay = b.AllowChargeByDay,
+                AllowChargeByNight = b.AllowChargeByNight,
                 IsActive = b.IsActive,
                 CreatedAt = b.CreatedAt
             }).ToList();

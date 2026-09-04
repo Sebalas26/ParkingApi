@@ -157,14 +157,17 @@ public class PaymentMethodRepository : IPaymentMethodRepository
         }
     }
 
-    public async Task<GetPaymentMethodDto?> ValidateExist(string name, CancellationToken cancellation = default)
+    public async Task<GetPaymentMethodDto?> ValidateExist(string name, int? companyId = null, CancellationToken cancellation = default)
     {
         try
         {
             var normalized = name.Trim().ToLower();
-            return await _context.PaymentMethod
-                .AsNoTracking()
-                .Where(x => x.Name.ToLower() == normalized)
+            var query = _context.PaymentMethod.AsNoTracking().Where(x => x.Name.ToLower() == normalized);
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(x => x.CompanyId == companyId.Value || x.CompanyId == null);
+            }
+            return await query
                 .Select(x => new GetPaymentMethodDto
                 {
                     Id = x.Id,

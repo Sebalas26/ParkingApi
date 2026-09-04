@@ -12,6 +12,6 @@ public interface IPaymentMethodRepository
     Task<IEnumerable<GetPaymentMethodDto>> GetAllActiveAsync(int? companyId = null, CancellationToken cancellation = default);
     Task<GetPaymentMethodDto?> GetByIdAsync(int id, CancellationToken cancellation = default);
     Task<bool> CreateAsync(PaymentMethod paymentMethod, CancellationToken cancellation = default);
-    Task<bool> UpdateAsync(PaymentMethod paymentMethod, CancellationToken cancellation = default);
-    Task<GetPaymentMethodDto?> ValidateExist(string name, CancellationToken cancellation = default);
+    Task<bool> UpdateAsync(PaymentMethod paymentMethod, CancellationToken cancellationToken = default);
+    Task<GetPaymentMethodDto?> ValidateExist(string name, int? companyId = null, CancellationToken cancellation = default);
 }

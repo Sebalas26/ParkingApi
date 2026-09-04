@@ -177,6 +177,25 @@ public class BranchesController : ControllerBase
         return BadRequest(new { message = "No se pudieron configurar los medios de pago para la sede." });
     }
 
+    [HttpGet("{id:int}/agreements")]
+    public async Task<IActionResult> GetAgreements(int id, CancellationToken cancellationToken)
+    {
+        var agreements = await _branchService.GetAgreementsAsync(id, cancellationToken);
+        return Ok(agreements);
+    }
+
+    [HttpPost("configure-agreements")]
+    public async Task<IActionResult> ConfigureAgreements([FromBody] ConfigureBranchAgreementsDto dto, CancellationToken cancellationToken)
+    {
+        var success = await _branchService.ConfigureAgreementsAsync(dto, cancellationToken);
+        if (success)
+        {
+            _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId, "Convenios Actualizados", "Se actualizaron los convenios comerciales habilitados para la sede.", "AgreementsChanged", cancellationToken);
+            return Ok(new { message = "Convenios comerciales configurados correctamente para la sede." });
+        }
+        return BadRequest(new { message = "No se pudieron configurar los convenios para la sede." });
+    }
+
     [HttpGet("{id:int}/users")]
     public async Task<IActionResult> GetBranchUsers(int id, CancellationToken cancellationToken)
     {

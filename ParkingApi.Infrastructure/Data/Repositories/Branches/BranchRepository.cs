@@ -175,6 +175,38 @@ public class BranchRepository : IBranchRepository
         return true;
     }
 
+    public async Task<IReadOnlyList<BranchCommercialAgreement>> GetAgreementsByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        return await _context.BranchCommercialAgreements
+            .AsNoTracking()
+            .Include(bca => bca.CommercialAgreement)
+            .Where(bca => bca.BranchId == branchId && bca.IsActive && bca.CommercialAgreement.IsActive)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> SetAgreementsAsync(int branchId, IEnumerable<Guid> agreementIds, CancellationToken cancellationToken = default)
+    {
+        var current = await _context.BranchCommercialAgreements
+            .Where(bca => bca.BranchId == branchId)
+            .ToListAsync(cancellationToken);
+
+        _context.BranchCommercialAgreements.RemoveRange(current);
+
+        foreach (var agId in agreementIds)
+        {
+            _context.BranchCommercialAgreements.Add(new BranchCommercialAgreement
+            {
+                BranchId = branchId,
+                AgreementId = agId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<IReadOnlyList<User>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)
     {
         var branch = await _context.Branches.AsNoTracking().FirstOrDefaultAsync(b => b.Id == branchId, cancellationToken);
@@ -225,6 +257,9 @@ public class BranchRepository : IBranchRepository
 
         var paymentMethods = await _context.BranchPaymentMethods.Where(bpm => bpm.BranchId == branchId).ToListAsync(cancellationToken);
         if (paymentMethods.Count > 0) _context.BranchPaymentMethods.RemoveRange(paymentMethods);
+
+        var branchAgreements = await _context.BranchCommercialAgreements.Where(bca => bca.BranchId == branchId).ToListAsync(cancellationToken);
+        if (branchAgreements.Count > 0) _context.BranchCommercialAgreements.RemoveRange(branchAgreements);
 
         var vehicleRates = await _context.VehicleRates.Where(vr => vr.BranchId == branchId).ToListAsync(cancellationToken);
         if (vehicleRates.Count > 0) _context.VehicleRates.RemoveRange(vehicleRates);

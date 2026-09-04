@@ -103,6 +103,7 @@ public class CommercialAgreementRepository : ICommercialAgreementRepository
             existing.DiscountPercentage = agreement.DiscountPercentage;
             existing.DiscountFixedAmount = agreement.DiscountFixedAmount;
             existing.MaxHoursApplicable = agreement.MaxHoursApplicable;
+            existing.MaxMinutesApplicable = agreement.MaxMinutesApplicable;
             existing.IsActive = agreement.IsActive;
             existing.ImageUrl = agreement.ImageUrl;
 
