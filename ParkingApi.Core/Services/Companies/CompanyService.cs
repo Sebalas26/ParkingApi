@@ -308,6 +308,16 @@ public class CompanyService : ICompanyService
             }
         }
 
+        // Notificación en tiempo real de actualización de parámetros y límites de la empresa
+        _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
+        {
+            EventType = "CompanyUpdated",
+            CompanyId = id,
+            Title = "Empresa Actualizada",
+            Message = $"Los parámetros y cupo de sedes de '{company.Name}' han sido actualizados en tiempo real.",
+            TimestampUtc = DateTime.UtcNow
+        }, cancellationToken);
+
         return MapToDto(company);
     }
 
@@ -322,6 +332,16 @@ public class CompanyService : ICompanyService
         company.IsActive = !company.IsActive;
         company.UpdatedAt = DateTime.UtcNow;
         await _companyRepository.UpdateAsync(company, cancellationToken);
+
+        _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
+        {
+            EventType = "CompanyStatusChanged",
+            CompanyId = id,
+            Title = company.IsActive ? "Empresa Habilitada" : "Empresa Deshabilitada",
+            Message = $"El estado operativo de '{company.Name}' ha cambiado a {(company.IsActive ? "Activo" : "Inactivo")}.",
+            TimestampUtc = DateTime.UtcNow
+        }, cancellationToken);
+
         return true;
     }
 

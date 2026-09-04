@@ -39,4 +39,19 @@ public class ParkingHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         _logger.LogInformation("[SignalR] Conexión {ConnectionId} salió del grupo de sede '{GroupName}'", Context.ConnectionId, groupName);
     }
+
+    public async Task JoinCompanyGroup(int companyId)
+    {
+        var groupName = $"Company_{companyId}";
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        _logger.LogInformation("[SignalR] Conexión {ConnectionId} se unió al grupo de empresa '{GroupName}'", Context.ConnectionId, groupName);
+    }
+
+    public async Task LeaveCompanyGroup(int companyId)
+    {
+        var groupName = $"Company_{companyId}";
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+        _logger.LogInformation("[SignalR] Conexión {ConnectionId} salió del grupo de empresa '{GroupName}'", Context.ConnectionId, groupName);
+    }
 }
+

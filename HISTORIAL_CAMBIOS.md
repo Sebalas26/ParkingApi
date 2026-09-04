@@ -2,6 +2,34 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-03 20:10:00] - Sincronización Reactiva en Tiempo Real (SignalR) para Límites de Sedes y Configuración de Empresa
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"ya cambie si era como cerrar y volver a ingresar pero eso no deberia ser así eso deberia ser reactivo si cambio eso de limite de sedes deberia sincronizarse directo en la visual del administrador si me explico eso se trata del sistema claro si me explico. analiza y dame plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico y Arquitectura**:
+    - Al actualizar una empresa desde la plataforma SaaS Global (Super Admin), los cambios en `MaxBranches` y políticas operativas se guardaban en base de datos pero no existía notificación SignalR para actualizar a los administradores u operadores de esa empresa que ya tenían la aplicación web abierta.
+    - Se identificó además que `ParkingHub` no disponía de canales por empresa (`Company_{companyId}`) y que `RealtimeNotificationService` emitía únicamente a nivel de sede o global.
+  - **Cambios Implementados en ParkingApi**:
+    - **`ParkingHub.cs`**: Se agregaron los métodos `JoinCompanyGroup(int companyId)` y `LeaveCompanyGroup(int companyId)` para agrupar clientes por empresa/tenant.
+    - **`CompanyService.cs`**: En `UpdateCompanyAsync`, se agregó la emisión reactiva de evento en tiempo real `CompanyUpdated` vía `_realtimeNotifier.NotifyCustomAsync` con los metadatos de la empresa (`CompanyId`, nombre y mensaje descriptivo).
+    - **`CompanyService.cs`**: En `ToggleCompanyStatusAsync`, se agregó la emisión reactiva de `CompanyStatusChanged` para habilitación/inactivación en caliente.
+    - **`CompanyPolicyTests.cs`**: Se agregó verificación estricta de emisión de `CompanyUpdated`.
+  - **Pruebas y Certificación**:
+    - Se ejecutó `dotnet test` sobre `ParkingApi.UnitTests`: **325 pruebas superadas con éxito (0 fallos, 0 omitidas)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Hubs/ParkingHub.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi.UnitTests/CompanyPolicyTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test`: **325 pasadas**, 0 fallos, 0 errores.
+  - `dotnet build`: **0 Errores**.
+
+---
+
 ## 📌 Entrada: [2026-09-03 19:35:00] - Cobertura Exhaustiva 100% de Pruebas Unitarias en Controladores de ParkingApi (Fase 1, 2 y 3)
 
 - **`💬 Prompt Original del Usuario`**:

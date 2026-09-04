@@ -84,5 +84,8 @@ public class CompanyPolicyTests
 
         // Debe haber notificado a los 2 sockets revocados
         _realtimeMock.Verify(r => r.NotifyCustomAsync(It.Is<ConfigNotificationDto>(n => n.EventType == "UserSessionTerminated"), It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+        // Debe haber emitido el evento en tiempo real CompanyUpdated
+        _realtimeMock.Verify(r => r.NotifyCustomAsync(It.Is<ConfigNotificationDto>(n => n.EventType == "CompanyUpdated" && n.CompanyId == 5), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
