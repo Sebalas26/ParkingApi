@@ -7,7 +7,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Analytics;
+using ParkingApi.Domain.Interfaces.Repositories.Billing;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
+using ParkingApi.Domain.Interfaces.Repositories.PaymentMethods;
 using ParkingApi.Domain.Interfaces.Repositories.Tickets;
 using ParkingApi.Domain.Interfaces.Services.Analytics;
 
@@ -17,6 +19,8 @@ public class AnalyticsService : IAnalyticsService
 {
     private readonly IParkingTicketRepository _ticketRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IPaymentMethodRepository _paymentMethodRepository;
+    private readonly IBillingResolutionRepository _resolutionRepository;
     private readonly IConfiguration _configuration;
     private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<AnalyticsService> _logger;
@@ -24,12 +28,16 @@ public class AnalyticsService : IAnalyticsService
     public AnalyticsService(
         IParkingTicketRepository ticketRepository,
         IBranchRepository branchRepository,
+        IPaymentMethodRepository paymentMethodRepository,
+        IBillingResolutionRepository resolutionRepository,
         IConfiguration configuration,
         ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
         ILogger<AnalyticsService> logger)
     {
         _ticketRepository = ticketRepository;
         _branchRepository = branchRepository;
+        _paymentMethodRepository = paymentMethodRepository;
+        _resolutionRepository = resolutionRepository;
         _configuration = configuration;
         _currentUser = currentUser;
         _logger = logger;
@@ -55,25 +63,81 @@ public class AnalyticsService : IAnalyticsService
                 .GroupBy(t => t.VehicleType)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            var revenueByPayment = todayTickets
-                .Where(t => t.PaymentMethod.HasValue)
-                .GroupBy(t => t.PaymentMethod!.Value)
-                .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
+            // 1. Mapeo Robusto de Medios de Pago por ID, Nombre y Fallbacks
+            var paymentMethods = (await _paymentMethodRepository.GetAllAsync(effectiveCompanyId, cancellationToken)).ToList();
+            var methodMap = paymentMethods.ToDictionary(m => m.Id, m => m.Name);
 
-            var countByPayment = todayTickets
-                .Where(t => t.PaymentMethod.HasValue)
-                .GroupBy(t => ((int)t.PaymentMethod!.Value).ToString())
-                .ToDictionary(g => g.Key, g => g.Count());
+            var revenueByPayment = new Dictionary<string, decimal>();
+            var countByPayment = new Dictionary<string, int>();
 
-            var countByResolution = todayTickets
-                .Where(t => !string.IsNullOrWhiteSpace(t.ResolutionName) || t.ResolutionId.HasValue)
-                .GroupBy(t => !string.IsNullOrWhiteSpace(t.ResolutionName) ? t.ResolutionName! : t.ResolutionId.ToString()!)
-                .ToDictionary(g => g.Key, g => g.Count());
+            foreach (var ticket in todayTickets)
+            {
+                int rawMethodId = ticket.PaymentMethod.HasValue ? (int)ticket.PaymentMethod.Value : 0;
+                string idKey = rawMethodId.ToString();
+                string nameKey = methodMap.TryGetValue(rawMethodId, out var name)
+                    ? name
+                    : (rawMethodId == 0 ? "Efectivo" : $"Método #{rawMethodId}");
 
-            var revenueByResolution = todayTickets
-                .Where(t => !string.IsNullOrWhiteSpace(t.ResolutionName) || t.ResolutionId.HasValue)
-                .GroupBy(t => !string.IsNullOrWhiteSpace(t.ResolutionName) ? t.ResolutionName! : t.ResolutionId.ToString()!)
-                .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
+                revenueByPayment[idKey] = (revenueByPayment.TryGetValue(idKey, out var currRev) ? currRev : 0m) + ticket.NetAmount;
+                revenueByPayment[nameKey] = (revenueByPayment.TryGetValue(nameKey, out var currRevName) ? currRevName : 0m) + ticket.NetAmount;
+
+                // Indexación de respaldo para el Enum legacy (0 -> Cash / Efectivo)
+                if (rawMethodId == 0)
+                {
+                    revenueByPayment["Cash"] = revenueByPayment[idKey];
+                    var cashMethod = paymentMethods.FirstOrDefault(m => m.Name.Contains("Efectivo", StringComparison.OrdinalIgnoreCase));
+                    if (cashMethod != null)
+                    {
+                        revenueByPayment[cashMethod.Id.ToString()] = revenueByPayment[idKey];
+                        revenueByPayment[cashMethod.Name] = revenueByPayment[idKey];
+                    }
+                }
+
+                countByPayment[idKey] = (countByPayment.TryGetValue(idKey, out var currCount) ? currCount : 0) + 1;
+                countByPayment[nameKey] = (countByPayment.TryGetValue(nameKey, out var currCountName) ? currCountName : 0) + 1;
+            }
+
+            // 2. Mapeo de Resoluciones DIAN por Nombre, Número, Prefijo e ID
+            var activeResolutions = (await _resolutionRepository.GetActiveAsync(branchId, effectiveCompanyId, cancellationToken)).ToList();
+            var defaultResolution = activeResolutions.FirstOrDefault();
+
+            var countByResolution = new Dictionary<string, int>();
+            var revenueByResolution = new Dictionary<string, decimal>();
+
+            foreach (var ticket in todayTickets)
+            {
+                string? resKey = !string.IsNullOrWhiteSpace(ticket.ResolutionName)
+                    ? ticket.ResolutionName
+                    : (ticket.ResolutionId.HasValue
+                        ? ticket.ResolutionId.Value.ToString()
+                        : (!string.IsNullOrWhiteSpace(defaultResolution?.Prefix) && !string.IsNullOrWhiteSpace(defaultResolution?.Name)
+                            ? $"{defaultResolution.Prefix} - {defaultResolution.Name}"
+                            : defaultResolution?.Name ?? defaultResolution?.ResolutionNumber));
+
+                if (!string.IsNullOrWhiteSpace(resKey))
+                {
+                    revenueByResolution[resKey] = (revenueByResolution.TryGetValue(resKey, out var currRev) ? currRev : 0m) + ticket.NetAmount;
+                    countByResolution[resKey] = (countByResolution.TryGetValue(resKey, out var currCnt) ? currCnt : 0) + 1;
+
+                    // Si coincide con defaultResolution o cualquier resolución activa, indexar también por campos alternos
+                    var matchedRes = activeResolutions.FirstOrDefault(r => 
+                        r.Name == resKey || 
+                        r.ResolutionNumber == resKey || 
+                        r.ResolutionId.ToString() == resKey || 
+                        $"{r.Prefix} - {r.Name}" == resKey);
+
+                    if (matchedRes != null)
+                    {
+                        revenueByResolution[matchedRes.ResolutionId.ToString()] = revenueByResolution[resKey];
+                        if (!string.IsNullOrWhiteSpace(matchedRes.ResolutionNumber))
+                            revenueByResolution[matchedRes.ResolutionNumber] = revenueByResolution[resKey];
+                        if (!string.IsNullOrWhiteSpace(matchedRes.Prefix))
+                            revenueByResolution[matchedRes.Prefix] = revenueByResolution[resKey];
+                        if (!string.IsNullOrWhiteSpace(matchedRes.Name))
+                            revenueByResolution[matchedRes.Name] = revenueByResolution[resKey];
+                    }
+                }
+            }
 
             return new FinancialSummaryDto
             {

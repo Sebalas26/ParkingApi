@@ -183,16 +183,7 @@ public class ParkingTicketService : IParkingTicketService
             ticket.NetAmount = net;
             ticket.AmountPaid = dto.AmountPaid;
             ticket.ChangeGiven = Math.Max(0m, dto.AmountPaid - net);
-            int rawMethod = (int)dto.PaymentMethod;
-            Domain.Common.Enums.PaymentMethod mappedMethod = rawMethod switch
-            {
-              1 => Domain.Common.Enums.PaymentMethod.Cash,
-              2 => Domain.Common.Enums.PaymentMethod.CreditCard,
-              0 => Domain.Common.Enums.PaymentMethod.Cash,
-              _ => (Domain.Common.Enums.PaymentMethod)rawMethod
-            };
-
-            ticket.PaymentMethod = mappedMethod;
+            ticket.PaymentMethod = (Domain.Common.Enums.PaymentMethod)(int)dto.PaymentMethod;
             ticket.Status = TicketStatus.Completed;
             ticket.IsSynchronized = true;
 
@@ -242,6 +233,32 @@ public class ParkingTicketService : IParkingTicketService
                 catch (Exception resEx)
                 {
                     _logger.LogWarning(resEx, "No se pudo incrementar el consecutivo de la resolución {ResolutionId}", dto.ResolutionId.Value);
+                }
+            }
+            else
+            {
+                // Auto-asignar resolución activa de la sede si existe
+                try
+                {
+                    var activeResolutions = await _resolutionRepository.GetActiveAsync(ticket.BranchId, ticket.CompanyId, cancellationToken);
+                    var activeRes = activeResolutions.FirstOrDefault();
+                    if (activeRes != null)
+                    {
+                        ticket.ResolutionId = activeRes.ResolutionId;
+                        ticket.ResolutionName = !string.IsNullOrWhiteSpace(activeRes.Prefix) && !string.IsNullOrWhiteSpace(activeRes.Name)
+                            ? $"{activeRes.Prefix} - {activeRes.Name}"
+                            : activeRes.Name;
+                        ticket.InvoiceNumber = $"{activeRes.Prefix}{activeRes.CurrentNumber}";
+                        ticket.IsElectronicInvoice = true;
+
+                        activeRes.CurrentNumber++;
+                        activeRes.UpdatedAtUtc = DateTime.UtcNow;
+                        await _resolutionRepository.UpdateAsync(activeRes, cancellationToken);
+                    }
+                }
+                catch (Exception autoResEx)
+                {
+                    _logger.LogWarning(autoResEx, "No se pudo auto-asignar resolución activa en CheckOut para tiquete {TicketId}", ticket.TicketId);
                 }
             }
 

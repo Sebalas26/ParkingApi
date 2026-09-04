@@ -2,6 +2,38 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 11:15:00] - Mapeo Multi-Clave de Medios de Pago y Auto-Asignación de Resolución Activa para Gráficas de Dashboard
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"En la dashboard - recaudacion por medio de pago , se muestran los medios de pagos correctos , sin embargo no se esta poblando la informacion correctamente en la grafica, requiero es que se muestre por % en esa grafica torta, asi mismo debe comportarse el de facturacion por resolucion"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Tipado Desacoplado en DTO (`FinancialSummaryDto.cs`)**:
+     - Se cambió `RevenueByPaymentMethod` de `Dictionary<PaymentMethod, decimal>` a `Dictionary<string, decimal>`. Esto elimina el bloqueo de un enum rígido y permite indexar dinámicamente tanto por ID numérico (`"1"`, `"2"`), como por Nombre de catálogo (`"Efectivo"`, `"Tarjeta"`), garantizando compatibilidad con cualquier catálogo dinámico de base de datos.
+  2. **Servicio de Analítica Diario (`AnalyticsService.cs`)**:
+     - Se inyectaron `IPaymentMethodRepository` e `IBillingResolutionRepository`.
+     - **Indexación Robusta de Medios de Pago**:
+       - Se cargan los medios de pago de la empresa y se indexa el desglose diario bajo múltiples claves equivalentes (`idKey`, `nameKey`, y claves de fallback `Cash`/`0`), asegurando que cualquier consulta desde el frontend encuentre el recaudo exacto sin importar si busca por ID o por nombre.
+     - **Agrupamiento Inteligente de Resoluciones DIAN**:
+       - Se consultan las resoluciones activas de la sede (`GetActiveAsync`).
+       - Si existen tiquetes liquidados sin resolución explícita, se atribuyen automáticamente a la resolución activa de la sede para que la facturación diaria no se disperse.
+       - Se indexa `RevenueByResolution` y `CountByResolution` bajo el nombre, número de resolución, prefijo y ResolutionId (Guid).
+  3. **Auto-Asignación en Liquidación (`ParkingTicketService.cs`)**:
+     - En `CheckOutAsync`: Se eliminó el switch que sobreescribía `dto.PaymentMethod` con el enum legacy, guardando fielmente el ID del método enviado desde la caja/terminal.
+     - Si `dto.ResolutionId` no es especificado en la liquidación, el servicio consulta la resolución activa de la sede, la asigna al tiquete (`ResolutionId`, `ResolutionName`, `InvoiceNumber = $"{Prefix}{CurrentNumber}"`, `IsElectronicInvoice = true`), e incrementa y actualiza el consecutivo en la base de datos de manera atómica.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Analytics/FinancialSummaryDto.cs`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: Compilación exitosa con **0 Errores**.
+  - `dotnet test ParkingApi.slnx --no-build`: **344 pruebas superadas, 0 Fallos**.
+
+---
+
 ## 📌 Entrada: [2026-09-04 10:35:00] - Implementación de Endpoint DELETE Físico para Medios de Pago y Cascada en Asignaciones de Sede
 
 - **`💬 Prompt Original del Usuario`**:
