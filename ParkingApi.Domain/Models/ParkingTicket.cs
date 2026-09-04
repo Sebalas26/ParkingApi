@@ -25,6 +25,8 @@ public class ParkingTicket
     public decimal AmountPaid { get; set; }
     public decimal ChangeGiven { get; set; }
     public PaymentMethodEnum? PaymentMethod { get; set; }
+    /// <summary>ID real del catálogo maestro de medios de pago (tabla PaymentMethods). Tiene prioridad sobre el enum PaymentMethod para analytics.</summary>
+    public int? PaymentMethodId { get; set; }
     public TicketStatus Status { get; set; } = TicketStatus.Active;
     public string OperatorName { get; set; } = "Operador General";
     public bool IsSynchronized { get; set; } = true;

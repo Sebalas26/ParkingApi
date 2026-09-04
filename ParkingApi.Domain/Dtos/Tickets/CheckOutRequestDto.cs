@@ -9,6 +9,8 @@ public class CheckOutRequestDto
     public int? BranchId { get; set; }
     public int? CompanyId { get; set; }
     public PaymentMethod PaymentMethod { get; set; }
+    /// <summary>ID real del catálogo maestro de medios de pago. Tiene prioridad sobre el enum PaymentMethod para analytics.</summary>
+    public int? PaymentMethodId { get; set; }
     public decimal AmountPaid { get; set; }
     public Guid? StoreId { get; set; }
     public Guid? AgreementId { get; set; }

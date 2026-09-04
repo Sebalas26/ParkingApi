@@ -184,6 +184,10 @@ public class ParkingTicketService : IParkingTicketService
             ticket.AmountPaid = dto.AmountPaid;
             ticket.ChangeGiven = Math.Max(0m, dto.AmountPaid - net);
             ticket.PaymentMethod = (Domain.Common.Enums.PaymentMethod)(int)dto.PaymentMethod;
+            // Guardar el ID real del catálogo maestro (tiene prioridad para analytics y dashboard)
+            ticket.PaymentMethodId = dto.PaymentMethodId.HasValue && dto.PaymentMethodId.Value > 0
+                ? dto.PaymentMethodId.Value
+                : (int)dto.PaymentMethod;
             ticket.Status = TicketStatus.Completed;
             ticket.IsSynchronized = true;
 

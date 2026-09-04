@@ -72,7 +72,12 @@ public class AnalyticsService : IAnalyticsService
 
             foreach (var ticket in todayTickets)
             {
-                int rawMethodId = ticket.PaymentMethod.HasValue ? (int)ticket.PaymentMethod.Value : 0;
+                // Priorizar PaymentMethodId (ID real del catálogo maestro de BD)
+                // Fallback al valor del enum sólo para tiquetes históricos sin el nuevo campo
+                int rawMethodId = ticket.PaymentMethodId.HasValue && ticket.PaymentMethodId.Value > 0
+                    ? ticket.PaymentMethodId.Value
+                    : (ticket.PaymentMethod.HasValue ? (int)ticket.PaymentMethod.Value : 0);
+
                 string idKey = rawMethodId.ToString();
                 string nameKey = methodMap.TryGetValue(rawMethodId, out var name)
                     ? name
@@ -81,7 +86,7 @@ public class AnalyticsService : IAnalyticsService
                 revenueByPayment[idKey] = (revenueByPayment.TryGetValue(idKey, out var currRev) ? currRev : 0m) + ticket.NetAmount;
                 revenueByPayment[nameKey] = (revenueByPayment.TryGetValue(nameKey, out var currRevName) ? currRevName : 0m) + ticket.NetAmount;
 
-                // Indexación de respaldo para el Enum legacy (0 -> Cash / Efectivo)
+                // Indexación de respaldo para tiquetes históricos con enum=0 (Cash/Efectivo)
                 if (rawMethodId == 0)
                 {
                     revenueByPayment["Cash"] = revenueByPayment[idKey];

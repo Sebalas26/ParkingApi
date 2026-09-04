@@ -2,7 +2,31 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: [2026-09-04 11:15:00] - Mapeo Multi-Clave de Medios de Pago y Auto-Asignación de Resolución Activa para Gráficas de Dashboard
+## 📌 Entrada: [2026-09-04 11:54:00] - Fix Definitivo Gráficas Dashboard: Campo PaymentMethodId en ParkingTicket
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Sigue igual sin mostrarse los vehiculos en las graficas, valida si al liquidar salida en el modulo de control de vehiculos en patio el guarda en BD los datos que se requieren para mostrar en las graficas de la dashboard"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  > **Causa Raíz Definitiva:** El campo `PaymentMethod` en `ParkingTicket` es un enum estático (`Cash=0, CreditCard=1, DebitCard=2, Transfer=3`). El frontend enviaba el **ID real del catálogo maestro** (ej: `1` = "Efectivo" en tabla `PaymentMethods` de BD), pero el backend lo casteaba al enum (`(PaymentMethod)(int)1` = `CreditCard`). El `AnalyticsService` leía `(int)ticket.PaymentMethod.Value` (valor del enum = 1) y buscaba `methodMap[1]` → encontraba "Tarjeta". El Dashboard buscaba `byMethod["1"]` (ID maestro de Efectivo) → coincidía con "Tarjeta" en lugar de "Efectivo". Gráficas siempre erróneas.
+  >
+  > **Solución:** Agregar `PaymentMethodId (int?)` al modelo `ParkingTicket` y al `CheckOutRequestDto`. En `ParkingTicketService.CheckOutAsync`, guardar `ticket.PaymentMethodId = dto.PaymentMethodId ?? (int)dto.PaymentMethod`. En `AnalyticsService`, priorizar `ticket.PaymentMethodId` sobre el valor del enum para la indexación del diccionario `RevenueByPaymentMethod`. Se mantiene el enum `PaymentMethod` por compatibilidad con clientes WPF.
+  >
+  > **Migración EF Core:** `20260904165356_AddPaymentMethodIdToTicket` aplicada a la BD local. Agregar columna `PaymentMethodId INT NULL` a la tabla `ParkingTickets`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/ParkingTicket.cs` → Agregado `int? PaymentMethodId`
+  - `ParkingApi.Domain/Dtos/Tickets/CheckOutRequestDto.cs` → Agregado `int? PaymentMethodId`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs` → `CheckOutAsync`: guardar `ticket.PaymentMethodId`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs` → `rawMethodId` prioriza `PaymentMethodId`
+  - `ParkingApi.Infrastructure/Migrations/20260904165356_AddPaymentMethodIdToTicket.cs` → [NEW]
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` → **0 Errores**
+  - `dotnet test ParkingApi.slnx` → **344 Passed, 0 Failed**
+  - `dotnet ef database update` → Migración aplicada exitosamente
+
+
 
 - **`💬 Prompt Original del Usuario`**:
   > *"En la dashboard - recaudacion por medio de pago , se muestran los medios de pagos correctos , sin embargo no se esta poblando la informacion correctamente en la grafica, requiero es que se muestre por % en esa grafica torta, asi mismo debe comportarse el de facturacion por resolucion"*
