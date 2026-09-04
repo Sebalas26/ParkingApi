@@ -99,4 +99,17 @@ public class PaymentMethodService : IPaymentMethodService
         }
         return result;
     }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellation = default)
+    {
+        try
+        {
+            return await _repository.DeleteAsync(id, cancellation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al eliminar método de pago {Id}", Constants.PaymentMethodError, id);
+            return false;
+        }
+    }
 }

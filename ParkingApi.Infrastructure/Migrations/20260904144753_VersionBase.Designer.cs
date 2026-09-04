@@ -12,7 +12,7 @@ using ParkingApi.Infrastructure.Data;
 namespace ParkingApi.Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260904025048_VersionBase")]
+    [Migration("20260904144753_VersionBase")]
     partial class VersionBase
     {
         /// <inheritdoc />
@@ -245,6 +245,47 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.ToTable("Branches", (string)null);
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.BranchCommercialAgreement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("AgreementId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("ResponsibleUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResponsibleUserIdNavigationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgreementId");
+
+                    b.HasIndex("ResponsibleUserIdNavigationId");
+
+                    b.HasIndex("BranchId", "AgreementId")
+                        .IsUnique();
+
+                    b.ToTable("BranchCommercialAgreements", (string)null);
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.BranchPaymentMethod", b =>
                 {
                     b.Property<int>("Id")
@@ -313,6 +354,9 @@ namespace ParkingApi.Infrastructure.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("MaxHoursApplicable")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxMinutesApplicable")
                         .HasColumnType("int");
 
                     b.Property<decimal>("MinPurchaseAmount")
@@ -1718,6 +1762,31 @@ namespace ParkingApi.Infrastructure.Migrations
                     b.Navigation("ResponsibleUserIdNavigation");
                 });
 
+            modelBuilder.Entity("ParkingApi.Domain.Models.BranchCommercialAgreement", b =>
+                {
+                    b.HasOne("ParkingApi.Domain.Models.CommercialAgreement", "CommercialAgreement")
+                        .WithMany("BranchCommercialAgreements")
+                        .HasForeignKey("AgreementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ParkingApi.Domain.Models.Branch", "Branch")
+                        .WithMany("BranchCommercialAgreements")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ParkingApi.Domain.Models.User", "ResponsibleUserIdNavigation")
+                        .WithMany()
+                        .HasForeignKey("ResponsibleUserIdNavigationId");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("CommercialAgreement");
+
+                    b.Navigation("ResponsibleUserIdNavigation");
+                });
+
             modelBuilder.Entity("ParkingApi.Domain.Models.BranchPaymentMethod", b =>
                 {
                     b.HasOne("ParkingApi.Domain.Models.Branch", "Branch")
@@ -2194,6 +2263,8 @@ namespace ParkingApi.Infrastructure.Migrations
 
             modelBuilder.Entity("ParkingApi.Domain.Models.Branch", b =>
                 {
+                    b.Navigation("BranchCommercialAgreements");
+
                     b.Navigation("BranchPaymentMethods");
 
                     b.Navigation("MonthlySubscriptions");
@@ -2211,6 +2282,8 @@ namespace ParkingApi.Infrastructure.Migrations
 
             modelBuilder.Entity("ParkingApi.Domain.Models.CommercialAgreement", b =>
                 {
+                    b.Navigation("BranchCommercialAgreements");
+
                     b.Navigation("TicketDiscounts");
                 });
 

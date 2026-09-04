@@ -71,6 +71,26 @@ namespace ParkingApi.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "BranchCommercialAgreements",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    AgreementId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ResponsibleUserId = table.Column<int>(type: "int", nullable: true),
+                    ResponsibleUserIdNavigationId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BranchCommercialAgreements", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Branches",
                 columns: table => new
                 {
@@ -148,6 +168,7 @@ namespace ParkingApi.Infrastructure.Migrations
                     DiscountPercentage = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: true),
                     DiscountFixedAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     MaxHoursApplicable = table.Column<int>(type: "int", nullable: true),
+                    MaxMinutesApplicable = table.Column<int>(type: "int", nullable: true),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     ImageUrl = table.Column<string>(type: "longtext", nullable: true)
@@ -1033,6 +1054,22 @@ namespace ParkingApi.Infrastructure.Migrations
                 column: "ResolutionNumber");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BranchCommercialAgreements_AgreementId",
+                table: "BranchCommercialAgreements",
+                column: "AgreementId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchCommercialAgreements_BranchId_AgreementId",
+                table: "BranchCommercialAgreements",
+                columns: new[] { "BranchId", "AgreementId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchCommercialAgreements_ResponsibleUserIdNavigationId",
+                table: "BranchCommercialAgreements",
+                column: "ResponsibleUserIdNavigationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Branches_CompanyId",
                 table: "Branches",
                 column: "CompanyId");
@@ -1424,6 +1461,29 @@ namespace ParkingApi.Infrastructure.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_BranchCommercialAgreements_Branches_BranchId",
+                table: "BranchCommercialAgreements",
+                column: "BranchId",
+                principalTable: "Branches",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BranchCommercialAgreements_CommercialAgreements_AgreementId",
+                table: "BranchCommercialAgreements",
+                column: "AgreementId",
+                principalTable: "CommercialAgreements",
+                principalColumn: "AgreementId",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BranchCommercialAgreements_User_ResponsibleUserIdNavigationId",
+                table: "BranchCommercialAgreements",
+                column: "ResponsibleUserIdNavigationId",
+                principalTable: "User",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_Branches_Companies_CompanyId",
                 table: "Branches",
                 column: "CompanyId",
@@ -1610,6 +1670,9 @@ namespace ParkingApi.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "BillingResolutions");
+
+            migrationBuilder.DropTable(
+                name: "BranchCommercialAgreements");
 
             migrationBuilder.DropTable(
                 name: "BranchPaymentMethods");

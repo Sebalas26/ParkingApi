@@ -194,4 +194,52 @@ public class PaymentMethodControllerTests
         result.Should().BeOfType<ObjectResult>()
             .Which.StatusCode.Should().Be(500);
     }
+
+    [Fact]
+    public async Task DeletePaymentMethod_WhenSuccessful_ShouldReturnOkAndNotify()
+    {
+        // Arrange
+        _serviceMock.Setup(s => s.DeleteAsync(5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _controller.DeletePaymentMethod(5, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
+            "PaymentMethodsChanged",
+            "Medio de Pago Eliminado",
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeletePaymentMethod_WhenNotFound_ShouldReturn404()
+    {
+        // Arrange
+        _serviceMock.Setup(s => s.DeleteAsync(999, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _controller.DeletePaymentMethod(999, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    [Fact]
+    public async Task DeletePaymentMethod_WhenExceptionThrown_ShouldReturn500()
+    {
+        // Arrange
+        _serviceMock.Setup(s => s.DeleteAsync(1, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database delete failure"));
+
+        // Act
+        var result = await _controller.DeletePaymentMethod(1, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(500);
+    }
 }

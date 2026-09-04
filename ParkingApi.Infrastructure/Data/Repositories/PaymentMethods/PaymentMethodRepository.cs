@@ -157,6 +157,32 @@ public class PaymentMethodRepository : IPaymentMethodRepository
         }
     }
 
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellation = default)
+    {
+        try
+        {
+            var existing = await _context.PaymentMethod.FirstOrDefaultAsync(p => p.Id == id, cancellation);
+            if (existing == null) return false;
+
+            var branchAssignments = await _context.BranchPaymentMethods
+                .Where(bpm => bpm.PaymentMethodId == id)
+                .ToListAsync(cancellation);
+            if (branchAssignments.Any())
+            {
+                _context.BranchPaymentMethods.RemoveRange(branchAssignments);
+            }
+
+            _context.PaymentMethod.Remove(existing);
+            await _context.SaveChangesAsync(cancellation);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar método de pago con ID {Id}", id);
+            return false;
+        }
+    }
+
     public async Task<GetPaymentMethodDto?> ValidateExist(string name, int? companyId = null, CancellationToken cancellation = default)
     {
         try

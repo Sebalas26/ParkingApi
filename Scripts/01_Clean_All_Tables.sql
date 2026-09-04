@@ -9,6 +9,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 2. Eliminar tablas de relaciones, intermedias y transacciones operativas
+DROP TABLE IF EXISTS `BranchCommercialAgreements`;
 DROP TABLE IF EXISTS `BranchPaymentMethods`;
 DROP TABLE IF EXISTS `UserBranches`;
 DROP TABLE IF EXISTS `VehicleIncidentBranches`;

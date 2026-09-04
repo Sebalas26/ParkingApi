@@ -109,4 +109,26 @@ public class PaymentMethodController : ControllerBase
             return StatusCode(500, new { message = "Error interno al guardar método de pago." });
         }
     }
+
+    [HttpDelete("DeletePaymentMethod/{id}")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeletePaymentMethod(int id, CancellationToken cancellation)
+    {
+        try
+        {
+            var deleted = await _paymentMethodService.DeleteAsync(id, cancellation);
+            if (!deleted)
+            {
+                return NotFound(new { success = false, message = "Método de pago no encontrado o no se pudo eliminar." });
+            }
+
+            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("PaymentMethodsChanged", "Medio de Pago Eliminado", $"Se eliminó el medio de pago con ID #{id}.", cancellation);
+            return Ok(new { success = true, message = "Método de pago eliminado exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar el método de pago con ID {Id}", id);
+            return StatusCode(500, new { success = false, message = "Error interno al eliminar método de pago." });
+        }
+    }
 }

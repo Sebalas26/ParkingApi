@@ -2,6 +2,76 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 10:35:00] - Implementación de Endpoint DELETE Físico para Medios de Pago y Cascada en Asignaciones de Sede
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"el boton de elimianr que se tiene en la tab del maestros de medios de pago sigue inactivando no eliminando ese icono rojo es de eliminar dcreo que el enrutamiento esta mal revisa eso."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Capa de Repositorio (`IPaymentMethodRepository.cs` y `PaymentMethodRepository.cs`)**:
+     - Se añadió e implementó `Task<bool> DeleteAsync(int id, CancellationToken cancellation = default)`.
+     - Realiza la búsqueda de la entidad por ID, elimina en cascada las asociaciones en `BranchPaymentMethods` para evitar violaciones de clave foránea o registros huérfanos en sedes, remueve la entidad de `_context.PaymentMethod` y confirma con `SaveChangesAsync`.
+  2. **Capa de Servicio (`IPaymentMethodService.cs` y `PaymentMethodService.cs`)**:
+     - Se añadió e implementó `Task<bool> DeleteAsync(int id, CancellationToken cancellation = default)` delegando la operación al repositorio con manejo de logs de error.
+  3. **Controlador REST (`PaymentMethodController.cs`)**:
+     - Se crearon los endpoints `[HttpDelete("{id}")]` y `[HttpDelete("DeletePaymentMethod/{id}")]` que invocan `_paymentMethodService.DeleteAsync`.
+     - Si el registro no existe, retorna `404 Not Found`.
+     - Si la eliminación es exitosa, emite la notificación en tiempo real SignalR `_realtimeNotifier.NotifyGlobalConfigChangedAsync("PaymentMethodsChanged", "Medio de Pago Eliminado", $"Se eliminó el medio de pago con ID #{id}.", cancellation)` y retorna `200 OK` con `{ success = true, message = "Método de pago eliminado exitosamente." }`.
+  4. **Pruebas Unitarias (`PaymentMethodControllerTests.cs`)**:
+     - Se añadieron tres casos de prueba para el nuevo método DELETE: eliminación exitosa con notificación SignalR, recurso inexistente (404) y captura de excepciones (500). Totalizando 344 pruebas ejecutadas con 100% de éxito.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Repositories/PaymentMethods/IPaymentMethodRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/PaymentMethods/PaymentMethodRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/PaymentMethods/IPaymentMethodService.cs`
+  - `ParkingApi.Core/Services/PaymentMethods/PaymentMethodService.cs`
+  - `ParkingApi/Controllers/PaymentMethodController.cs`
+  - `ParkingApi.UnitTests/Controllers/PaymentMethodControllerTests.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: Compilación exitosa con **0 Errores**.
+  - `dotnet test ParkingApi.slnx`: 344 pruebas superadas, **0 Fallos**.
+
+---
+
+## 📌 Entrada: [2026-09-04 10:05:00] - Sincronización Integral de Scripts SQL (01_Clean_All_Tables.sql y 02_Init_RBAC_Seed.sql) con EF Core 9.0.0 para Despliegue Limpio desde Cero
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"revisa como cambian estos archivos para poder correr todo desde cero: 01_Clean_All_Tables.sql, 02_Init_RBAC_Seed.sql"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Limpieza Completa de Tablas (`Scripts/01_Clean_All_Tables.sql`)**:
+     - Se añadió `DROP TABLE IF EXISTS BranchCommercialAgreements;` al bloque de tablas operativas e intermedias.
+     - Se garantizó la cobertura del 100% de las 30 entidades del sistema (`DataContext.cs`), tablas intermedias y la tabla del historial de migraciones `__EFMigrationsHistory` con `SET FOREIGN_KEY_CHECKS = 0/1`.
+  2. **Inicialización y Esquema DDL Oficial (`Scripts/02_Init_RBAC_Seed.sql`)**:
+     - **`PaymentMethod` (1.11)**: Se añadió la columna `CompanyId INT NULL` con su clave foránea hacia `Companies(Id)` (`FK_PaymentMethod_Companies_CompanyId`), dando soporte completo al aislamiento multi-tenant de medios de pago.
+     - **`UserBranches` (1.13)**: Se añadieron las columnas heredadas de `GeneralEntity` (`IsActive TINYINT(1)`, `UpdatedAt DATETIME(6)`, `ResponsibleUserId INT`, `ResponsibleUserIdNavigationId INT`).
+     - **`Stores` (1.14)**: Se reconstruyó el DDL con las propiedades reales de la entidad de dominio (`StoreId`, `CompanyId`, `BranchId`, `Name`, `TaxId`, `PhoneNumber`, `IsActive`, `CreatedAtUtc`), eliminando columnas obsoletas.
+     - **`CommercialAgreements` (1.15)**: Se ajustó para crearse después de `Stores`, añadiendo la FK obligatoria `StoreId CHAR(36)` con cascada, y las columnas `MinPurchaseAmount`, `DiscountPercentage`, `DiscountFixedAmount`, `MaxHoursApplicable`, `MaxMinutesApplicable`, `ImageUrl`, removiendo campos descontinuados.
+     - **`BranchCommercialAgreements` (1.16)**: Se incorporó la definición DDL de la tabla relacional de parametrización de convenios por sede (`Id INT AUTO_INCREMENT PK`, `BranchId INT`, `AgreementId CHAR(36)`, `IsActive`, `CreatedAt`, etc.).
+     - **`BillingResolutions` (1.17)**: Ordenada de acuerdo a las dependencias.
+     - **`ParkingTickets` (1.18)**: Se corrigió el nombre de la columna a `CustomerPhone VARCHAR(30)`, y se incorporaron `TotalDurationMinutes INT NOT NULL DEFAULT 0` e `IsSynchronized TINYINT(1) NOT NULL DEFAULT 1`.
+     - **`TicketDiscounts` (1.19)**: Se actualizó al esquema real de EF Core (`TicketDiscountId CHAR(36) PK`, `TicketId`, `StoreId`, `AgreementId`, `InvoiceNumber`, `PurchaseAmount`, `AppliedDiscountAmount`, `ValidatedAtUtc`, `IsSynchronized`).
+     - **`WorkShifts` (1.20)**: Se sincronizaron todas las columnas con la entidad `WorkShift` (`ShiftId`, `CashRegisterName`, `StartTimeUtc`, `EndTimeUtc`, `BaseAmount`, `TotalCashCollected`, `TotalCardCollected`, `TotalTransferCollected`, `TotalDiscounts`, `ExpectedCash`, `ActualCashCounted`, `CashDifference`, `TotalTicketsProcessed`, `TotalVehiclesEntered`, `Status`, `Notes`, `CreatedAtUtc`, `ClosedAtUtc`).
+     - **`MonthlySubscriptions` (1.21)**: Se corrigió la clave primaria a `Id INT AUTO_INCREMENT PRIMARY KEY`, `SubscriptionId CHAR(36) NOT NULL`, agregando `MonthlyFee`, `AmountPaid`, `PaymentMethod`, `StartDateUtc`, `EndDateUtc`.
+     - **`VehicleRates` (1.22)**: Se sincronizó con `VehicleRate` (`DisplayName`, `MinuteRate`, `HourRate`, `FullDayRate`, `NightRate`, `GracePeriodMinutes`, `IconKey`).
+     - **Numeración correlativa**: Se actualizaron las secciones 1.23 a 1.29 (`VehicleIncidents`, `VehicleIncidentBranches`, `Login`, `PasswordResetToken`, `ParkingLots`, `UserParkings`, `UserSessions`).
+  3. **Compatibilidad con Migraciones EF Core (`__EFMigrationsHistory`)**:
+     - Se actualizó el registro de la migración semilla a `('20260904144753_VersionBase', '9.0.0')`, asegurando que al iniciar la aplicación con `context.Database.MigrateAsync()`, EF Core reconozca la base de datos como actualizada sin lanzar colisiones de tablas existentes.
+  4. **Preservación del RBAC**:
+     - Se mantuvo el seed íntegro de Tipos de Identificación, Rol 1 (Super Administrador), Usuario admin (`Admin2026*`), 17 Módulos, 7 Operaciones y 82 Acciones/Slugs asignados al Rol 1.
+
+- **`📦 Componentes Modificados`**:
+  - `Scripts/01_Clean_All_Tables.sql` (Inclusión de BranchCommercialAgreements y DROP completo)
+  - `Scripts/02_Init_RBAC_Seed.sql` (Sincronización DDL de 30 tablas y registro de migración VersionBase)
+  - `HISTORIAL_CAMBIOS.md` (Registro del cambio)
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx`: Compilación exitosa con **0 Errores**.
+
+---
+
 ## 📌 Entrada: [2026-09-04 09:20:00] - Soporte de Minutos en Convenios Comerciales, Parametrización Relacional de Convenios por Sede (BranchCommercialAgreements), Exposición de Configuración de Caja en ValidateSession y Reactivación de Medios de Pago en Catálogo Maestro
 
 - **`💬 Prompt Original del Usuario`**:

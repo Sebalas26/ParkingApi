@@ -402,13 +402,16 @@ CREATE TABLE IF NOT EXISTS `UserRoleModule` (
 -- 1.11 Medios de Pago Maestros
 CREATE TABLE IF NOT EXISTS `PaymentMethod` (
     `Id` INT NOT NULL AUTO_INCREMENT,
+    `CompanyId` INT NULL,
     `Name` VARCHAR(50) NOT NULL,
-    `Icon` VARCHAR(50) NULL,
+    `Icon` VARCHAR(50) NOT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `UpdatedAt` DATETIME(6) NULL,
     `ResponsibleUserId` INT NULL,
-    PRIMARY KEY (`Id`)
+    PRIMARY KEY (`Id`),
+    KEY `IX_PaymentMethod_CompanyId` (`CompanyId`),
+    CONSTRAINT `FK_PaymentMethod_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 1.12 Medios de Pago por Sede
@@ -434,7 +437,11 @@ CREATE TABLE IF NOT EXISTS `UserBranches` (
     `UserId` INT NOT NULL,
     `BranchId` INT NOT NULL,
     `IsDefault` TINYINT(1) NOT NULL DEFAULT 0,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    `ResponsibleUserIdNavigationId` INT NULL,
     PRIMARY KEY (`Id`),
     UNIQUE KEY `UX_UserBranches_User_Branch` (`UserId`, `BranchId`),
     KEY `IX_UserBranches_UserId` (`UserId`),
@@ -443,39 +450,112 @@ CREATE TABLE IF NOT EXISTS `UserBranches` (
     CONSTRAINT `FK_UserBranches_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.14 Tiquetes de Estacionamiento
+-- 1.14 Comercios Aliados
+CREATE TABLE IF NOT EXISTS `Stores` (
+    `StoreId` CHAR(36) NOT NULL,
+    `CompanyId` INT NULL,
+    `BranchId` INT NULL,
+    `Name` VARCHAR(100) NOT NULL,
+    `TaxId` VARCHAR(50) NOT NULL,
+    `PhoneNumber` LONGTEXT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`StoreId`),
+    KEY `IX_Stores_BranchId` (`BranchId`),
+    KEY `IX_Stores_CompanyId` (`CompanyId`),
+    CONSTRAINT `FK_Stores_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
+    CONSTRAINT `FK_Stores_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.15 Convenios Comerciales
+CREATE TABLE IF NOT EXISTS `CommercialAgreements` (
+    `AgreementId` CHAR(36) NOT NULL,
+    `StoreId` CHAR(36) NOT NULL,
+    `Name` VARCHAR(100) NOT NULL,
+    `MinPurchaseAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `DiscountPercentage` DECIMAL(5,2) NULL,
+    `DiscountFixedAmount` DECIMAL(18,2) NULL,
+    `MaxHoursApplicable` INT NULL,
+    `MaxMinutesApplicable` INT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `ImageUrl` LONGTEXT NULL,
+    PRIMARY KEY (`AgreementId`),
+    KEY `IX_CommercialAgreements_StoreId` (`StoreId`),
+    CONSTRAINT `FK_CommercialAgreements_Stores_StoreId` FOREIGN KEY (`StoreId`) REFERENCES `Stores` (`StoreId`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.16 Parametrización de Convenios Comerciales por Sede
+CREATE TABLE IF NOT EXISTS `BranchCommercialAgreements` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `BranchId` INT NOT NULL,
+    `AgreementId` CHAR(36) NOT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    `ResponsibleUserIdNavigationId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_BranchCommercialAgreements_Branch_Agreement` (`BranchId`, `AgreementId`),
+    KEY `IX_BranchCommercialAgreements_BranchId` (`BranchId`),
+    KEY `IX_BranchCommercialAgreements_AgreementId` (`AgreementId`),
+    CONSTRAINT `FK_BranchCommercialAgreements_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_BranchCommercialAgreements_CommercialAgreements_AgreementId` FOREIGN KEY (`AgreementId`) REFERENCES `CommercialAgreements` (`AgreementId`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.17 Resoluciones de Facturación (DIAN / POS)
+CREATE TABLE IF NOT EXISTS `BillingResolutions` (
+    `ResolutionId` CHAR(36) NOT NULL,
+    `CompanyId` INT NULL,
+    `BranchId` INT NULL,
+    `Name` VARCHAR(150) NOT NULL,
+    `DocumentType` VARCHAR(250) NOT NULL,
+    `Prefix` VARCHAR(20) NOT NULL,
+    `ResolutionNumber` VARCHAR(50) NOT NULL,
+    `FromNumber` BIGINT NOT NULL,
+    `ToNumber` BIGINT NOT NULL,
+    `CurrentNumber` BIGINT NOT NULL DEFAULT 0,
+    `ValidFrom` DATETIME(6) NOT NULL,
+    `ValidTo` DATETIME(6) NOT NULL,
+    `TechnicalKey` LONGTEXT NULL,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAtUtc` DATETIME(6) NULL,
+    PRIMARY KEY (`ResolutionId`),
+    KEY `IX_BillingResolutions_BranchId` (`BranchId`),
+    KEY `IX_BillingResolutions_CompanyId` (`CompanyId`),
+    CONSTRAINT `FK_BillingResolutions_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
+    CONSTRAINT `FK_BillingResolutions_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.18 Tiquetes de Estacionamiento
 CREATE TABLE IF NOT EXISTS `ParkingTickets` (
     `TicketId` CHAR(36) NOT NULL,
-    `BranchId` INT NULL,
     `CompanyId` INT NULL,
+    `BranchId` INT NULL,
     `TicketNumber` VARCHAR(50) NOT NULL,
     `PlateNumber` VARCHAR(20) NOT NULL,
     `VehicleType` INT NOT NULL,
-    `PhoneNumber` VARCHAR(30) NULL,
-    `Notes` LONGTEXT NULL,
-    `EntryTimeUtc` DATETIME NOT NULL,
-    `ExitTimeUtc` DATETIME NULL,
-    `HourlyRate` DECIMAL(18,2) NULL,
-    `OperatorName` VARCHAR(100) NOT NULL,
-    `Status` INT NOT NULL,
-    `PaymentMethod` INT NULL,
-    `PaymentMethodId` INT NULL,
+    `CustomerPhone` VARCHAR(30) NULL,
+    `Notes` VARCHAR(500) NULL,
+    `EntryTimeUtc` DATETIME(6) NOT NULL,
+    `ExitTimeUtc` DATETIME(6) NULL,
+    `TotalDurationMinutes` INT NOT NULL DEFAULT 0,
+    `HourlyRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `GrossAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `DiscountAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `NetAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `AmountPaid` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `ChangeGiven` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `StoreId` CHAR(36) NULL,
-    `AgreementId` CHAR(36) NULL,
+    `PaymentMethod` INT NULL,
+    `Status` INT NOT NULL,
+    `OperatorName` VARCHAR(100) NOT NULL,
+    `IsSynchronized` TINYINT(1) NOT NULL DEFAULT 1,
     `ResolutionId` CHAR(36) NULL,
     `ResolutionName` VARCHAR(150) NULL,
     `InvoiceNumber` VARCHAR(50) NULL,
-    `FiscalInvoiceNumber` VARCHAR(50) NULL,
     `IsElectronicInvoice` TINYINT(1) NOT NULL DEFAULT 0,
-    `PurchaseAmount` DECIMAL(18,2) NULL,
-    `ExitNotes` LONGTEXT NULL,
-    `CreatedAtUtc` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `UpdatedAtUtc` DATETIME NULL,
+    `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (`TicketId`),
     KEY `IX_ParkingTickets_BranchId` (`BranchId`),
     KEY `IX_ParkingTickets_CompanyId` (`CompanyId`),
@@ -485,156 +565,84 @@ CREATE TABLE IF NOT EXISTS `ParkingTickets` (
     CONSTRAINT `FK_ParkingTickets_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.15 Descuentos de Tiquetes
+-- 1.19 Descuentos de Tiquetes por Convenios Comerciales
 CREATE TABLE IF NOT EXISTS `TicketDiscounts` (
-    `DiscountId` CHAR(36) NOT NULL,
+    `TicketDiscountId` CHAR(36) NOT NULL,
     `TicketId` CHAR(36) NOT NULL,
-    `DiscountType` VARCHAR(50) NOT NULL,
-    `Amount` DECIMAL(18,2) NOT NULL,
-    `MinutesApplied` INT NOT NULL DEFAULT 0,
-    `PercentageApplied` DECIMAL(5,2) NULL,
-    `AuthorizedBy` VARCHAR(100) NOT NULL,
-    `Reason` LONGTEXT NULL,
-    `CreatedAtUtc` DATETIME NOT NULL,
-    PRIMARY KEY (`DiscountId`),
-    KEY `IX_TicketDiscounts_TicketId` (`TicketId`),
-    CONSTRAINT `FK_TicketDiscounts_ParkingTickets_TicketId` FOREIGN KEY (`TicketId`) REFERENCES `ParkingTickets` (`TicketId`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- 1.16 Convenios Comerciales
-CREATE TABLE IF NOT EXISTS `CommercialAgreements` (
-    `AgreementId` CHAR(36) NOT NULL,
-    `BranchId` INT NULL,
-    `CompanyId` INT NULL,
-    `Name` VARCHAR(100) NOT NULL,
-    `Description` VARCHAR(250) NULL,
-    `DiscountType` INT NOT NULL,
-    `DiscountValue` DECIMAL(18,2) NOT NULL,
-    `StartDate` DATETIME NOT NULL,
-    `EndDate` DATETIME NOT NULL,
-    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
-    `RequiresTicketScan` TINYINT(1) NOT NULL DEFAULT 0,
-    `RequiresInvoiceNumber` TINYINT(1) NOT NULL DEFAULT 0,
-    `MinPurchaseAmount` DECIMAL(18,2) NULL,
-    `MaxDailyUses` INT NULL,
-    `CurrentDailyUses` INT NOT NULL DEFAULT 0,
-    `ApplicableDays` VARCHAR(50) NULL,
-    `ApplicableVehicleTypes` VARCHAR(50) NULL,
-    `GraceMinutes` INT NOT NULL DEFAULT 0,
-    `FixedAmount` DECIMAL(18,2) NULL,
-    `ImageUrl` LONGTEXT NULL,
-    `CreatedAtUtc` DATETIME NOT NULL,
-    `UpdatedAtUtc` DATETIME NULL,
-    PRIMARY KEY (`AgreementId`),
-    KEY `IX_CommercialAgreements_BranchId` (`BranchId`),
-    KEY `IX_CommercialAgreements_CompanyId` (`CompanyId`),
-    CONSTRAINT `FK_CommercialAgreements_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
-    CONSTRAINT `FK_CommercialAgreements_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- 1.17 Comercios Aliados
-CREATE TABLE IF NOT EXISTS `Stores` (
     `StoreId` CHAR(36) NOT NULL,
-    `BranchId` INT NULL,
-    `CompanyId` INT NULL,
-    `Name` VARCHAR(100) NOT NULL,
-    `CommercialName` VARCHAR(150) NULL,
-    `Code` VARCHAR(50) NULL,
-    `Location` VARCHAR(100) NULL,
-    `Phone` VARCHAR(30) NULL,
-    `Email` VARCHAR(100) NULL,
-    `ContactPerson` VARCHAR(100) NULL,
-    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
-    `MonthlyDiscountLimit` DECIMAL(18,2) NULL,
-    `CurrentMonthDiscounts` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `CreatedAtUtc` DATETIME NOT NULL,
-    `UpdatedAtUtc` DATETIME NULL,
-    PRIMARY KEY (`StoreId`),
-    KEY `IX_Stores_BranchId` (`BranchId`),
-    KEY `IX_Stores_CompanyId` (`CompanyId`),
-    CONSTRAINT `FK_Stores_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
-    CONSTRAINT `FK_Stores_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
+    `AgreementId` CHAR(36) NOT NULL,
+    `InvoiceNumber` VARCHAR(50) NOT NULL,
+    `PurchaseAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `AppliedDiscountAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `ValidatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `IsSynchronized` TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`TicketDiscountId`),
+    KEY `IX_TicketDiscounts_TicketId` (`TicketId`),
+    KEY `IX_TicketDiscounts_StoreId` (`StoreId`),
+    KEY `IX_TicketDiscounts_AgreementId` (`AgreementId`),
+    CONSTRAINT `FK_TicketDiscounts_ParkingTickets_TicketId` FOREIGN KEY (`TicketId`) REFERENCES `ParkingTickets` (`TicketId`) ON DELETE CASCADE,
+    CONSTRAINT `FK_TicketDiscounts_Stores_StoreId` FOREIGN KEY (`StoreId`) REFERENCES `Stores` (`StoreId`) ON DELETE RESTRICT,
+    CONSTRAINT `FK_TicketDiscounts_CommercialAgreements_AgreementId` FOREIGN KEY (`AgreementId`) REFERENCES `CommercialAgreements` (`AgreementId`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.18 Turnos Operativos y Arqueos de Caja
+-- 1.20 Turnos Operativos y Arqueos de Caja
 CREATE TABLE IF NOT EXISTS `WorkShifts` (
     `ShiftId` CHAR(36) NOT NULL,
-    `BranchId` INT NULL,
     `CompanyId` INT NULL,
+    `BranchId` INT NULL,
     `UserId` INT NOT NULL,
     `OperatorName` VARCHAR(100) NOT NULL,
-    `StartedAtUtc` DATETIME NOT NULL,
-    `ClosedAtUtc` DATETIME NULL,
-    `InitialCash` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `FinalCash` DECIMAL(18,2) NULL,
-    `ExpectedCash` DECIMAL(18,2) NULL,
-    `Discrepancy` DECIMAL(18,2) NULL,
-    `TotalCard` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `TotalTransfer` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `TotalOther` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `TicketsProcessed` INT NOT NULL DEFAULT 0,
-    `DiscountsApplied` INT NOT NULL DEFAULT 0,
-    `TotalDiscountsAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `Status` VARCHAR(20) NOT NULL DEFAULT 'Open',
-    `ClosureNotes` LONGTEXT NULL,
-    `HandoverTo` VARCHAR(100) NULL,
-    `HandoverUserId` INT NULL,
-    `CreatedAtUtc` DATETIME NOT NULL,
-    `UpdatedAtUtc` DATETIME NULL,
+    `CashRegisterName` VARCHAR(100) NOT NULL DEFAULT 'Caja Principal',
+    `StartTimeUtc` DATETIME(6) NOT NULL,
+    `EndTimeUtc` DATETIME(6) NULL,
+    `BaseAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalCashCollected` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalCardCollected` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalTransferCollected` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalDiscounts` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `ExpectedCash` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `ActualCashCounted` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `CashDifference` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `TotalTicketsProcessed` INT NOT NULL DEFAULT 0,
+    `TotalVehiclesEntered` INT NOT NULL DEFAULT 0,
+    `Status` INT NOT NULL DEFAULT 0,
+    `Notes` VARCHAR(500) NULL,
+    `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `ClosedAtUtc` DATETIME(6) NULL,
     PRIMARY KEY (`ShiftId`),
     KEY `IX_WorkShifts_BranchId` (`BranchId`),
     KEY `IX_WorkShifts_CompanyId` (`CompanyId`),
     KEY `IX_WorkShifts_UserId` (`UserId`),
     KEY `IX_WorkShifts_Status` (`Status`),
     CONSTRAINT `FK_WorkShifts_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
-    CONSTRAINT `FK_WorkShifts_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
+    CONSTRAINT `FK_WorkShifts_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT,
+    CONSTRAINT `FK_WorkShifts_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.19 Resoluciones de Facturación (DIAN / POS)
-CREATE TABLE IF NOT EXISTS `BillingResolutions` (
-    `ResolutionId` CHAR(36) NOT NULL,
-    `BranchId` INT NULL,
-    `CompanyId` INT NULL,
-    `Name` VARCHAR(150) NOT NULL,
-    `DocumentType` VARCHAR(250) NOT NULL,
-    `Prefix` VARCHAR(20) NOT NULL,
-    `ResolutionNumber` VARCHAR(50) NOT NULL,
-    `FromNumber` BIGINT NOT NULL,
-    `ToNumber` BIGINT NOT NULL,
-    `CurrentNumber` BIGINT NOT NULL DEFAULT 0,
-    `ValidFrom` DATETIME NOT NULL,
-    `ValidTo` DATETIME NOT NULL,
-    `TechnicalKey` LONGTEXT NULL,
-    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
-    `CreatedAtUtc` DATETIME NOT NULL,
-    `UpdatedAtUtc` DATETIME NULL,
-    PRIMARY KEY (`ResolutionId`),
-    KEY `IX_BillingResolutions_BranchId` (`BranchId`),
-    KEY `IX_BillingResolutions_CompanyId` (`CompanyId`),
-    CONSTRAINT `FK_BillingResolutions_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
-    CONSTRAINT `FK_BillingResolutions_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- 1.20 Mensualidades y Abonados
+-- 1.21 Mensualidades y Abonados
 CREATE TABLE IF NOT EXISTS `MonthlySubscriptions` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
     `SubscriptionId` CHAR(36) NOT NULL,
-    `BranchId` INT NULL,
     `CompanyId` INT NULL,
+    `BranchId` INT NULL,
     `CustomerName` VARCHAR(150) NOT NULL,
-    `CustomerPhone` VARCHAR(30) NULL,
+    `CustomerDocument` VARCHAR(50) NOT NULL,
+    `CustomerPhone` VARCHAR(30) NOT NULL,
     `CustomerEmail` VARCHAR(100) NULL,
-    `CustomerDocument` VARCHAR(50) NULL,
     `PlateNumber` VARCHAR(20) NOT NULL,
     `VehicleType` INT NOT NULL,
-    `StartDate` DATETIME NOT NULL,
-    `EndDate` DATETIME NOT NULL,
-    `MonthlyRate` DECIMAL(18,2) NOT NULL,
-    `AssignedSpace` VARCHAR(20) NULL,
+    `StartDateUtc` DATETIME(6) NOT NULL,
+    `EndDateUtc` DATETIME(6) NOT NULL,
+    `MonthlyFee` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `AmountPaid` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `PaymentMethod` INT NOT NULL DEFAULT 1,
+    `Notes` VARCHAR(500) NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
-    `Notes` LONGTEXT NULL,
-    `CreatedAtUtc` DATETIME NOT NULL,
-    `UpdatedAtUtc` DATETIME NULL,
-    PRIMARY KEY (`SubscriptionId`),
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    `ResponsibleUserIdNavigationId` INT NULL,
+    PRIMARY KEY (`Id`),
     KEY `IX_MonthlySubscriptions_BranchId` (`BranchId`),
     KEY `IX_MonthlySubscriptions_CompanyId` (`CompanyId`),
     KEY `IX_MonthlySubscriptions_PlateNumber` (`PlateNumber`),
@@ -642,22 +650,22 @@ CREATE TABLE IF NOT EXISTS `MonthlySubscriptions` (
     CONSTRAINT `FK_MonthlySubscriptions_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.21 Tarifas Vehiculares por Sede
+-- 1.22 Tarifas Vehiculares por Sede
 CREATE TABLE IF NOT EXISTS `VehicleRates` (
     `RateId` CHAR(36) NOT NULL,
     `BranchId` INT NULL,
     `CompanyId` INT NULL,
     `VehicleType` INT NOT NULL,
-    `Category` VARCHAR(50) NOT NULL,
-    `InitialMinutesFree` INT NOT NULL DEFAULT 0,
-    `MinuteRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `DisplayName` VARCHAR(50) NOT NULL,
     `HourRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `DayRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `MinuteRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `FullDayRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `NightRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `FractionMinuteThreshold` INT NOT NULL DEFAULT 0,
+    `GracePeriodMinutes` INT NOT NULL DEFAULT 15,
+    `IconKey` VARCHAR(50) NOT NULL DEFAULT 'IconCar',
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
-    `CreatedAtUtc` DATETIME NOT NULL,
-    `UpdatedAtUtc` DATETIME NULL,
+    `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAtUtc` DATETIME(6) NULL,
     PRIMARY KEY (`RateId`),
     KEY `IX_VehicleRates_BranchId` (`BranchId`),
     KEY `IX_VehicleRates_CompanyId` (`CompanyId`),
@@ -665,7 +673,7 @@ CREATE TABLE IF NOT EXISTS `VehicleRates` (
     CONSTRAINT `FK_VehicleRates_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.22 Novedades e Incidencias Vehiculares
+-- 1.23 Novedades e Incidencias Vehiculares
 CREATE TABLE IF NOT EXISTS `VehicleIncidents` (
     `IncidentId` CHAR(36) NOT NULL,
     `CompanyId` INT NULL,
@@ -693,7 +701,7 @@ CREATE TABLE IF NOT EXISTS `VehicleIncidents` (
     CONSTRAINT `FK_VehicleIncidents_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.23 Sedes Asignadas a Novedades
+-- 1.24 Sedes Asignadas a Novedades
 CREATE TABLE IF NOT EXISTS `VehicleIncidentBranches` (
     `IncidentId` CHAR(36) NOT NULL,
     `BranchId` INT NOT NULL,
@@ -703,7 +711,7 @@ CREATE TABLE IF NOT EXISTS `VehicleIncidentBranches` (
     CONSTRAINT `FK_VehicleIncidentBranches_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.24 Auditoría de Inicios de Sesión
+-- 1.25 Auditoría de Inicios de Sesión
 CREATE TABLE IF NOT EXISTS `Login` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `UserId` INT NOT NULL,
@@ -717,7 +725,7 @@ CREATE TABLE IF NOT EXISTS `Login` (
     CONSTRAINT `FK_Login_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.25 Tokens de Restablecimiento de Contraseña
+-- 1.26 Tokens de Restablecimiento de Contraseña
 CREATE TABLE IF NOT EXISTS `PasswordResetToken` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `UserId` INT NOT NULL,
@@ -731,7 +739,7 @@ CREATE TABLE IF NOT EXISTS `PasswordResetToken` (
     CONSTRAINT `FK_PasswordResetToken_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.26 Lotes de Estacionamiento
+-- 1.27 Lotes de Estacionamiento
 CREATE TABLE IF NOT EXISTS `ParkingLots` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `Name` LONGTEXT NOT NULL,
@@ -745,7 +753,7 @@ CREATE TABLE IF NOT EXISTS `ParkingLots` (
     PRIMARY KEY (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.27 Relación Usuario - Lote de Estacionamiento
+-- 1.28 Relación Usuario - Lote de Estacionamiento
 CREATE TABLE IF NOT EXISTS `UserParkings` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `UserId` INT NOT NULL,
@@ -757,7 +765,7 @@ CREATE TABLE IF NOT EXISTS `UserParkings` (
     CONSTRAINT `FK_UserParkings_ParkingLots_ParkingLotId` FOREIGN KEY (`ParkingLotId`) REFERENCES `ParkingLots` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 1.28 Control de Sesiones Concurrentes (UserSessions)
+-- 1.29 Control de Sesiones Concurrentes (UserSessions)
 CREATE TABLE IF NOT EXISTS `UserSessions` (
     `SessionId` CHAR(36) NOT NULL,
     `UserId` INT NOT NULL,
@@ -784,8 +792,7 @@ CREATE TABLE IF NOT EXISTS `UserSessions` (
 -- ----------------------------------------------------------------------------------
 INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
 VALUES 
-    ('20260831014505_Complete', '10.0.0'),
-    ('20260904025048_VersionBase', '10.0.0')
+    ('20260904144753_VersionBase', '9.0.0')
 ON DUPLICATE KEY UPDATE `ProductVersion` = VALUES(`ProductVersion`);
 
 -- ----------------------------------------------------------------------------------
