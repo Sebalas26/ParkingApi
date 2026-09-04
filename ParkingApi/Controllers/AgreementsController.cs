@@ -76,7 +76,6 @@ public class AgreementsController : ControllerBase
         try
         {
             var created = await _agreementService.CreateAsync(agreement, cancellationToken);
-            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("AgreementsChanged", "Convenio Comercial Creado", $"Se ha registrado el convenio '{created.Name}'.", cancellationToken);
             return Ok(created);
         }
         catch (Exception ex)
@@ -95,7 +94,6 @@ public class AgreementsController : ControllerBase
             var success = await _agreementService.UpdateAsync(agreement, cancellationToken);
             if (success)
             {
-                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("AgreementsChanged", "Convenio Comercial Actualizado", $"Se actualizaron los parámetros del convenio '{agreement.Name}'.", cancellationToken);
                 return Ok(agreement);
             }
             return NotFound(new { message = "Convenio no encontrado." });
@@ -121,7 +119,6 @@ public class AgreementsController : ControllerBase
             var success = await _agreementService.UpdateAsync(agreement, cancellationToken);
             if (success)
             {
-                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("AgreementsChanged", "Convenio Inactivado", $"El convenio '{agreement.Name}' ha sido inactivado.", cancellationToken);
                 return Ok(new { message = "Convenio inactivado correctamente." });
             }
             return StatusCode(500, new { message = "Error al inactivar convenio." });

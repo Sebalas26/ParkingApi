@@ -17,15 +17,18 @@ public class BranchService : IBranchService
 {
     private readonly IBranchRepository _branchRepository;
     private readonly ICompanyRepository _companyRepository;
+    private readonly Domain.Interfaces.Repositories.Billing.IBillingResolutionRepository _billingResolutionRepository;
     private readonly ILogger<BranchService> _logger;
 
     public BranchService(
         IBranchRepository branchRepository,
         ICompanyRepository companyRepository,
+        Domain.Interfaces.Repositories.Billing.IBillingResolutionRepository billingResolutionRepository,
         ILogger<BranchService> logger)
     {
         _branchRepository = branchRepository;
         _companyRepository = companyRepository;
+        _billingResolutionRepository = billingResolutionRepository;
         _logger = logger;
     }
 
@@ -233,6 +236,58 @@ public class BranchService : IBranchService
     public async Task<bool> ConfigureAgreementsAsync(ConfigureBranchAgreementsDto dto, CancellationToken cancellationToken = default)
     {
         return await _branchRepository.SetAgreementsAsync(dto.BranchId, dto.AgreementIds, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Domain.Dtos.Billing.BillingResolutionDto>> GetResolutionsAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        var all = await _billingResolutionRepository.GetAllAsync(branchId: branchId, companyId: null, cancellationToken: cancellationToken);
+        var branchResolutions = all.Where(r => r.BranchId == branchId && r.IsActive).ToList();
+        return branchResolutions.Select(r => new Domain.Dtos.Billing.BillingResolutionDto
+        {
+            ResolutionId = r.ResolutionId,
+            CompanyId = r.CompanyId,
+            BranchId = r.BranchId,
+            Name = r.Name,
+            DocumentType = r.DocumentType,
+            Prefix = r.Prefix,
+            ResolutionNumber = r.ResolutionNumber,
+            FromNumber = r.FromNumber,
+            ToNumber = r.ToNumber,
+            CurrentNumber = r.CurrentNumber,
+            ValidFrom = r.ValidFrom,
+            ValidTo = r.ValidTo,
+            TechnicalKey = r.TechnicalKey,
+            IsActive = r.IsActive,
+            BranchName = r.Branch?.Name
+        }).ToList();
+    }
+
+    public async Task<bool> ConfigureResolutionsAsync(ConfigureBranchResolutionsDto dto, CancellationToken cancellationToken = default)
+    {
+        var branch = await _branchRepository.GetByIdAsync(dto.BranchId, cancellationToken);
+        if (branch == null) return false;
+
+        var allResolutions = await _billingResolutionRepository.GetAllAsync(null, branch.CompanyId, cancellationToken);
+        var targetIds = (dto.ResolutionIds ?? new List<Guid>()).ToHashSet();
+
+        foreach (var res in allResolutions)
+        {
+            if (targetIds.Contains(res.ResolutionId))
+            {
+                if (res.BranchId != dto.BranchId)
+                {
+                    res.BranchId = dto.BranchId;
+                    await _billingResolutionRepository.UpdateAsync(res, cancellationToken);
+                }
+            }
+            else if (res.BranchId == dto.BranchId)
+            {
+                res.BranchId = null;
+                await _billingResolutionRepository.UpdateAsync(res, cancellationToken);
+            }
+        }
+
+        return true;
     }
 
     public async Task<IReadOnlyList<Domain.Dtos.Users.GetUsersDto>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)

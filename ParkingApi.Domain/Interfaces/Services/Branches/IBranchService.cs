@@ -20,6 +20,8 @@ public interface IBranchService
     Task<bool> ConfigurePaymentMethodsAsync(ConfigureBranchPaymentMethodsDto dto, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BranchAgreementDto>> GetAgreementsAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> ConfigureAgreementsAsync(ConfigureBranchAgreementsDto dto, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Domain.Dtos.Billing.BillingResolutionDto>> GetResolutionsAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<bool> ConfigureResolutionsAsync(ConfigureBranchResolutionsDto dto, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Domain.Dtos.Users.GetUsersDto>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default);
 }

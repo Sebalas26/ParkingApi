@@ -108,3 +108,10 @@ public class ConfigureBranchAgreementsDto
     public int BranchId { get; set; }
     public List<Guid> AgreementIds { get; set; } = new();
 }
+
+public class ConfigureBranchResolutionsDto
+{
+    public int BranchId { get; set; }
+    public List<Guid> ResolutionIds { get; set; } = new();
+}
+

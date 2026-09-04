@@ -166,10 +166,10 @@ public class AgreementsControllerTests
         result.Should().BeOfType<OkObjectResult>()
             .Which.Value.Should().BeEquivalentTo(agreement);
         _realtimeNotifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "AgreementsChanged",
-            "Convenio Comercial Creado",
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class AgreementsControllerTests
         // Arrange
         var agreement = new CommercialAgreement { Name = "Convenio Error" };
         _agreementServiceMock.Setup(s => s.CreateAsync(agreement, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Error saving agreement"));
+            .ThrowsAsync(new Exception("Database error"));
 
         // Act
         var result = await _controller.Create(agreement, CancellationToken.None);
@@ -204,10 +204,10 @@ public class AgreementsControllerTests
         result.Should().BeOfType<OkObjectResult>()
             .Which.Value.Should().BeEquivalentTo(agreement);
         _realtimeNotifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "AgreementsChanged",
-            "Convenio Comercial Actualizado",
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -260,10 +260,10 @@ public class AgreementsControllerTests
         // Assert
         result.Should().BeOfType<OkObjectResult>();
         _realtimeNotifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "AgreementsChanged",
-            "Convenio Inactivado",
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

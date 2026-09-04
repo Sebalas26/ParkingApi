@@ -403,6 +403,9 @@ public class ResolutionsControllerTests
     {
         // Arrange
         var id = Guid.NewGuid();
+        var resolution = new BillingResolutionDto { ResolutionId = id, BranchId = 1 };
+        _resolutionServiceMock.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resolution);
         _resolutionServiceMock.Setup(r => r.DeactivateAsync(id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -411,10 +414,11 @@ public class ResolutionsControllerTests
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
-        _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "ResolutionsChanged",
+        _notifierMock.Verify(n => n.NotifyBranchConfigChangedAsync(
+            1,
             "Resolución Inactivada",
             It.IsAny<string>(),
+            "ResolutionsChanged",
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

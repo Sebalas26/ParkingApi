@@ -221,7 +221,9 @@ public class SyncService : ISyncService
                 : allIncidents.ToList();
 
             var allResolutions = await _billingResolutionRepository.GetAllAsync(branchId, targetCompanyId, cancellationToken);
-            var resolutions = allResolutions.Where(r => r.IsActive).ToList();
+            var resolutions = branchId.HasValue
+                ? allResolutions.Where(r => r.IsActive && r.BranchId == branchId.Value).ToList()
+                : allResolutions.Where(r => r.IsActive).ToList();
 
             var branchPmsForBootstrap = branchId.HasValue
                 ? (await _branchRepository.GetPaymentMethodsByBranchIdAsync(branchId.Value, cancellationToken)).ToList()

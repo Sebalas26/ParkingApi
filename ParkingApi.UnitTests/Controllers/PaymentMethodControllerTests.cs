@@ -171,10 +171,10 @@ public class PaymentMethodControllerTests
         result.Should().BeOfType<OkObjectResult>()
             .Which.Value.Should().BeEquivalentTo(dto);
         _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "PaymentMethodsChanged",
-            "Medio de Pago Modificado",
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -208,10 +208,10 @@ public class PaymentMethodControllerTests
         // Assert
         result.Should().BeOfType<OkObjectResult>();
         _notifierMock.Verify(n => n.NotifyGlobalConfigChangedAsync(
-            "PaymentMethodsChanged",
-            "Medio de Pago Eliminado",
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

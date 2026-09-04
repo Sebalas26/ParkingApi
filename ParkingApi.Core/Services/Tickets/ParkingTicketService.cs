@@ -75,10 +75,15 @@ public class ParkingTicketService : IParkingTicketService
                 resolvedCompanyId = _currentUser.GetEffectiveCompanyId(dto.CompanyId);
             }
 
+            var branch = await _branchRepository.GetByIdAsync(dto.BranchId.Value, cancellationToken);
+            if (branch == null)
+            {
+                throw new InvalidOperationException($"La sede con ID {dto.BranchId.Value} no existe.");
+            }
+
             if (!resolvedCompanyId.HasValue || resolvedCompanyId.Value <= 0)
             {
-                var branch = await _branchRepository.GetByIdAsync(dto.BranchId.Value, cancellationToken);
-                if (branch != null && branch.CompanyId > 0)
+                if (branch.CompanyId > 0)
                 {
                     resolvedCompanyId = branch.CompanyId;
                 }
@@ -105,7 +110,17 @@ public class ParkingTicketService : IParkingTicketService
                 throw new InvalidOperationException($"El vehículo con placa '{normalizedPlate}' ya se encuentra adentro.");
             }
 
-            // 3. Obtener tarifa horaria: prioridad DTO -> tarifa específica de la sede -> tarifa de empresa
+            // 3. Validar capacidad máxima de la sede
+            if (branch.TotalCapacity > 0)
+            {
+                var activeTickets = await _ticketRepository.GetActiveTicketsAsync(dto.BranchId.Value, resolvedCompanyId, cancellationToken);
+                if (activeTickets.Count >= branch.TotalCapacity)
+                {
+                    throw new InvalidOperationException($"Capacidad máxima de la sede alcanzada ({branch.TotalCapacity} cupos). No hay cupos disponibles.");
+                }
+            }
+
+            // 4. Obtener tarifa horaria: prioridad DTO -> tarifa específica de la sede -> tarifa de empresa
             decimal hourRate = 0m;
             if (dto.HourlyRate.HasValue && dto.HourlyRate.Value > 0)
             {

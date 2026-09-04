@@ -100,7 +100,6 @@ public class PaymentMethodController : ControllerBase
             }
 
             var result = await _paymentMethodService.CreateOrEditPaymentMethod(value, cancellation);
-            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("PaymentMethodsChanged", "Medio de Pago Modificado", $"Se actualizó el catálogo de medios de pago ('{value.Name}').", cancellation);
             return Ok(result);
         }
         catch (Exception ex)
@@ -122,7 +121,6 @@ public class PaymentMethodController : ControllerBase
                 return NotFound(new { success = false, message = "Método de pago no encontrado o no se pudo eliminar." });
             }
 
-            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("PaymentMethodsChanged", "Medio de Pago Eliminado", $"Se eliminó el medio de pago con ID #{id}.", cancellation);
             return Ok(new { success = true, message = "Método de pago eliminado exitosamente." });
         }
         catch (Exception ex)

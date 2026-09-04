@@ -127,10 +127,6 @@ public class ResolutionsController : ControllerBase
             {
                 _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId.Value, title, msg, "ResolutionsChanged", cancellationToken);
             }
-            else
-            {
-                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("ResolutionsChanged", title, msg, cancellationToken);
-            }
 
             return CreatedAtAction(nameof(GetById), new { id = created.ResolutionId }, created);
         }
@@ -168,10 +164,6 @@ public class ResolutionsController : ControllerBase
             {
                 _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId.Value, title, msg, "ResolutionsChanged", cancellationToken);
             }
-            else
-            {
-                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("ResolutionsChanged", title, msg, cancellationToken);
-            }
 
             return Ok(updated);
         }
@@ -187,13 +179,17 @@ public class ResolutionsController : ControllerBase
     {
         try
         {
+            var existing = await _resolutionService.GetByIdAsync(id, cancellationToken);
             var success = await _resolutionService.DeactivateAsync(id, cancellationToken);
             if (!success)
             {
                 return NotFound(new { message = "Resolución no encontrada o no pudo desactivarse." });
             }
 
-            _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("ResolutionsChanged", "Resolución Inactivada", "Una resolución de facturación fue inactivada.", cancellationToken);
+            if (existing?.BranchId.HasValue == true)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(existing.BranchId.Value, "Resolución Inactivada", "Una resolución de facturación de la sede fue inactivada.", "ResolutionsChanged", cancellationToken);
+            }
 
             return Ok(new { message = "Resolución desactivada exitosamente." });
         }

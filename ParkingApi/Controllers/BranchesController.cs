@@ -196,6 +196,25 @@ public class BranchesController : ControllerBase
         return BadRequest(new { message = "No se pudieron configurar los convenios para la sede." });
     }
 
+    [HttpGet("{id:int}/resolutions")]
+    public async Task<IActionResult> GetResolutions(int id, CancellationToken cancellationToken)
+    {
+        var resolutions = await _branchService.GetResolutionsAsync(id, cancellationToken);
+        return Ok(resolutions);
+    }
+
+    [HttpPost("configure-resolutions")]
+    public async Task<IActionResult> ConfigureResolutions([FromBody] ConfigureBranchResolutionsDto dto, CancellationToken cancellationToken)
+    {
+        var success = await _branchService.ConfigureResolutionsAsync(dto, cancellationToken);
+        if (success)
+        {
+            _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(dto.BranchId, "Resoluciones Actualizadas", "Se actualizaron las resoluciones de facturación asignadas a la sede.", "ResolutionsChanged", cancellationToken);
+            return Ok(new { message = "Resoluciones de facturación configuradas correctamente para la sede." });
+        }
+        return BadRequest(new { message = "No se pudieron configurar las resoluciones para la sede." });
+    }
+
     [HttpGet("{id:int}/users")]
     public async Task<IActionResult> GetBranchUsers(int id, CancellationToken cancellationToken)
     {

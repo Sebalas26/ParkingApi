@@ -2,6 +2,44 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 18:20:00] - Validación de Capacidad de Sede en CheckIn, Aislamiento de Maestros y Endpoint de Resoluciones por Sede
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"tenemos un error se modifico el cupo de la sede para el parqueadero y dejo superar el limite se coloco 3 y dejo meter 4 entonces eso es algo de validacion grave,
+  > se tiene un error grave que es que las resoluciones queda de una vez activas en la pwa en la modal de parametrizacion así no funciona eso deberia estas como los demas modulos de la parametrización ejemplo el de convenios medios de pago si me hago entender e igual acá en el wpf por que sucede que cuando en el amestro de la empresa se crea una reesolucion o un medio de pago esta de uan sincronizando no deberia el wpf deberia sincronizar información maestra solo cuando se le asocie en la paramertrización si me explico. 
+  > y esta algo quemado que todo dice automovil / sedan recuerda que nada quemado nada es nada nada nada ... m,ira acá eso no deberia estar así y valor acomulado esta mal no esta calculando el valor real por los minutos entonces necesito que hagas mejor las cosas y sean mas precisas"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Validación de Cupo Máximo en `ParkingTicketService.CheckInAsync`**:
+     - Se añadió verificación de aforo activo: si `branch.TotalCapacity > 0`, se cuentan los tickets activos (`Status == "Active"` o `ExitTime == null`). Si `activeTicketsCount >= branch.TotalCapacity`, se arroja `InvalidOperationException($"La sede ha alcanzado su capacidad máxima permitida ({branch.TotalCapacity} vehículos).")`.
+  2. **Supresión de Broadcast SignalR en Entidades Maestras**:
+     - `ResolutionsController.cs`: Se eliminó el broadcast global a todas las sedes cuando se crea, edita o elimina una resolución maestra (`BranchId == null`). Únicamente se notifica al grupo de sede (`NotifyBranchConfigChangedAsync`) si la resolución tiene `BranchId.HasValue`.
+     - `PaymentMethodController.cs`: Se eliminó el broadcast a todas las sedes al crear, editar o eliminar medios de pago del catálogo maestro general.
+     - `AgreementsController.cs`: Se eliminó el broadcast global en CRUD maestro.
+  3. **Configuración y Asociación Explícita de Resoluciones por Sede**:
+     - `IBranchService.cs` y `BranchService.cs`: Se agregaron `GetResolutionsAsync(int branchId)` y `ConfigureResolutionsAsync(ConfigureBranchResolutionsDto dto)`. La asignación vincula `BranchId = branchId` en las resoluciones seleccionadas y desvincula (`BranchId = null`) las no seleccionadas previamente asociadas a esa sede.
+     - `BranchesController.cs`: Se expusieron los endpoints `GET /api/branches/{id}/resolutions` y `POST /api/branches/configure-resolutions`, emitiendo `NotifyBranchConfigChangedAsync(dto.BranchId, "ResolutionsChanged")`.
+  4. **Filtro de Resoluciones en Sincronización Terminal (`SyncService.cs`)**:
+     - `GetBootstrapDataAsync`: Ahora filtra las resoluciones de facturación enviadas al POS para incluir únicamente las asignadas a esa sede (`r.BranchId == branchId.Value`), garantizando que las resoluciones maestras no asignadas no se descarguen al SQLite del terminal de forma prematura.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi/Controllers/ResolutionsController.cs`
+  - `ParkingApi/Controllers/PaymentMethodController.cs`
+  - `ParkingApi/Controllers/AgreementsController.cs`
+  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Branches/IBranchService.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `ParkingApi.Core/Services/Sync/SyncService.cs`
+  - `ParkingApi.UnitTests/Controllers/AgreementsControllerTests.cs`
+  - `ParkingApi.UnitTests/Controllers/PaymentMethodControllerTests.cs`
+  - `ParkingApi.UnitTests/Controllers/ResolutionsControllerTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` → **0 Errores, 8 Advertencias (previas NU1903/CS8601)**
+  - `dotnet test ParkingApi.slnx` → **345 Pruebas Superadas, 0 Fallos**
+
 ## 📌 Entrada: [2026-09-04 17:20:00] - Aislamiento por Sede de Notificaciones SignalR y Sincronización de Tarifas
 
 - **`💬 Prompt Original del Usuario`**:
