@@ -183,7 +183,24 @@ public class SyncService : ISyncService
                 : allStores.Where(s => s.IsActive).ToList();
 
             var storeIds = stores.Select(s => s.StoreId).ToHashSet();
-            var agreements = allAgreements.Where(a => a.IsActive && storeIds.Contains(a.StoreId)).ToList();
+            List<CommercialAgreement> agreements;
+            if (branchId.HasValue)
+            {
+                var branchAgreements = await _branchRepository.GetAgreementsByBranchIdAsync(branchId.Value, cancellationToken);
+                if (branchAgreements.Any(ba => ba.IsActive))
+                {
+                    var activeAgIds = branchAgreements.Where(ba => ba.IsActive).Select(ba => ba.AgreementId).ToHashSet();
+                    agreements = allAgreements.Where(a => a.IsActive && activeAgIds.Contains(a.AgreementId)).ToList();
+                }
+                else
+                {
+                    agreements = allAgreements.Where(a => a.IsActive && storeIds.Contains(a.StoreId)).ToList();
+                }
+            }
+            else
+            {
+                agreements = allAgreements.Where(a => a.IsActive && storeIds.Contains(a.StoreId)).ToList();
+            }
 
             var allShifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, branchId, cancellationToken);
             var shifts = branchId.HasValue
@@ -204,6 +221,10 @@ public class SyncService : ISyncService
             var allResolutions = await _billingResolutionRepository.GetAllAsync(branchId, targetCompanyId, cancellationToken);
             var resolutions = allResolutions.Where(r => r.IsActive).ToList();
 
+            var branchPmsForBootstrap = branchId.HasValue
+                ? (await _branchRepository.GetPaymentMethodsByBranchIdAsync(branchId.Value, cancellationToken)).ToList()
+                : new List<BranchPaymentMethod>();
+
             return new BootstrapSyncDto
             {
                 ServerTimeUtc = DateTime.UtcNow,
@@ -213,6 +234,7 @@ public class SyncService : ISyncService
                 UserRoles = userRoles,
                 RoleActions = roleActionsList,
                 PaymentMethods = paymentMethods,
+                BranchPaymentMethods = branchPmsForBootstrap,
                 Rates = rates,
                 Stores = stores,
                 Agreements = agreements,

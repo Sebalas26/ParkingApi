@@ -192,13 +192,89 @@ public class ParkingTicketService : IParkingTicketService
             {
                 gross = dto.GrossAmount.Value;
             }
-            else if (ticket.HourlyRate > 0)
-            {
-                gross = billableHours * ticket.HourlyRate;
-            }
             else
             {
-                gross = dto.AmountPaid;
+                decimal calculatedGross = 0m;
+                var rate = await _rateRepository.GetByTypeAsync(ticket.VehicleType, ticket.BranchId, ticket.CompanyId, cancellationToken);
+                if (rate != null)
+                {
+                    var grace = rate.GracePeriodMinutes;
+                    if (totalMinutes <= grace)
+                    {
+                        calculatedGross = 0m;
+                    }
+                    else
+                    {
+                        bool isNightEntry = ticket.EntryTimeUtc.Hour >= 18 || ticket.EntryTimeUtc.Hour < 6;
+                        bool isNightExit = exitTime.Hour >= 18 || exitTime.Hour < 6;
+                        bool isNightStay = rate.NightRate > 0 && isNightEntry && isNightExit && totalMinutes >= 360;
+
+                        if (isNightStay)
+                        {
+                            calculatedGross = rate.NightRate;
+                        }
+                        else if (rate.FullDayRate > 0 && totalMinutes >= 1440)
+                        {
+                            var days = totalMinutes / 1440;
+                            var remMins = totalMinutes % 1440;
+                            decimal remFee = 0m;
+
+                            if (rate.MinuteRate > 0 && rate.HourRate > 0)
+                            {
+                                var remH = remMins / 60;
+                                var remM = remMins % 60;
+                                remFee = (remH * rate.HourRate) + Math.Min(rate.HourRate, remM * rate.MinuteRate);
+                            }
+                            else if (rate.MinuteRate > 0)
+                            {
+                                remFee = remMins * rate.MinuteRate;
+                            }
+                            else if (rate.HourRate > 0)
+                            {
+                                var remHours = (int)Math.Max(1, Math.Ceiling(remMins / 60.0));
+                                remFee = remHours * rate.HourRate;
+                            }
+                            else
+                            {
+                                remFee = rate.FullDayRate;
+                            }
+
+                            calculatedGross = (days * rate.FullDayRate) + Math.Min(rate.FullDayRate, remFee);
+                        }
+                        else
+                        {
+                            if (rate.MinuteRate > 0 && rate.HourRate > 0)
+                            {
+                                var hours = totalMinutes / 60;
+                                var rem = totalMinutes % 60;
+                                calculatedGross = (hours * rate.HourRate) + Math.Min(rate.HourRate, rem * rate.MinuteRate);
+                            }
+                            else if (rate.MinuteRate > 0)
+                            {
+                                calculatedGross = totalMinutes * rate.MinuteRate;
+                            }
+                            else if (rate.HourRate > 0)
+                            {
+                                calculatedGross = billableHours * rate.HourRate;
+                            }
+                            else if (rate.FullDayRate > 0)
+                            {
+                                calculatedGross = rate.FullDayRate;
+                            }
+
+                            if (rate.FullDayRate > 0 && calculatedGross > rate.FullDayRate)
+                            {
+                                calculatedGross = rate.FullDayRate;
+                            }
+                        }
+                    }
+                }
+                else if (ticket.HourlyRate > 0)
+                {
+                    calculatedGross = billableHours * ticket.HourlyRate;
+                }
+
+                gross = calculatedGross > 0 ? calculatedGross : dto.AmountPaid;
             }
 
             // Determinar monto neto

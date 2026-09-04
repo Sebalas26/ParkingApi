@@ -2,6 +2,27 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 15:45:00] - Cálculo Progresivo Puro de Tarifas, Sincronización y Validaciones Multi-Sede
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"# Plan de Arquitectura e Implementación: Validaciones Multi-Sede, Convenios en Salida, Tarifas Progresivas, Resoluciones y Sincronización WPF..."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  > Se estandarizó la liquidación progresiva y escalonada de cobro en `ParkingTicketService.CheckOutAsync` cuando el ticket no viene preliquidado:
+  > 1. Periodo de gracia: si `totalMinutes <= rate.GracePeriodMinutes`, la tarifa es $0.
+  > 2. Franja nocturna: si `rate.NightRate > 0` y la estancia ocurre en horario nocturno (>= 6 horas de 18:00 a 06:00), aplica la tarifa nocturna.
+  > 3. Estancias multidía (>= 1440 min con `fullDayRate > 0`): liquidación de días completos más el remanente fraccionario con tope de día por cada ciclo de 24h.
+  > 4. Estancias regulares (< 1440 min): cobro progresivo por minutos hasta topar con la hora ($H \times \text{hora} + \min(\text{hora}, rem \times \text{minuto})$); si no hay minuto, horas redondeadas; si no hay hora, tarifa plena del día.
+  > 5. Se garantizó la sincronización robusta en `SyncService.GetBootstrapDataAsync` para `BranchPaymentMethods`, `CommercialAgreements` y `BillingResolutions`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs` → Algoritmo progresivo puro de cálculo de tarifas y validación de resoluciones fiscales.
+  - `ParkingApi.Core/Services/Sync/SyncService.cs` → Población y filtros multi-sede de medios de pago, convenios y resoluciones en bootstrap.
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build` → **0 Errores, 8 Advertencias (NU1903 previas)**
+  - `dotnet test` → **344 Pruebas Correctas, 0 Errores**
+
 ## 📌 Entrada: [2026-09-04 14:35:00] - Recaudación por Medios de Pago 100% Dinámica y Aislamiento Multi-Sede (Zero Hardcoding)
 
 - **`💬 Prompt Original del Usuario`**:
