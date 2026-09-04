@@ -785,7 +785,7 @@ CREATE TABLE IF NOT EXISTS `UserSessions` (
 INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
 VALUES 
     ('20260831014505_Complete', '10.0.0'),
-    ('20260903212909_VersionBase', '10.0.0')
+    ('20260904025048_VersionBase', '10.0.0')
 ON DUPLICATE KEY UPDATE `ProductVersion` = VALUES(`ProductVersion`);
 
 -- ----------------------------------------------------------------------------------
