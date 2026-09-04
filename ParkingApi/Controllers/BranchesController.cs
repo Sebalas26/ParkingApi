@@ -183,4 +183,31 @@ public class BranchesController : ControllerBase
         var users = await _branchService.GetUsersByBranchIdAsync(id, cancellationToken);
         return Ok(users);
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var branch = await _branchService.GetByIdAsync(id, cancellationToken);
+            if (branch == null) return NotFound(new { message = $"Sede con Id {id} no encontrada." });
+
+            var success = await _branchService.DeleteAsync(id, cancellationToken);
+            if (success)
+            {
+                _ = _realtimeNotifier.NotifyGlobalConfigChangedAsync("BranchDeleted", "Sede Eliminada", $"Se ha eliminado la sede '{branch.Name}' de la empresa.", cancellationToken);
+                return Ok(new { message = "Sede eliminada exitosamente." });
+            }
+            return BadRequest(new { message = "No se pudo eliminar la sede." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar la sede con Id {Id}", id);
+            return StatusCode(500, new { message = "Error interno al eliminar la sede." });
+        }
+    }
 }

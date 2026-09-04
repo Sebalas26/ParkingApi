@@ -230,8 +230,23 @@ public class BranchService : IBranchService
             Username = u.Username,
             IsActive = u.IsActive,
             CreatedAt = u.CreatedAt,
-            UpdatedAt = u.UpdatedAt
+            UpdatedAt = u.UpdatedAt,
+            UserRoleDto = u.UserRoleIdNavigation != null ? new Domain.Dtos.UserRoles.GetUserRoleDto
+            {
+                IdUserRol = u.UserRoleIdNavigation.Id,
+                RoleName = u.UserRoleIdNavigation.Role,
+                CompanyId = u.UserRoleIdNavigation.CompanyId,
+                BranchId = u.UserRoleIdNavigation.BranchId,
+                IsActive = u.UserRoleIdNavigation.IsActive,
+                CreatedAt = u.UserRoleIdNavigation.CreatedAt,
+                UpdatedAt = u.UserRoleIdNavigation.UpdatedAt
+            } : null
         }).ToList();
+    }
+
+    public async Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        return await _branchRepository.DeleteAsync(branchId, cancellationToken);
     }
 
     private static BranchDto MapToDto(Branch b) => new()

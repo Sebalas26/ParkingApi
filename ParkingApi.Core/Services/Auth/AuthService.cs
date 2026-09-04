@@ -199,7 +199,7 @@ public class AuthService : IAuthService
             IReadOnlyList<Branch> userBranches;
             if (isSuperAdmin)
             {
-                userBranches = await _branchRepository.GetActiveAsync(null, cancellation);
+                userBranches = new List<Branch>();
             }
             else if (user.CompanyId.HasValue)
             {
@@ -340,7 +340,7 @@ public class AuthService : IAuthService
             IReadOnlyList<Branch> userBranches;
             if (isSuperAdmin)
             {
-                userBranches = await _branchRepository.GetActiveAsync(null, cancellationToken);
+                userBranches = new List<Branch>();
             }
             else if (user.CompanyId.HasValue)
             {
@@ -442,7 +442,7 @@ public class AuthService : IAuthService
             IReadOnlyList<Branch> userBranches;
             if (isSuperAdmin)
             {
-                userBranches = await _branchRepository.GetActiveAsync(null, cancellationToken);
+                userBranches = new List<Branch>();
             }
             else if (user.CompanyId.HasValue)
             {

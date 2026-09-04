@@ -19,4 +19,5 @@ public interface IBranchService
     Task<IReadOnlyList<BranchPaymentMethodDto>> GetPaymentMethodsAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> ConfigurePaymentMethodsAsync(ConfigureBranchPaymentMethodsDto dto, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Domain.Dtos.Users.GetUsersDto>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default);
 }

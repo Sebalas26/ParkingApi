@@ -204,4 +204,39 @@ public class BranchRepository : IBranchRepository
 
         return combined;
     }
+
+    public async Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId, cancellationToken);
+        if (branch == null) return false;
+
+        // Validar si la sede cuenta con registros históricos de tiquetes o turnos de caja
+        var hasTickets = await _context.ParkingTickets.AnyAsync(t => t.BranchId == branchId, cancellationToken);
+        var hasShifts = await _context.WorkShifts.AnyAsync(s => s.BranchId == branchId, cancellationToken);
+
+        if (hasTickets || hasShifts)
+        {
+            throw new InvalidOperationException("No es posible eliminar la sede permanentemente porque contiene transacciones históricas registradas (tiquetes o turnos). Puede inactivarla para suspender su operación.");
+        }
+
+        // Remover asociaciones dependientes operativas
+        var userBranches = await _context.UserBranches.Where(ub => ub.BranchId == branchId).ToListAsync(cancellationToken);
+        if (userBranches.Count > 0) _context.UserBranches.RemoveRange(userBranches);
+
+        var paymentMethods = await _context.BranchPaymentMethods.Where(bpm => bpm.BranchId == branchId).ToListAsync(cancellationToken);
+        if (paymentMethods.Count > 0) _context.BranchPaymentMethods.RemoveRange(paymentMethods);
+
+        var vehicleRates = await _context.VehicleRates.Where(vr => vr.BranchId == branchId).ToListAsync(cancellationToken);
+        if (vehicleRates.Count > 0) _context.VehicleRates.RemoveRange(vehicleRates);
+
+        var resolutions = await _context.BillingResolutions.Where(br => br.BranchId == branchId).ToListAsync(cancellationToken);
+        if (resolutions.Count > 0) _context.BillingResolutions.RemoveRange(resolutions);
+
+        var stores = await _context.Stores.Where(s => s.BranchId == branchId).ToListAsync(cancellationToken);
+        if (stores.Count > 0) _context.Stores.RemoveRange(stores);
+
+        _context.Branches.Remove(branch);
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
 }

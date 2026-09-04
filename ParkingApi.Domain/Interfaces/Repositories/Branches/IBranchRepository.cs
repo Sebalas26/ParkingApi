@@ -21,4 +21,5 @@ public interface IBranchRepository
     Task<IReadOnlyList<BranchPaymentMethod>> GetPaymentMethodsByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> SetPaymentMethodsAsync(int branchId, IEnumerable<int> paymentMethodIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<User>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default);
 }

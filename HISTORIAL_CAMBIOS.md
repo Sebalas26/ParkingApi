@@ -2,7 +2,66 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: [2026-09-03 21:50:00] - Depuración y Actualización de Scripts SQL de Inicialización Limpia (01_Clean_All_Tables & 02_Init_RBAC_Seed) y Auditoría de Cero Siembra Automática en Backend
+## 📌 Entrada: [2026-09-04 08:12:00] - Eliminación Real de Sedes, Proyección de Roles de Operador y Auto-Habilitación Dinámica de Módulo de Caja en Actualización de Empresa
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Cuando una empresa tiene activa la parametrizacion de que requiere abrir caja suceden dos cosas que no estan pasando primera, es que si se activa esa condicion deberia ser reactivo y al administrador se le deberia habilitar el permiso de cajas de una vez en la pantalla nos toca cerrar sesión y volver a loguearnos para que se muestre el modulo, segundo el modulo de abrir caja exactamente la modal esta generando un error que dice que no se puede abrir caja por que no se tiene una sede activa y si tengo sedes tengo 3 y no funciona y tampoco esta trayendo a los usuarios que tengan el permisos de abrir caja si me explico por que solo sale un select con el nombre del usaurio administrador pero con un rol que no es el de el.*
+  > *en la tabla de sedes el boton de eliminar no deberia desactivar la sede si no eliminarla definitivamente."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Eliminación Real de Sede (`DELETE /api/branches/{id}`)**:
+    - Se agregaron las definiciones `DeleteAsync(int branchId, CancellationToken cancellationToken)` en `IBranchRepository` e `IBranchService`, e implementaciones en `BranchRepository` y `BranchService`.
+    - **Protección de Integridad Referencial**: Antes de borrar, verifica si la sede tiene transacciones operativas (`hasTickets || hasShifts`). Si existen, retorna `InvalidOperationException("No se puede eliminar la sede porque cuenta con tiquetes o turnos registrados.")` y el controlador responde `400 Bad Request`.
+    - **Cascada Controlada**: En sedes sin operaciones activas, limpia ordenadamente las entidades dependientes (`UserBranches`, `BranchPaymentMethods`, `VehicleRates`, `BillingResolutions`, `Stores`) y remueve la sede con `_context.Branches.Remove(branch)`.
+    - `BranchesController.cs`: Expone `[HttpDelete("{id:int}")]` con manejo de errores y notificación en tiempo real `BranchDeleted` vía SignalR (`RealtimeNotificationHub`).
+  - **Mapeo de Rol Real en Operadores de Sede (`BranchService.cs`)**:
+    - En `GetUsersByBranchIdAsync`, se corrigió la proyección a `GetUsersDto` asignando `UserRoleDto` con `IdUserRol = u.UserRoleIdNavigation.Id` y `RoleName = u.UserRoleIdNavigation.Role` (en lugar de dejarlo nulo), resolviendo el bug donde el select de operadores de caja mostraba un rol incorrecto o genérico.
+  - **Aprovisionamiento Automático de Permisos de Caja (`CompanyService.cs`)**:
+    - En `UpdateAsync`, cuando `companyDto.RequireOpenShiftToOperate` cambia a `true`, el sistema busca el rol `Administrador` de la empresa en la base de datos y le asigna automáticamente:
+      - Módulo 5 (`Control de Cajas`) en `CompanyModules` y `RoleModules`.
+      - Todas las acciones de caja (`shift.view`, `shifts.*`, `checkout.view`) en `RoleActions`.
+    - Esto garantiza que al activar la parametrización de caja en la empresa, el rol administrador tenga de inmediato los permisos persistidos en base de datos para la sincronización reactiva de sesión.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Repositories/Branches/IBranchRepository.cs` (Método DeleteAsync)
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs` (Implementación de DeleteAsync con cascadas)
+  - `ParkingApi.Domain/Interfaces/Services/Branches/IBranchService.cs` (Método DeleteAsync)
+  - `ParkingApi.Core/Services/Branches/BranchService.cs` (Validación de tickets/turnos y mapeo de UserRoleDto en GetUsersByBranchIdAsync)
+  - `ParkingApi/Controllers/BranchesController.cs` (Endpoint [HttpDelete("{id:int}")] y notificación en tiempo real)
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs` (Auto-asignación de Módulo 5 y acciones de turnos/caja al Administrador)
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build "ParkingApi.slnx"`: **Compilación Correcta (0 Errores, 0 Advertencias)**.
+  - `dotnet test "ParkingApi.slnx"`: **341 Superadas, 0 Fallos, 0 Errores**.
+
+---
+
+## 📌 Entrada: [2026-09-04 06:40:00] - Diseño y Documentación de Arquitectura: Notificaciones Push PWA Multi-Empresa, RBAC y Parametrizables (100% Gratis)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Guarda este plan en el api en un doc para tenerlo para analisarlo ahora mas tarde por que debemos solucioanr otras coas primero."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Documento Maestro Creado**: Se generó el archivo de especificación técnica y de negocio en [`Docs/PLAN_NOTIFICACIONES_PUSH_PWA.md`](file:///c:/Users/miguelagutierrezg/source/repos/ParkingApi/Docs/PLAN_NOTIFICACIONES_PUSH_PWA.md).
+  - **Definición de Arquitectura**:
+    - **Costo Cero ($0 USD)**: Estándar Web Push W3C + VAPID sin intermediarios de pago (aprovechando la infraestructura gratuita de Google FCM y Apple APNs).
+    - **Aislamiento Multi-Tenant**: Registro de suscripciones (`PushSubscriptions`) estrictamente vinculado a `CompanyId` y `BranchId`.
+    - **Filtrado RBAC Basado en Permisos**: Las notificaciones operativas (cierres de turno, dinero, incidentes) se despachan evaluando los slugs de permisos (`Action.Slug`), prohibiendo comparaciones quemadas por nombre de rol.
+    - **Parametrización por Usuario (`UserNotificationPreferences`)**: Cada usuario dispone de interruptores en su perfil para elegir qué alertas recibir (actualizaciones de versión, aperturas/cierres de turno, descuadres de caja, incidentes de vehículos, etc.).
+    - **Avisos de Actualización de la PWA**: Protocolo de broadcast para despertar dispositivos móviles y activar `SwUpdate` al pulsar la notificación en la pantalla de bloqueo o barra de estado.
+  - **Modelo de Datos Propuesto**: Scripts DDL de tablas `PushSubscriptions` y `UserNotificationPreferences` con claves foráneas, índices de alto rendimiento y cascadas.
+  - **Estrategia Comercial**: Propuesta de valor para comercializar como módulo premium a parqueaderos sin sobrecostos de operación.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Docs/PLAN_NOTIFICACIONES_PUSH_PWA.md` (Nuevo documento maestro de arquitectura y diseño)
+  - `HISTORIAL_CAMBIOS.md` (Registro cronológico de contexto técnico)
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build "ParkingApi.slnx" --no-incremental`: **Compilación Correcta (0 Errores)**.
+
+---
+
 
 - **`💬 Prompt Original del Usuario`**:
   > *"actualiza estos dos archivos por favor para tenerlos claro para el arranque inicial, ya sabes que se va arranar solo el usuario superadmin pero nada nada creado nada es nada deber revisar de una vez que el bakckend no cree nada solo automatico si me explico. ??"*

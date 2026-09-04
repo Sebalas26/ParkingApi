@@ -376,6 +376,54 @@ public class CompanyService : ICompanyService
             }
         }
 
+        // Si la empresa requiere apertura de turnos/caja, asegurar que el rol Administrador tenga asignado el módulo 5 y sus acciones
+        if (company.RequireOpenShiftToOperate)
+        {
+            var adminRole = await _context.UserRole
+                .FirstOrDefaultAsync(r => r.CompanyId == id && (r.Role == "Administrador" || r.Role == "Admin"), cancellationToken);
+
+            if (adminRole != null)
+            {
+                var hasShiftModule = await _context.UserRoleModule
+                    .AnyAsync(urm => urm.UserRoleId == adminRole.Id && urm.ModulesRoleId == 5, cancellationToken);
+                if (!hasShiftModule)
+                {
+                    _context.UserRoleModule.Add(new UserRoleModule
+                    {
+                        UserRoleId = adminRole.Id,
+                        ModulesRoleId = 5,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                var shiftActions = await _context.Action
+                    .Where(a => a.IsActive && (a.ModuleId == 5 || a.Slug.StartsWith("shifts.") || a.Slug.StartsWith("shift.") || a.Slug.StartsWith("checkout.")))
+                    .ToListAsync(cancellationToken);
+
+                var existingRoleActions = await _context.RoleAction
+                    .Where(ra => ra.RoleId == adminRole.Id)
+                    .Select(ra => ra.ActionId)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var act in shiftActions)
+                {
+                    if (!existingRoleActions.Contains(act.Id))
+                    {
+                        _context.RoleAction.Add(new RoleAction
+                        {
+                            RoleId = adminRole.Id,
+                            ActionId = act.Id,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
         // Notificación en tiempo real de actualización de parámetros y límites de la empresa
         _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
         {
