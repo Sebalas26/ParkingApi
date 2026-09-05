@@ -43,11 +43,11 @@ public class AnalyticsControllerTests
             ActiveVehiclesCount = 12,
             CompletedTransactionsToday = 25
         };
-        _analyticsServiceMock.Setup(s => s.GetDailySummaryAsync(1, 1, It.IsAny<CancellationToken>()))
+        _analyticsServiceMock.Setup(s => s.GetDailySummaryAsync(1, 1, It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(summary);
 
         // Act
-        var result = await _controller.GetDailySummary(1, 1, CancellationToken.None);
+        var result = await _controller.GetDailySummary(1, 1, 300, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>()
@@ -59,11 +59,11 @@ public class AnalyticsControllerTests
     {
         // Arrange
         _currentUserMock.Setup(c => c.GetEffectiveCompanyId(It.IsAny<int?>())).Returns(1);
-        _analyticsServiceMock.Setup(s => s.GetDailySummaryAsync(It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+        _analyticsServiceMock.Setup(s => s.GetDailySummaryAsync(It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Database timeout"));
 
         // Act
-        var result = await _controller.GetDailySummary(1, 1, CancellationToken.None);
+        var result = await _controller.GetDailySummary(1, 1, 300, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<ObjectResult>()

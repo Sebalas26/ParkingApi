@@ -43,12 +43,12 @@ public class AnalyticsService : IAnalyticsService
         _logger = logger;
     }
 
-    public async Task<FinancialSummaryDto> GetDailySummaryAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
+    public async Task<FinancialSummaryDto> GetDailySummaryAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
     {
         try
         {
             var effectiveCompanyId = companyId ?? _currentUser.CompanyId;
-            var todayTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(branchId, effectiveCompanyId, cancellationToken);
+            var todayTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(branchId, effectiveCompanyId, offsetMinutes, cancellationToken);
             var activeCount = await _ticketRepository.CountActiveAsync(branchId, effectiveCompanyId, cancellationToken);
 
             var totalRevenue = todayTickets.Sum(t => t.NetAmount);

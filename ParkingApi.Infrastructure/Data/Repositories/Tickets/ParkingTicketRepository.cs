@@ -115,16 +115,29 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
+    private static (DateTime startUtc, DateTime endUtc) GetLocalDayUtcRange(int offsetMinutes)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var clientNow = nowUtc.AddMinutes(-offsetMinutes);
+        var startOfLocalDay = clientNow.Date;
+        var endOfLocalDay = startOfLocalDay.AddDays(1);
+
+        var startOfLocalDayUtc = startOfLocalDay.AddMinutes(offsetMinutes);
+        var endOfLocalDayUtc = endOfLocalDay.AddMinutes(offsetMinutes);
+
+        return (startOfLocalDayUtc, endOfLocalDayUtc);
+    }
+
+    public async Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
     {
         try
         {
-            var today = DateTime.UtcNow.Date;
+            var (startUtc, endUtc) = GetLocalDayUtcRange(offsetMinutes);
             var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Discounts)
                 .Include(t => t.Branch)
-                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today);
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value >= startUtc && t.ExitTimeUtc.Value < endUtc);
 
             if (branchId.HasValue && branchId.Value > 0)
             {
@@ -141,7 +154,39 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Error}: Error al consultar tiquetes completados de hoy", Constants.TicketError);
+            _logger.LogError(ex, "{Error}: Error al consultar tiquetes completados de hoy con offset {Offset}m", Constants.TicketError, offsetMinutes);
+            return new List<ParkingTicket>();
+        }
+    }
+
+    public async Task<IReadOnlyList<ParkingTicket>> GetRecentCompletedTicketsAsync(int? branchId = null, int? companyId = null, int hours = 48, int limit = 100, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var cutoffUtc = DateTime.UtcNow.AddHours(-hours);
+            var query = _context.ParkingTickets
+                .AsNoTracking()
+                .Include(t => t.Discounts)
+                .Include(t => t.Branch)
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value >= cutoffUtc);
+
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(t => t.BranchId == branchId.Value);
+            }
+            if (companyId.HasValue && companyId.Value > 0)
+            {
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
+            }
+
+            return await query
+                .OrderByDescending(t => t.ExitTimeUtc)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al consultar tiquetes completados recientes", Constants.TicketError);
             return new List<ParkingTicket>();
         }
     }
@@ -292,15 +337,15 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
     }
 
-    public async Task<int> CountTodayCompletedAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
+    public async Task<int> CountTodayCompletedAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
     {
         try
         {
-            var today = DateTime.UtcNow.Date;
+            var (startUtc, endUtc) = GetLocalDayUtcRange(offsetMinutes);
             var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Branch)
-                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today);
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value >= startUtc && t.ExitTimeUtc.Value < endUtc);
 
             if (branchId.HasValue && branchId.Value > 0)
             {
@@ -315,20 +360,20 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Error}: Error al contar tiquetes completados de hoy", Constants.TicketError);
+            _logger.LogError(ex, "{Error}: Error al contar tiquetes completados de hoy con offset {Offset}m", Constants.TicketError, offsetMinutes);
             return 0;
         }
     }
 
-    public async Task<int> CountTodayTotalAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
+    public async Task<int> CountTodayTotalAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
     {
         try
         {
-            var today = DateTime.UtcNow.Date;
+            var (startUtc, endUtc) = GetLocalDayUtcRange(offsetMinutes);
             var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Branch)
-                .Where(t => t.EntryTimeUtc.Date == today);
+                .Where(t => t.EntryTimeUtc >= startUtc && t.EntryTimeUtc < endUtc);
 
             if (branchId.HasValue && branchId.Value > 0)
             {
@@ -343,20 +388,20 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Error}: Error al contar total de tiquetes de hoy", Constants.TicketError);
+            _logger.LogError(ex, "{Error}: Error al contar total de tiquetes de hoy con offset {Offset}m", Constants.TicketError, offsetMinutes);
             return 0;
         }
     }
 
-    public async Task<decimal> GetTodayRevenueAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
+    public async Task<decimal> GetTodayRevenueAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
     {
         try
         {
-            var today = DateTime.UtcNow.Date;
+            var (startUtc, endUtc) = GetLocalDayUtcRange(offsetMinutes);
             var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Branch)
-                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == today);
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value >= startUtc && t.ExitTimeUtc.Value < endUtc);
 
             if (branchId.HasValue && branchId.Value > 0)
             {
@@ -371,7 +416,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Error}: Error al calcular ingresos de hoy", Constants.TicketError);
+            _logger.LogError(ex, "{Error}: Error al calcular ingresos de hoy con offset {Offset}m", Constants.TicketError, offsetMinutes);
             return 0m;
         }
     }

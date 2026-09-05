@@ -2,6 +2,45 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-04 20:40:00] - Corrección de Zona Horaria (UTC-5) en Dashboard Analytics y Enriquecimiento de Sincronización Bootstrap Multi-PC
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"pero mira ese metodo del api algo esta mal por que trae solo como lo ultimo que se haga pero si ese metodo recibe esos parametros ya existe datos mas viejos y no estan sincronizando"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Diagnóstico del Desfase Horario (Timezone Mismatch UTC vs UTC-5)**:
+     - En MySQL las marcas de tiempo se almacenan en UTC (`CreatedAtUtc`, `ExitTimeUtc`, `EntryTimeUtc`).
+     - Alrededor de las 19:00 hora de Colombia (UTC-5), el reloj UTC cruza la medianoche (00:00:00Z) y pasa al día siguiente en calendario UTC.
+     - Métodos como `GetTodayCompletedTicketsAsync`, `CountTodayCompletedAsync`, `CountTodayTotalAsync` y `GetTodayRevenueAsync` en `ParkingTicketRepository.cs` filtraban comparando directamente `ExitTimeUtc.Value.Date == DateTime.UtcNow.Date`.
+     - Esto ocasionaba que después de las 7:00 PM Colombia, todos los tickets completados durante el día (entre 00:00 y 18:59 hora local, con fecha UTC del día anterior) fueran excluidos del cálculo diario del Dashboard (`/api/Analytics/daily-summary`), mostrando únicamente tickets finalizados después de las 7:00 PM.
+  2. **Cálculo Preciso de Rango UTC Local (`GetLocalDayUtcRange`)**:
+     - Se implementó `GetLocalDayUtcRange(int offsetMinutes)` que calcula:
+       - `clientNow = DateTime.UtcNow.AddMinutes(-offsetMinutes)`
+       - `startOfLocalDayUtc = clientNow.Date.AddMinutes(offsetMinutes)`
+       - `endOfLocalDayUtc = startOfLocalDayUtc.AddDays(1)`
+     - Los métodos del repositorio ahora filtran con `ExitTimeUtc >= startOfLocalDayUtc && ExitTimeUtc < endOfLocalDayUtc`, asegurando que el día calendario del cliente (ej: Colombia UTC-5 con offset 300) se consulte con exactitud matemática sin importar la hora del servidor.
+  3. **Enriquecimiento del Bootstrap de Sincronización Terminal (`SyncService.cs`)**:
+     - En `GetBootstrapDataAsync`, `recentTickets` ahora combina los tickets finalizados del día local (`offsetMinutes: 300`) con los tickets finalizados de las últimas 48 horas (`GetRecentCompletedTicketsAsync(hours: 48, limit: 100)`), deduplicados por `TicketId`.
+     - Esto garantiza que al iniciar sesión en un nuevo PC (o con base de datos SQLite recién creada), el punto de venta descargue tanto los tickets del día como los movimientos recientes para auditoría y visualización de arqueo.
+  4. **Propagación de Parámetro `offsetMinutes` en Controladores y Servicios**:
+     - `IParkingTicketRepository.cs` y `ParkingTicketRepository.cs`: Métodos actualizados con parámetro por defecto `int offsetMinutes = 300` y nuevo método `GetRecentCompletedTicketsAsync`.
+     - `IAnalyticsService.cs` y `AnalyticsService.cs`: `GetDailySummaryAsync(branchId, companyId, offsetMinutes)`.
+     - `AnalyticsController.cs`: `GET /api/Analytics/daily-summary` ahora recibe `[FromQuery] int offsetMinutes = 300`.
+     - Pruebas unitarias en `AnalyticsControllerTests.cs` actualizadas con validación del parámetro.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Repositories/Tickets/IParkingTicketRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Tickets/ParkingTicketRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Analytics/IAnalyticsService.cs`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs`
+  - `ParkingApi/Controllers/AnalyticsController.cs`
+  - `ParkingApi.Core/Services/Sync/SyncService.cs`
+  - `ParkingApi.UnitTests/Controllers/AnalyticsControllerTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` → **0 Errores, 8 Advertencias (previas NU1903/CS8601)**
+  - `dotnet test ParkingApi.slnx` → **345 Pruebas Superadas, 0 Fallos**
+
 ## 📌 Entrada: [2026-09-04 18:20:00] - Validación de Capacidad de Sede en CheckIn, Aislamiento de Maestros y Endpoint de Resoluciones por Sede
 
 - **`💬 Prompt Original del Usuario`**:

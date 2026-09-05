@@ -213,7 +213,15 @@ public class SyncService : ISyncService
             var subscriptions = allSubs.Where(s => s.IsActive).ToList();
 
             var activeTickets = (await _ticketRepository.GetActiveTicketsAsync(branchId, targetCompanyId, cancellationToken)).ToList();
-            var recentTickets = (await _ticketRepository.GetTodayCompletedTicketsAsync(branchId, targetCompanyId, cancellationToken)).ToList();
+            var todayCompleted = await _ticketRepository.GetTodayCompletedTicketsAsync(branchId, targetCompanyId, offsetMinutes: 300, cancellationToken);
+            var recentCompleted = await _ticketRepository.GetRecentCompletedTicketsAsync(branchId, targetCompanyId, hours: 48, limit: 100, cancellationToken);
+
+            var recentTickets = todayCompleted
+                .Concat(recentCompleted)
+                .GroupBy(t => t.TicketId)
+                .Select(g => g.First())
+                .OrderByDescending(t => t.ExitTimeUtc)
+                .ToList();
 
             var allIncidents = await _incidentRepository.GetAllAsync(branchId: branchId, status: "Activa", isBlocked: null, search: null, cancellationToken: cancellationToken);
             var incidents = branchId.HasValue
