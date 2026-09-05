@@ -26,12 +26,17 @@ public class AnalyticsController : ControllerBase
     }
 
     [HttpGet("daily-summary")]
-    public async Task<IActionResult> GetDailySummary([FromQuery] int? branchId, [FromQuery] int? companyId, [FromQuery] int offsetMinutes = 300, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetDailySummary(
+        [FromQuery] string? period,
+        [FromQuery] int? branchId,
+        [FromQuery] int? companyId,
+        [FromQuery] int offsetMinutes = 300,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
-            var summary = await _analyticsService.GetDailySummaryAsync(branchId, effectiveCompanyId, offsetMinutes, cancellationToken);
+            var summary = await _analyticsService.GetDailySummaryAsync(period, branchId, effectiveCompanyId, offsetMinutes, cancellationToken);
             return Ok(summary);
         }
         catch (Exception ex)

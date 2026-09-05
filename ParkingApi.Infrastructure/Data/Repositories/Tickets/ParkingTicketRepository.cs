@@ -130,14 +130,19 @@ public class ParkingTicketRepository : IParkingTicketRepository
 
     public async Task<IReadOnlyList<ParkingTicket>> GetTodayCompletedTicketsAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
     {
+        var (startUtc, endUtc) = GetLocalDayUtcRange(offsetMinutes);
+        return await GetCompletedTicketsByRangeAsync(startUtc, endUtc, branchId, companyId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ParkingTicket>> GetCompletedTicketsByRangeAsync(DateTime fromUtc, DateTime toUtc, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default)
+    {
         try
         {
-            var (startUtc, endUtc) = GetLocalDayUtcRange(offsetMinutes);
             var query = _context.ParkingTickets
                 .AsNoTracking()
                 .Include(t => t.Discounts)
                 .Include(t => t.Branch)
-                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value >= startUtc && t.ExitTimeUtc.Value < endUtc);
+                .Where(t => t.Status == TicketStatus.Completed && t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value >= fromUtc && t.ExitTimeUtc.Value < toUtc);
 
             if (branchId.HasValue && branchId.Value > 0)
             {
@@ -154,7 +159,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Error}: Error al consultar tiquetes completados de hoy con offset {Offset}m", Constants.TicketError, offsetMinutes);
+            _logger.LogError(ex, "{Error}: Error al consultar tiquetes completados por rango {From} - {To}", Constants.TicketError, fromUtc, toUtc);
             return new List<ParkingTicket>();
         }
     }

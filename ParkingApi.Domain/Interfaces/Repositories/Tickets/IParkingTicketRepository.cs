@@ -28,6 +28,7 @@ public interface IParkingTicketRepository
     Task<int> CountTodayTotalAsync(int? branchId, int? companyId, CancellationToken cancellationToken)
         => CountTodayTotalAsync(branchId, companyId, 300, cancellationToken);
     Task<IReadOnlyList<ParkingTicket>> GetTicketsByRangeAsync(DateTime fromUtc, DateTime toUtc, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ParkingTicket>> GetCompletedTicketsByRangeAsync(DateTime fromUtc, DateTime toUtc, int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
     Task<decimal> GetTodayRevenueAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default);
     Task<decimal> GetTodayRevenueAsync(int? branchId, int? companyId, CancellationToken cancellationToken)
         => GetTodayRevenueAsync(branchId, companyId, 300, cancellationToken);

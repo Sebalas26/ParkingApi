@@ -5,6 +5,7 @@ namespace ParkingApi.Domain.Dtos.Analytics;
 
 public class FinancialSummaryDto
 {
+    public string Period { get; set; } = "today";
     public decimal TotalRevenueToday { get; set; }
     public int ActiveVehiclesCount { get; set; }
     public int CompletedTransactionsToday { get; set; }

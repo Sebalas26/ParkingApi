@@ -6,7 +6,9 @@ namespace ParkingApi.Domain.Interfaces.Services.Analytics;
 
 public interface IAnalyticsService
 {
-    Task<FinancialSummaryDto> GetDailySummaryAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default);
+    Task<FinancialSummaryDto> GetDailySummaryAsync(string? period, int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default);
+    Task<FinancialSummaryDto> GetDailySummaryAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
+        => GetDailySummaryAsync("today", branchId, companyId, offsetMinutes, cancellationToken);
     Task<OccupancyStatsDto> GetOccupancyStatsAsync(int? branchId = null, int? companyId = null, CancellationToken cancellationToken = default);
     Task<PeakTrafficReportDto> GetPeakTrafficAsync(string? period, int? branchId, int? companyId, int offsetMinutes = 300, CancellationToken cancellationToken = default);
 }

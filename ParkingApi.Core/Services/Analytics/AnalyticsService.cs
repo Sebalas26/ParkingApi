@@ -43,23 +43,61 @@ public class AnalyticsService : IAnalyticsService
         _logger = logger;
     }
 
-    public async Task<FinancialSummaryDto> GetDailySummaryAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
+    public static (DateTime fromUtc, DateTime toUtc, string normalizedPeriod) GetPeriodUtcRange(string? period, int offsetMinutes)
+    {
+        var normalizedPeriod = string.IsNullOrWhiteSpace(period) ? "today" : period.ToLowerInvariant();
+        var nowUtc = DateTime.UtcNow;
+        var clientNow = nowUtc.AddMinutes(-offsetMinutes);
+
+        DateTime fromLocal;
+        DateTime toLocal;
+
+        switch (normalizedPeriod)
+        {
+            case "yesterday":
+                var yesterday = clientNow.Date.AddDays(-1);
+                fromLocal = yesterday;
+                toLocal = yesterday.AddDays(1).AddTicks(-1);
+                break;
+            case "month":
+                fromLocal = new DateTime(clientNow.Year, clientNow.Month, 1);
+                toLocal = fromLocal.AddMonths(1).AddTicks(-1);
+                break;
+            case "today":
+            default:
+                normalizedPeriod = "today";
+                fromLocal = clientNow.Date;
+                toLocal = clientNow.Date.AddDays(1).AddTicks(-1);
+                break;
+        }
+
+        var fromUtc = fromLocal.AddMinutes(offsetMinutes);
+        var toUtc = toLocal.AddMinutes(offsetMinutes);
+
+        return (fromUtc, toUtc, normalizedPeriod);
+    }
+
+    public Task<FinancialSummaryDto> GetDailySummaryAsync(int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
+        => GetDailySummaryAsync("today", branchId, companyId, offsetMinutes, cancellationToken);
+
+    public async Task<FinancialSummaryDto> GetDailySummaryAsync(string? period, int? branchId = null, int? companyId = null, int offsetMinutes = 300, CancellationToken cancellationToken = default)
     {
         try
         {
             var effectiveCompanyId = companyId ?? _currentUser.CompanyId;
-            var todayTickets = await _ticketRepository.GetTodayCompletedTicketsAsync(branchId, effectiveCompanyId, offsetMinutes, cancellationToken);
+            var (fromUtc, toUtc, normalizedPeriod) = GetPeriodUtcRange(period, offsetMinutes);
+            var completedTickets = await _ticketRepository.GetCompletedTicketsByRangeAsync(fromUtc, toUtc, branchId, effectiveCompanyId, cancellationToken);
             var activeCount = await _ticketRepository.CountActiveAsync(branchId, effectiveCompanyId, cancellationToken);
 
-            var totalRevenue = todayTickets.Sum(t => t.NetAmount);
-            var completedCount = todayTickets.Count;
-            var avgDuration = completedCount > 0 ? todayTickets.Average(t => t.TotalDurationMinutes) : 0;
+            var totalRevenue = completedTickets.Sum(t => t.NetAmount);
+            var completedCount = completedTickets.Count;
+            var avgDuration = completedCount > 0 ? completedTickets.Average(t => t.TotalDurationMinutes) : 0;
 
-            var revenueByType = todayTickets
+            var revenueByType = completedTickets
                 .GroupBy(t => t.VehicleType)
                 .ToDictionary(g => g.Key, g => g.Sum(t => t.NetAmount));
 
-            var countByType = todayTickets
+            var countByType = completedTickets
                 .GroupBy(t => t.VehicleType)
                 .ToDictionary(g => g.Key, g => g.Count());
 
@@ -87,7 +125,7 @@ public class AnalyticsService : IAnalyticsService
             var revenueByPayment = new Dictionary<string, decimal>();
             var countByPayment = new Dictionary<string, int>();
 
-            foreach (var ticket in todayTickets)
+            foreach (var ticket in completedTickets)
             {
                 int rawMethodId = ticket.PaymentMethodId.HasValue && ticket.PaymentMethodId.Value > 0
                     ? ticket.PaymentMethodId.Value
@@ -112,7 +150,7 @@ public class AnalyticsService : IAnalyticsService
             var countByResolution = new Dictionary<string, int>();
             var revenueByResolution = new Dictionary<string, decimal>();
 
-            foreach (var ticket in todayTickets)
+            foreach (var ticket in completedTickets)
             {
                 string? resKey = !string.IsNullOrWhiteSpace(ticket.ResolutionName)
                     ? ticket.ResolutionName
@@ -149,6 +187,7 @@ public class AnalyticsService : IAnalyticsService
 
             return new FinancialSummaryDto
             {
+                Period = normalizedPeriod,
                 TotalRevenueToday = totalRevenue,
                 ActiveVehiclesCount = activeCount,
                 CompletedTransactionsToday = completedCount,
@@ -221,35 +260,7 @@ public class AnalyticsService : IAnalyticsService
     {
         try
         {
-            var normalizedPeriod = string.IsNullOrWhiteSpace(period) ? "today" : period.ToLowerInvariant();
-            var nowUtc = DateTime.UtcNow;
-            var clientNow = nowUtc.AddMinutes(-offsetMinutes);
-
-            DateTime fromLocal;
-            DateTime toLocal;
-
-            switch (normalizedPeriod)
-            {
-                case "yesterday":
-                    var yesterday = clientNow.Date.AddDays(-1);
-                    fromLocal = yesterday;
-                    toLocal = yesterday.AddDays(1).AddTicks(-1);
-                    break;
-                case "month":
-                    fromLocal = new DateTime(clientNow.Year, clientNow.Month, 1);
-                    toLocal = fromLocal.AddMonths(1).AddTicks(-1);
-                    break;
-                case "today":
-                default:
-                    normalizedPeriod = "today";
-                    fromLocal = clientNow.Date;
-                    toLocal = clientNow.Date.AddDays(1).AddTicks(-1);
-                    break;
-            }
-
-            var fromUtc = fromLocal.AddMinutes(offsetMinutes);
-            var toUtc = toLocal.AddMinutes(offsetMinutes);
-
+            var (fromUtc, toUtc, normalizedPeriod) = GetPeriodUtcRange(period, offsetMinutes);
             var tickets = await _ticketRepository.GetTicketsByRangeAsync(fromUtc, toUtc, branchId, companyId, cancellationToken);
 
             var countsByHour = new Dictionary<int, int>();

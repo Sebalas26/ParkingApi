@@ -2,6 +2,40 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-05 09:35:00] - Cálculo Multi-Período (Hoy, Ayer, Este Mes) en Métricas de Recaudo y Facturación de Analítica
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"tengo el mismo problema para que recalcule y muestre los rpecios ayer ya habia quedado el problema era algo de la fecha que me decias revisa ese ultimo cambio y veras pero entonces necesitamos una solución real por que las demas graficas si muestran esas no necesitamos ver eso producción por que arriba estan los filtros que tienen hoy ayer este mes pero aun ni asi muestra si selecciono el mes si me explico. analiza y dame plan para solución difinitiva."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Soporte de Períodos Dinámicos en Métricas Financieras (`AnalyticsController.cs`, `AnalyticsService.cs`)**:
+     - El endpoint `GET /api/Analytics/daily-summary` ahora recibe `[FromQuery] string? period = "today"`.
+     - Se implementó la función unificada `GetPeriodUtcRange(string? period, int offsetMinutes)` que normaliza las fechas en UTC para cualquier período (*"today"*, *"yesterday"*, *"month"*) considerando el huso horario del cliente (`offsetMinutes`).
+     - `GetDailySummaryAsync` ahora consulta tiquetes liquidados mediante el nuevo método `_ticketRepository.GetCompletedTicketsByRangeAsync(fromUtc, toUtc, branchId, effectiveCompanyId, cancellationToken)`.
+     - Se calculan de forma matemáticamente exacta: `TotalRevenue`, `CompletedTransactions`, `RevenueByPaymentMethod`, `CountByPaymentMethod`, `RevenueByResolution`, `CountByResolution` y `RevenueByVehicleType` para el período seleccionado.
+     - `GetPeakTrafficAsync` fue homogeneizado para reutilizar `GetPeriodUtcRange`, garantizando consistencia matemática y de fechas al 100%.
+  2. **Repositorio de Tiquetes (`IParkingTicketRepository.cs`, `ParkingTicketRepository.cs`)**:
+     - Se añadió `GetCompletedTicketsByRangeAsync(fromUtc, toUtc, branchId, companyId)` que filtra con `Status == TicketStatus.Completed && ExitTimeUtc >= fromUtc && ExitTimeUtc < toUtc`, incluyendo relaciones `Discounts` y `Branch`.
+     - `GetTodayCompletedTicketsAsync` delega internamente en `GetCompletedTicketsByRangeAsync`.
+  3. **DTOs y Controladores**:
+     - `FinancialSummaryDto`: Añadida propiedad `Period` inicializada por defecto en `"today"`.
+     - `AnalyticsControllerTests.cs`: Pruebas actualizadas validando la propagación de `period`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Repositories/Tickets/IParkingTicketRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Tickets/ParkingTicketRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Analytics/IAnalyticsService.cs`
+  - `ParkingApi.Domain/Dtos/Analytics/FinancialSummaryDto.cs`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs`
+  - `ParkingApi/Controllers/AnalyticsController.cs`
+  - `ParkingApi.UnitTests/Controllers/AnalyticsControllerTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` → **0 Errores**
+  - `dotnet test ParkingApi.slnx` → **345 Pruebas Superadas, 0 Fallos**
+
+---
+
 ## 📌 Entrada: [2026-09-04 20:40:00] - Corrección de Zona Horaria (UTC-5) en Dashboard Analytics y Enriquecimiento de Sincronización Bootstrap Multi-PC
 
 - **`💬 Prompt Original del Usuario`**:
