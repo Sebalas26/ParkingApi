@@ -48,6 +48,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             var normalized = ticketNumber.Trim();
             return await _context.ParkingTickets
                 .Include(t => t.Discounts)
+                .Include(t => t.Branch)
                 .FirstOrDefaultAsync(t => t.TicketNumber == normalized, cancellationToken);
         }
         catch (Exception ex)
