@@ -2,6 +2,78 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-07 09:22:00] - [DATABASE / GOVERNANCE / RBAC] Sincronización Canónica de Scripts Maestros 01 y 02, y Nueva Regla de Oro 6 en AGENTS.md
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"recuerda que esto son nuestros 2 archivos principales yo veo que creas y creas script pero no modificas estos que son los principales que deberian tener todo para el arranque inicial entonces analiza eso, por que faltan mas ajustes acá hicimos algo pero no tenemos aun todo lo que se quiere hacer seguimos trabajando. pero para ir probando cosas por cosas neceesito que siempre como regla quede que estos archivos siempre se deben actualizar."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Consagración de Scripts Canónicos de Arranque Inicial (`01_Clean_All_Tables.sql` y `02_Init_RBAC_Seed.sql`)**:
+     - Se auditaron y sincronizaron los dos archivos fundamentales que definen el aprovisionamiento desde cero de la base de datos MySQL/MariaDB del ecosistema Parking.
+     - `01_Clean_All_Tables.sql`: Actualización de cabecera con fecha 2026-09-07, certificando la secuencia de borrado seguro con `SET FOREIGN_KEY_CHECKS = 0;` para el 100% de las 29 entidades y tablas maestras, transaccionales y de seguridad.
+  2. **Sincronización Exhaustiva de Esquema DDL en `02_Init_RBAC_Seed.sql`**:
+     - `Companies`: Declaración limpia de `HasPushNotificationsEnabled BOOLEAN NOT NULL DEFAULT 0` y `AllowedPushTypesJson LONGTEXT NULL`. Eliminada referencia obsoleta `EnablePushNotifications`.
+     - `Branches`: Declaración de `NightApplicableDays VARCHAR(50) NULL DEFAULT NULL` tras `FullDayEndTime`.
+     - `VehicleRates`: Incorporación de las 6 columnas de ventanas y umbrales por tipo de vehículo: `FullDayStartTime TIME NULL`, `FullDayEndTime TIME NULL`, `FullDayThresholdMinutes INT NULL`, `NightStartTime TIME NULL`, `NightEndTime TIME NULL`, `NightStayMinMinutes INT NULL`.
+     - Catálogo de Acciones: Actualización de metadatos a 107 acciones y slugs canónicos (incluyendo la suite `wpf.*` del terminal POS).
+  3. **Migraciones Defensivas Idempotentes (`INFORMATION_SCHEMA.COLUMNS`)**:
+     - Se integraron bloques defensivos con `PREPARE/EXECUTE/DEALLOCATE` para bases de datos existentes en:
+       - `Companies` (`HasPushNotificationsEnabled`, `AllowedPushTypesJson`).
+       - `Branches` (`NightApplicableDays`).
+       - `VehicleRates` (`DayOfWeek`, `FullDayStartTime`, `FullDayEndTime`, `FullDayThresholdMinutes`, `NightStartTime`, `NightEndTime`, `NightStayMinMinutes`).
+       - `CommercialAgreements` (`CompanyId`, `DiscountType`, `FreeMinutes`, `FreeHours`).
+       - `ParkingTickets` (`IsLostTicket`, `LostTicketFee`).
+  4. **Regla de Oro 6 en `ParkingApi/AGENTS.md`**:
+     - Se formalizó la **Regla 6**, que prohíbe crear scripts satélites sin sincronizar inmediatamente `01_Clean_All_Tables.sql` y `02_Init_RBAC_Seed.sql`, estableciendo ambos como la única fuente de verdad para el bootstrap del sistema.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Scripts/01_Clean_All_Tables.sql`
+  - `ParkingApi/Scripts/02_Init_RBAC_Seed.sql`
+  - `ParkingApi/AGENTS.md`
+  - `ParkingApi/HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **345 de 345 PASADAS (0 fallos, 100% éxito)**.
+  - `dotnet test ParkingWpf.slnx` -> **47 de 47 PASADAS (0 fallos, 100% éxito)**.
+  - `npm run validate` (PWA) -> **Compilación para producción exitosa (0 errores, 0 warnings)**.
+
+## 📌 Entrada: [2026-09-07 09:10:00] - [FEAT / CORE / RATES / MULTI-TENANCY] Notificaciones Push Parametrizadas por Empresa (14 Eventos), Días Aplicables de Nocturna y Umbrales Jerárquicos por Vehículo
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"todo desmarcado y que se deban marcar por que las pruebas necesitamos ahcerlas minusiosamente 1 por 1 donde activamos 1 miramos que funcione y asi vamos a la siguiente. pero desde que sea entendible para el wpf y el angular y que sea correcto y sea la mejor practica excelente. las parametrizaciones de cobro de plena y noche por dias ya sea marcar toda la semana pero con un boton y tambien que se puedan desmarcar dia por dia con un tac tac tac tac si me explico y las tarifas de los vehiculos cuando se cobran por plena deben tener su hora inicio su hora fin y cuantas horas son y el umbral de horas para el cobro si me explico"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Notificaciones Push Parametrizadas por Empresa (Catálogo de 14 Eventos)**:
+     - En `CompanyDtos.cs`, `Company.cs` y `CompanyService.cs`: se agregaron `HasPushNotificationsEnabled`, `AllowedPushTypesJson` y `AllowedPushTypes` (deserialización a lista de strings).
+     - Se soporta el catálogo granular de 14 eventos clasificados en 4 categorías: Financiero/Caja, Operación de Patio/Seguridad, Convenios/Mensualidades, y Plataforma/Conectividad.
+     - En la creación de empresas, las notificaciones y sus 14 tipos inician estrictamente **desmarcados (0%)** para permitir validaciones minuciosas 1 a 1 en pruebas de QA.
+  2. **Días de Tarifa Nocturna (`NightApplicableDays`)**:
+     - Se agregó la columna y propiedad `NightApplicableDays` a `Branches` (`Branch.cs`, `BranchDtos.cs`, `BranchService.cs`).
+     - Script SQL idempotente `Scripts/10_Add_NightDays_And_Rate_Thresholds.sql` creado con DDL seguro para MySQL.
+  3. **Umbrales y Ventanas Horarias de Tarifa Vehicular (`VehicleRates`)**:
+     - Se añadieron `FullDayStartTime`, `FullDayEndTime`, `FullDayThresholdMinutes`, `NightStartTime`, `NightEndTime`, `NightStayMinMinutes` a la entidad `VehicleRate` y mapeos en `VehicleRateService.cs`.
+  4. **Motor de Cobro Unificado y Resiliente (`ParkingTicketService.cs`)**:
+     - Corrección crítica en la comparación de días mediante `IsDayApplicable(string? applicableDays, DayOfWeek day)`: soporte robusto para tokens numéricos separados por coma (`"1,2,3,4,5,6,0"`), nombres en inglés (`"Monday"`), y comodín `"All"`.
+     - Jerarquía de umbrales: `rate.FullDayThresholdMinutes` toma precedencia sobre el valor por defecto de la sede (`branch.FullDayThresholdMinutes`).
+     - Soporte completo para ventanas horarias nocturnas con cruce de medianoche (`start > end`, ej: 20:00 a 06:00).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Entities/Branches/Branch.cs`
+  - `ParkingApi.Domain/Entities/Rates/VehicleRate.cs`
+  - `ParkingApi.Infrastructure/Data/Configurations/EntityConfigurations.cs`
+  - `ParkingApi.Core/DTOs/CompanyDtos.cs`
+  - `ParkingApi.Core/DTOs/BranchDtos.cs`
+  - `ParkingApi.Core/Services/CompanyService.cs`
+  - `ParkingApi.Core/Services/BranchService.cs`
+  - `ParkingApi.Core/Services/VehicleRateService.cs`
+  - `ParkingApi.Core/Services/ParkingTicketService.cs`
+  - `ParkingApi/Scripts/10_Add_NightDays_And_Rate_Thresholds.sql` [NEW]
+  - `ParkingApi/HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **345 de 345 PASADAS (0 errores, 100% éxito)**.
+  - Compilación de la solución: **0 Errores**.
+
 ## 📌 Entrada: [2026-09-06 20:20:00] - [TEST / QUALITY / GOVERNANCE] Incorporación de Regla de Oro en AGENTS.md (100% Pruebas Obligatorias) y Certificación de Suite de Tests (345 Tests)
 
 - **`💬 Prompt Original del Usuario`**:

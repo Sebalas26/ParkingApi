@@ -15,9 +15,10 @@ use db_acd7d6_parking;
 --   6. Inicializa ÚNICAMENTE el Usuario 'admin' (SuperAdmin de la Plataforma SaaS con CompanyId NULL).
 --   7. Catálogo de los 17 Módulos del sistema (Terminal WPF, Administración PWA y Gestión SaaS/Planes).
 --   8. Catálogo de 7 Operaciones estándar del sistema.
---   9. Catálogo completo de 82 Acciones y Slugs canónicos del sistema (incluye companies.*, plans.*, metrics, etc.).
---  10. Asigna el 100% de los 17 Módulos y el 100% de las 82 Acciones exclusivamente al Rol Super Administrador.
+--   9. Catálogo completo de 107 Acciones y Slugs canónicos del sistema (incluye módulos PWA y terminal POS WPF dedicada).
+--  10. Asigna el 100% de los 17 Módulos y el 100% de las 107 Acciones exclusivamente al Rol Super Administrador.
 --  11. Registro en __EFMigrationsHistory para compatibilidad total con EF Core.
+-- FECHA ACTUALIZACIÓN: 2026-09-07
 -- ==================================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -81,7 +82,8 @@ CREATE TABLE IF NOT EXISTS `Companies` (
     `MaxOpenShiftsPerUser` INT NOT NULL DEFAULT 1,
     `RequireOpenShiftToOperate` BOOLEAN NOT NULL DEFAULT 1,
     `RequireInitialCashAmount` BOOLEAN NOT NULL DEFAULT 1,
-    `EnablePushNotifications` BOOLEAN NOT NULL DEFAULT 1,
+    `HasPushNotificationsEnabled` BOOLEAN NOT NULL DEFAULT 0,
+    `AllowedPushTypesJson` LONGTEXT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `SubscriptionExpiresAt` DATETIME NULL,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -114,6 +116,7 @@ CREATE TABLE IF NOT EXISTS `Branches` (
     `FullDayApplicableDays` VARCHAR(50) NULL DEFAULT NULL,
     `FullDayStartTime` TIME NULL DEFAULT NULL,
     `FullDayEndTime` TIME NULL DEFAULT NULL,
+    `NightApplicableDays` VARCHAR(50) NULL DEFAULT NULL,
     `NightStartTime` TIME NULL DEFAULT NULL,
     `NightEndTime` TIME NULL DEFAULT NULL,
     `NightStayMinMinutes` INT NULL DEFAULT NULL,
@@ -233,6 +236,20 @@ SET @sqlCmd = (SELECT IF(
 ));
 PREPARE stmt7 FROM @sqlCmd; EXECUTE stmt7; DEALLOCATE PREPARE stmt7;
 
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'HasPushNotificationsEnabled') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `HasPushNotificationsEnabled` BOOLEAN NOT NULL DEFAULT 0;"
+));
+PREPARE stmt7b FROM @sqlCmd; EXECUTE stmt7b; DEALLOCATE PREPARE stmt7b;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'AllowedPushTypesJson') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Companies` ADD COLUMN `AllowedPushTypesJson` LONGTEXT NULL;"
+));
+PREPARE stmt7c FROM @sqlCmd; EXECUTE stmt7c; DEALLOCATE PREPARE stmt7c;
+
 -- 1.2b Columnas Operativas y Esquemas de Cobro en Branches
 SET @tableName = "Branches";
 
@@ -333,6 +350,13 @@ SET @sqlCmd = (SELECT IF(
   "ALTER TABLE `Branches` ADD COLUMN `NightStayMinMinutes` INT NULL DEFAULT NULL;"
 ));
 PREPARE stmt13i FROM @sqlCmd; EXECUTE stmt13i; DEALLOCATE PREPARE stmt13i;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightApplicableDays') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `NightApplicableDays` VARCHAR(50) NULL DEFAULT '1,2,3,4,5,6,0' AFTER `FullDayEndTime`;"
+));
+PREPARE stmt13j FROM @sqlCmd; EXECUTE stmt13j; DEALLOCATE PREPARE stmt13j;
 
 -- 1.3 Tipos de Identificación
 CREATE TABLE IF NOT EXISTS `IdentificationType` (
@@ -559,6 +583,37 @@ CREATE TABLE IF NOT EXISTS `CommercialAgreements` (
     CONSTRAINT `FK_CommercialAgreements_Stores_StoreId` FOREIGN KEY (`StoreId`) REFERENCES `Stores` (`StoreId`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Migración Defensiva de Columnas en CommercialAgreements para Bases de Datos Existentes
+SET @tableName = "CommercialAgreements";
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'CompanyId') > 0,
+  "SELECT 1",
+  "ALTER TABLE `CommercialAgreements` ADD COLUMN `CompanyId` INT NULL AFTER `AgreementId`;"
+));
+PREPARE stmtCa1 FROM @sqlCmd; EXECUTE stmtCa1; DEALLOCATE PREPARE stmtCa1;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'DiscountType') > 0,
+  "SELECT 1",
+  "ALTER TABLE `CommercialAgreements` ADD COLUMN `DiscountType` INT NOT NULL DEFAULT 0 AFTER `MinPurchaseAmount`;"
+));
+PREPARE stmtCa2 FROM @sqlCmd; EXECUTE stmtCa2; DEALLOCATE PREPARE stmtCa2;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FreeMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `CommercialAgreements` ADD COLUMN `FreeMinutes` INT NULL AFTER `DiscountFixedAmount`;"
+));
+PREPARE stmtCa3 FROM @sqlCmd; EXECUTE stmtCa3; DEALLOCATE PREPARE stmtCa3;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FreeHours') > 0,
+  "SELECT 1",
+  "ALTER TABLE `CommercialAgreements` ADD COLUMN `FreeHours` INT NULL AFTER `FreeMinutes`;"
+));
+PREPARE stmtCa4 FROM @sqlCmd; EXECUTE stmtCa4; DEALLOCATE PREPARE stmtCa4;
+
 -- 1.16 Parametrización de Convenios Comerciales por Sede
 CREATE TABLE IF NOT EXISTS `BranchCommercialAgreements` (
     `Id` INT NOT NULL AUTO_INCREMENT,
@@ -640,6 +695,23 @@ CREATE TABLE IF NOT EXISTS `ParkingTickets` (
     CONSTRAINT `FK_ParkingTickets_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
     CONSTRAINT `FK_ParkingTickets_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Migración Defensiva de Columnas en ParkingTickets para Bases de Datos Existentes
+SET @tableName = "ParkingTickets";
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'IsLostTicket') > 0,
+  "SELECT 1",
+  "ALTER TABLE `ParkingTickets` ADD COLUMN `IsLostTicket` BOOLEAN NOT NULL DEFAULT 0;"
+));
+PREPARE stmtPt1 FROM @sqlCmd; EXECUTE stmtPt1; DEALLOCATE PREPARE stmtPt1;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'LostTicketFee') > 0,
+  "SELECT 1",
+  "ALTER TABLE `ParkingTickets` ADD COLUMN `LostTicketFee` DECIMAL(18,2) NOT NULL DEFAULT 0.00;"
+));
+PREPARE stmtPt2 FROM @sqlCmd; EXECUTE stmtPt2; DEALLOCATE PREPARE stmtPt2;
 
 -- 1.19 Descuentos de Tiquetes por Convenios Comerciales
 CREATE TABLE IF NOT EXISTS `TicketDiscounts` (
@@ -737,7 +809,13 @@ CREATE TABLE IF NOT EXISTS `VehicleRates` (
     `HourRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `MinuteRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `FullDayRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `FullDayStartTime` TIME NULL DEFAULT NULL,
+    `FullDayEndTime` TIME NULL DEFAULT NULL,
+    `FullDayThresholdMinutes` INT NULL DEFAULT NULL,
     `NightRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `NightStartTime` TIME NULL DEFAULT NULL,
+    `NightEndTime` TIME NULL DEFAULT NULL,
+    `NightStayMinMinutes` INT NULL DEFAULT NULL,
     `GracePeriodMinutes` INT NOT NULL DEFAULT 15,
     `IconKey` VARCHAR(50) NOT NULL DEFAULT 'IconCar',
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
@@ -749,6 +827,58 @@ CREATE TABLE IF NOT EXISTS `VehicleRates` (
     CONSTRAINT `FK_VehicleRates_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE RESTRICT,
     CONSTRAINT `FK_VehicleRates_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Migración Defensiva de Columnas en VehicleRates para Bases de Datos Existentes
+SET @tableName = "VehicleRates";
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'DayOfWeek') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `DayOfWeek` INT NULL AFTER `VehicleType`;"
+));
+PREPARE stmtVr1 FROM @sqlCmd; EXECUTE stmtVr1; DEALLOCATE PREPARE stmtVr1;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayStartTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `FullDayStartTime` TIME NULL DEFAULT NULL AFTER `FullDayRate`;"
+));
+PREPARE stmtVr2 FROM @sqlCmd; EXECUTE stmtVr2; DEALLOCATE PREPARE stmtVr2;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayEndTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `FullDayEndTime` TIME NULL DEFAULT NULL AFTER `FullDayStartTime`;"
+));
+PREPARE stmtVr3 FROM @sqlCmd; EXECUTE stmtVr3; DEALLOCATE PREPARE stmtVr3;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayThresholdMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `FullDayThresholdMinutes` INT NULL DEFAULT NULL AFTER `FullDayEndTime`;"
+));
+PREPARE stmtVr4 FROM @sqlCmd; EXECUTE stmtVr4; DEALLOCATE PREPARE stmtVr4;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightStartTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `NightStartTime` TIME NULL DEFAULT NULL AFTER `NightRate`;"
+));
+PREPARE stmtVr5 FROM @sqlCmd; EXECUTE stmtVr5; DEALLOCATE PREPARE stmtVr5;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightEndTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `NightEndTime` TIME NULL DEFAULT NULL AFTER `NightStartTime`;"
+));
+PREPARE stmtVr6 FROM @sqlCmd; EXECUTE stmtVr6; DEALLOCATE PREPARE stmtVr6;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightStayMinMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `NightStayMinMinutes` INT NULL DEFAULT NULL AFTER `NightEndTime`;"
+));
+PREPARE stmtVr7 FROM @sqlCmd; EXECUTE stmtVr7; DEALLOCATE PREPARE stmtVr7;
 
 -- 1.23 Novedades e Incidencias Vehiculares
 CREATE TABLE IF NOT EXISTS `VehicleIncidents` (
@@ -1248,7 +1378,7 @@ SELECT 1, `Id`, 1, UTC_TIMESTAMP(), 1 FROM `Module`;
 
 -- ----------------------------------------------------------------------------------
 -- 2.9 MATRIZ DE PERMISOS: ROL ACCIONES (RoleAction)
--- Asignación del 100% de las 82 Acciones ÚNICAMENTE al Rol 1 (Super Administrador) - FULL ACCESS
+-- Asignación del 100% de las 107 Acciones ÚNICAMENTE al Rol 1 (Super Administrador) - FULL ACCESS
 -- ----------------------------------------------------------------------------------
 DELETE FROM `RoleAction` WHERE `RoleId` = 1;
 

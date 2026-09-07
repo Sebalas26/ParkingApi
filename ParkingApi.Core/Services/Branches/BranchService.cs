@@ -138,6 +138,7 @@ public class BranchService : IBranchService
             FullDayApplicableDays = dto.FullDayApplicableDays?.Trim(),
             FullDayStartTime = TimeSpan.TryParse(dto.FullDayStartTime, out var fds) ? fds : null,
             FullDayEndTime = TimeSpan.TryParse(dto.FullDayEndTime, out var fde) ? fde : null,
+            NightApplicableDays = dto.NightApplicableDays?.Trim() ?? "1,2,3,4,5,6,0",
             NightStartTime = TimeSpan.TryParse(dto.NightStartTime, out var ns) ? ns : new TimeSpan(18, 0, 0),
             NightEndTime = TimeSpan.TryParse(dto.NightEndTime, out var ne) ? ne : new TimeSpan(6, 0, 0),
             NightStayMinMinutes = dto.NightStayMinMinutes > 0 ? dto.NightStayMinMinutes : 360,
@@ -185,6 +186,7 @@ public class BranchService : IBranchService
         branch.LostTicketFee = dto.LostTicketFee >= 0 ? dto.LostTicketFee : branch.LostTicketFee;
         branch.FullDayThresholdMinutes = dto.FullDayThresholdMinutes > 0 ? dto.FullDayThresholdMinutes : branch.FullDayThresholdMinutes;
         branch.FullDayApplicableDays = dto.FullDayApplicableDays?.Trim();
+        branch.NightApplicableDays = dto.NightApplicableDays?.Trim() ?? branch.NightApplicableDays;
         if (!string.IsNullOrWhiteSpace(dto.FullDayStartTime))
             branch.FullDayStartTime = TimeSpan.TryParse(dto.FullDayStartTime, out var ufds) ? ufds : branch.FullDayStartTime;
         if (!string.IsNullOrWhiteSpace(dto.FullDayEndTime))
@@ -403,6 +405,7 @@ public class BranchService : IBranchService
         FullDayApplicableDays = b.FullDayApplicableDays,
         FullDayStartTime = b.FullDayStartTime?.ToString(@"hh\:mm"),
         FullDayEndTime = b.FullDayEndTime?.ToString(@"hh\:mm"),
+        NightApplicableDays = b.NightApplicableDays ?? "1,2,3,4,5,6,0",
         NightStartTime = b.NightStartTime?.ToString(@"hh\:mm") ?? "18:00",
         NightEndTime = b.NightEndTime?.ToString(@"hh\:mm") ?? "06:00",
         NightStayMinMinutes = b.NightStayMinMinutes.GetValueOrDefault(360),

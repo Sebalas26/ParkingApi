@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ParkingApi.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class VersionBase1 : Migration
+    public partial class VersionBase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -124,6 +124,8 @@ namespace ParkingApi.Infrastructure.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     FullDayStartTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
                     FullDayEndTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    NightApplicableDays = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, defaultValue: "1,2,3,4,5,6,0")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     NightStartTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
                     NightEndTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
                     NightStayMinMinutes = table.Column<int>(type: "int", nullable: true, defaultValue: 240),
@@ -426,7 +428,13 @@ namespace ParkingApi.Infrastructure.Migrations
                     HourRate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     MinuteRate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     FullDayRate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    FullDayStartTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    FullDayEndTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    FullDayThresholdMinutes = table.Column<int>(type: "int", nullable: true),
                     NightRate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    NightStartTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    NightEndTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    NightStayMinMinutes = table.Column<int>(type: "int", nullable: true),
                     GracePeriodMinutes = table.Column<int>(type: "int", nullable: false),
                     IconKey = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),

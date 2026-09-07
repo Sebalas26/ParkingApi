@@ -313,20 +313,36 @@ public class ParkingTicketService : IParkingTicketService
                     }
                     else
                     {
+                        var localEntry = ticket.EntryTimeUtc.AddHours(-5);
+                        var localExit = exitTime.AddHours(-5);
+
                         // 1. Validar Pernocta / Tarifa Nocturna
                         bool isNightStay = false;
                         if (rate.NightRate > 0)
                         {
-                            var localEntry = ticket.EntryTimeUtc.AddHours(-5);
-                            var localExit = exitTime.AddHours(-5);
-                            var nightStart = (branch?.NightStartTime) ?? new TimeSpan(18, 0, 0);
-                            var nightEnd = (branch?.NightEndTime) ?? new TimeSpan(6, 0, 0);
-                            int minNightStay = (branch?.NightStayMinMinutes.GetValueOrDefault() > 0) ? branch.NightStayMinMinutes.Value : 360;
+                            var nightStart = rate.NightStartTime ?? branch?.NightStartTime ?? new TimeSpan(18, 0, 0);
+                            var nightEnd = rate.NightEndTime ?? branch?.NightEndTime ?? new TimeSpan(6, 0, 0);
+                            int minNightStay = (rate.NightStayMinMinutes.GetValueOrDefault() > 0) 
+                                ? rate.NightStayMinMinutes.Value 
+                                : ((branch?.NightStayMinMinutes.GetValueOrDefault() > 0) ? branch.NightStayMinMinutes.Value : 360);
 
-                            bool enteredDuringNight = localEntry.TimeOfDay >= nightStart || localEntry.TimeOfDay < nightEnd;
-                            bool exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart || localExit.TimeOfDay < nightEnd || localExit.Date > localEntry.Date;
+                            bool nightDayApplies = IsDayApplicable(branch?.NightApplicableDays, localEntry.DayOfWeek);
 
-                            if (enteredDuringNight && exitedDuringNightOrMorning && effectiveMinutes >= minNightStay)
+                            bool enteredDuringNight;
+                            bool exitedDuringNightOrMorning;
+
+                            if (nightStart > nightEnd) // Cruza medianoche (ej: 20:00 a 06:00)
+                            {
+                                enteredDuringNight = localEntry.TimeOfDay >= nightStart || localEntry.TimeOfDay < nightEnd;
+                                exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart || localExit.TimeOfDay < nightEnd || localExit.Date > localEntry.Date;
+                            }
+                            else // Dentro del mismo día calendario
+                            {
+                                enteredDuringNight = localEntry.TimeOfDay >= nightStart && localEntry.TimeOfDay < nightEnd;
+                                exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart && localExit.TimeOfDay <= nightEnd;
+                            }
+
+                            if (nightDayApplies && enteredDuringNight && exitedDuringNightOrMorning && effectiveMinutes >= minNightStay)
                             {
                                 isNightStay = true;
                                 calculatedGross = rate.NightRate;
@@ -336,14 +352,11 @@ public class ParkingTicketService : IParkingTicketService
                         // 2. Tarifa Plena Cíclica (si no aplicó pernocta)
                         if (!isNightStay)
                         {
-                            int fullDayThreshold = (branch != null && branch.FullDayThresholdMinutes.GetValueOrDefault() > 0) ? branch.FullDayThresholdMinutes.Value : 720;
-                            bool fullDayApplies = true;
-                            if (branch != null && !string.IsNullOrWhiteSpace(branch.FullDayApplicableDays))
-                            {
-                                var currentDayStr = exitTime.AddHours(-5).DayOfWeek.ToString();
-                                fullDayApplies = branch.FullDayApplicableDays.Contains(currentDayStr, StringComparison.OrdinalIgnoreCase)
-                                              || branch.FullDayApplicableDays.Equals("All", StringComparison.OrdinalIgnoreCase);
-                            }
+                            int fullDayThreshold = (rate.FullDayThresholdMinutes.GetValueOrDefault() > 0)
+                                ? rate.FullDayThresholdMinutes.Value
+                                : ((branch?.FullDayThresholdMinutes.GetValueOrDefault() > 0) ? branch.FullDayThresholdMinutes.Value : 720);
+
+                            bool fullDayApplies = IsDayApplicable(branch?.FullDayApplicableDays, localExit.DayOfWeek);
 
                             if (rate.FullDayRate > 0 && fullDayApplies && effectiveMinutes >= fullDayThreshold)
                             {
@@ -628,5 +641,18 @@ public class ParkingTicketService : IParkingTicketService
             _logger.LogError(ex, "{Error}: Error al consultar historial para {Date}", Constants.TicketError, date);
             return new List<ParkingTicket>();
         }
+    }
+
+    private static bool IsDayApplicable(string? applicableDays, DayOfWeek day)
+    {
+        if (string.IsNullOrWhiteSpace(applicableDays) || applicableDays.Equals("All", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var dayIntStr = ((int)day).ToString();
+        var dayNameEn = day.ToString();
+
+        var tokens = applicableDays.Split(new[] { ',', ';', '|', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return tokens.Any(t => t.Equals(dayIntStr, StringComparison.OrdinalIgnoreCase) ||
+                               t.Equals(dayNameEn, StringComparison.OrdinalIgnoreCase));
     }
 }

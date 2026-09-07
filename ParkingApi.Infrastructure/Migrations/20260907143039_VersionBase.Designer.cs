@@ -12,8 +12,8 @@ using ParkingApi.Infrastructure.Data;
 namespace ParkingApi.Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260907015139_VersionBase1")]
-    partial class VersionBase1
+    [Migration("20260907143039_VersionBase")]
+    partial class VersionBase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -233,6 +233,12 @@ namespace ParkingApi.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<string>("NightApplicableDays")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasDefaultValue("1,2,3,4,5,6,0");
 
                     b.Property<TimeSpan?>("NightEndTime")
                         .HasColumnType("time(6)");
@@ -1780,9 +1786,18 @@ namespace ParkingApi.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<TimeSpan?>("FullDayEndTime")
+                        .HasColumnType("time(6)");
+
                     b.Property<decimal>("FullDayRate")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<TimeSpan?>("FullDayStartTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<int?>("FullDayThresholdMinutes")
+                        .HasColumnType("int");
 
                     b.Property<int>("GracePeriodMinutes")
                         .HasColumnType("int");
@@ -1803,9 +1818,18 @@ namespace ParkingApi.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<TimeSpan?>("NightEndTime")
+                        .HasColumnType("time(6)");
+
                     b.Property<decimal>("NightRate")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<TimeSpan?>("NightStartTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<int?>("NightStayMinMinutes")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime(6)");

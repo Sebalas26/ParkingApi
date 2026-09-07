@@ -282,6 +282,7 @@ public class MultiBranchConfigurations :
         builder.Property(b => b.LostTicketFee).HasPrecision(18, 2).HasDefaultValue(0m);
         builder.Property(b => b.FullDayThresholdMinutes).HasDefaultValue(180);
         builder.Property(b => b.FullDayApplicableDays).HasMaxLength(50).HasDefaultValue("1,2,3,4,5,6,0");
+        builder.Property(b => b.NightApplicableDays).HasMaxLength(50).HasDefaultValue("1,2,3,4,5,6,0");
         builder.Property(b => b.NightStayMinMinutes).HasDefaultValue(240);
 
         builder.HasIndex(b => new { b.CompanyId, b.Code }).IsUnique();

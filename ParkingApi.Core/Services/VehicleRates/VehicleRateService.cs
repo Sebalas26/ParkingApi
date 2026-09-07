@@ -112,6 +112,13 @@ public class VehicleRateService : IVehicleRateService
             rate.HourRate = input.HourRate;
             rate.MinuteRate = input.MinuteRate;
             rate.FullDayRate = input.FullDayRate;
+            rate.FullDayStartTime = input.FullDayStartTime;
+            rate.FullDayEndTime = input.FullDayEndTime;
+            rate.FullDayThresholdMinutes = input.FullDayThresholdMinutes;
+            rate.NightRate = input.NightRate;
+            rate.NightStartTime = input.NightStartTime;
+            rate.NightEndTime = input.NightEndTime;
+            rate.NightStayMinMinutes = input.NightStayMinMinutes;
             rate.GracePeriodMinutes = input.GracePeriodMinutes;
             rate.IconKey = input.IconKey ?? rate.IconKey;
             rate.IsActive = input.IsActive;

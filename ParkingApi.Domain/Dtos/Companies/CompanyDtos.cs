@@ -36,6 +36,11 @@ public class CompanyDto
     public int MaxOpenShiftsPerUser { get; set; } = 1;
     public bool RequireOpenShiftToOperate { get; set; } = true;
     public bool RequireInitialCashAmount { get; set; } = true;
+
+    // Notificaciones Push Parametrizadas
+    public bool HasPushNotificationsEnabled { get; set; } = false;
+    public string? AllowedPushTypesJson { get; set; }
+    public System.Collections.Generic.List<string> AllowedPushTypes { get; set; } = new();
 }
 
 public class CreateCompanyDto
@@ -66,6 +71,11 @@ public class CreateCompanyDto
     public int MaxOpenShiftsPerUser { get; set; } = 1;
     public bool RequireOpenShiftToOperate { get; set; } = true;
     public bool RequireInitialCashAmount { get; set; } = true;
+
+    // Notificaciones Push Parametrizadas
+    public bool HasPushNotificationsEnabled { get; set; } = false;
+    public string? AllowedPushTypesJson { get; set; }
+    public System.Collections.Generic.List<string>? AllowedPushTypes { get; set; }
 
     // Datos del Administrador Inicial de la Empresa
     public string AdminUsername { get; set; } = string.Empty;
@@ -105,4 +115,9 @@ public class UpdateCompanyDto
     public int MaxOpenShiftsPerUser { get; set; } = 1;
     public bool RequireOpenShiftToOperate { get; set; } = true;
     public bool RequireInitialCashAmount { get; set; } = true;
+
+    // Notificaciones Push Parametrizadas
+    public bool HasPushNotificationsEnabled { get; set; } = false;
+    public string? AllowedPushTypesJson { get; set; }
+    public System.Collections.Generic.List<string>? AllowedPushTypes { get; set; }
 }

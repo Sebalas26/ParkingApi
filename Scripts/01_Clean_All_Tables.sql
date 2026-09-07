@@ -4,8 +4,9 @@ use db_acd7d6_parking;
 -- ==================================================================================
 -- SCRIPT: 01_Clean_All_Tables.sql
 -- DESCRIPCIÓN: Limpieza segura y completa de todas las tablas para MySQL / MariaDB.
+--              Cubre el 100% de las 29 entidades maestras, operativas y de seguridad.
 -- NOTA: No ejecuta DROP DATABASE para preservar la base de datos y usuario del hosting.
--- FECHA ACTUALIZACIÓN: 2026-09-03
+-- FECHA ACTUALIZACIÓN: 2026-09-07
 -- ==================================================================================
 
 -- 1. Desactivar validación de claves foráneas temporalmente

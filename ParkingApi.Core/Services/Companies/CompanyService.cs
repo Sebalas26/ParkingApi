@@ -134,6 +134,10 @@ public class CompanyService : ICompanyService
                     AllowMultipleOpenShifts = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts,
                     MaxOpenShiftsPerUser = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts && dto.MaxOpenShiftsPerUser > 1 ? dto.MaxOpenShiftsPerUser : 1,
                     RequireInitialCashAmount = dto.RequireOpenShiftToOperate && dto.RequireInitialCashAmount,
+                    HasPushNotificationsEnabled = dto.HasPushNotificationsEnabled,
+                    AllowedPushTypesJson = dto.AllowedPushTypes != null && dto.AllowedPushTypes.Count > 0
+                        ? System.Text.Json.JsonSerializer.Serialize(dto.AllowedPushTypes)
+                        : dto.AllowedPushTypesJson,
                     ResponsibleUserId = responsibleUserId,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -307,6 +311,10 @@ public class CompanyService : ICompanyService
         company.AllowMultipleOpenShifts = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts;
         company.MaxOpenShiftsPerUser = dto.RequireOpenShiftToOperate && dto.AllowMultipleOpenShifts && dto.MaxOpenShiftsPerUser > 1 ? dto.MaxOpenShiftsPerUser : 1;
         company.RequireInitialCashAmount = dto.RequireOpenShiftToOperate && dto.RequireInitialCashAmount;
+        company.HasPushNotificationsEnabled = dto.HasPushNotificationsEnabled;
+        company.AllowedPushTypesJson = dto.AllowedPushTypes != null && dto.AllowedPushTypes.Count > 0
+            ? System.Text.Json.JsonSerializer.Serialize(dto.AllowedPushTypes)
+            : dto.AllowedPushTypesJson;
         company.UpdatedAt = DateTime.UtcNow;
 
         await _companyRepository.UpdateAsync(company, cancellationToken);
@@ -610,6 +618,11 @@ public class CompanyService : ICompanyService
             MaxOpenShiftsPerUser = c.MaxOpenShiftsPerUser,
             RequireOpenShiftToOperate = c.RequireOpenShiftToOperate,
             RequireInitialCashAmount = c.RequireInitialCashAmount,
+            HasPushNotificationsEnabled = c.HasPushNotificationsEnabled,
+            AllowedPushTypesJson = c.AllowedPushTypesJson,
+            AllowedPushTypes = !string.IsNullOrWhiteSpace(c.AllowedPushTypesJson)
+                ? (System.Text.Json.JsonSerializer.Deserialize<List<string>>(c.AllowedPushTypesJson) ?? new List<string>())
+                : new List<string>(),
             BranchesCount = c.Branches?.Count ?? 0,
             UsersCount = c.Users?.Count ?? 0,
             CreatedAt = c.CreatedAt

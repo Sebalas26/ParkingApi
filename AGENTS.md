@@ -56,3 +56,21 @@ Este documento define las **Reglas de Oro y Estándares Obligatorios** para cual
    - La tarea **NUNCA** se dará por concluida si existe un solo fallo (`Failed > 0`) o error en los tests.
    - Todo cambio debe certificar **100% de Pruebas Superadas (0 Fallos)** y **0 Errores de Compilación** antes de responder al usuario y registrar en [`HISTORIAL_CAMBIOS.md`](file:///c:/Users/migue/source/repos/ParkingApi/HISTORIAL_CAMBIOS.md).
 
+---
+
+## 🗄️ 6. REGLA DE ORO: MANTENIMIENTO OBLIGATORIO DE SCRIPTS DE ARRANQUE INICIAL (01 Y 02)
+> [!CAUTION]
+> **ACTUALIZACIÓN PERMANENTE OBLIGATORIA DE `01_Clean_All_Tables.sql` Y `02_Init_RBAC_Seed.sql`**:
+> Los archivos [`01_Clean_All_Tables.sql`](file:///c:/Users/miguelagutierrezg/source/repos/ParkingApi/Scripts/01_Clean_All_Tables.sql) y [`02_Init_RBAC_Seed.sql`](file:///c:/Users/miguelagutierrezg/source/repos/ParkingApi/Scripts/02_Init_RBAC_Seed.sql) constituyen la **única fuente de verdad canónica para el arranque inicial desde cero de la base de datos**.
+> Está terminantemente prohibido crear o modificar esquemas en scripts satélites sin actualizar simultáneamente estos dos archivos maestros.
+
+1. **Sincronización Ineludible en Cada Modificación de Esquema o Seed**:
+   - **`01_Clean_All_Tables.sql`**: Si se agrega una nueva entidad o tabla, debe incorporarse de inmediato en la secuencia de `DROP TABLE IF EXISTS` con el orden relacional correcto para garantizar una limpieza 100% libre de errores de clave foránea.
+   - **`02_Init_RBAC_Seed.sql`**:
+     - Toda nueva tabla o columna en los modelos EF Core debe reflejarse en su sentencia `CREATE TABLE IF NOT EXISTS`.
+     - Toda nueva columna o tabla debe disponer de su respectivo bloque de migración defensiva condicional (`INFORMATION_SCHEMA.COLUMNS` + `ALTER TABLE ADD COLUMN`) para asegurar compatibilidad total con bases de datos preexistentes.
+     - Todo nuevo módulo, operación o acción debe agregarse en las secciones de `Module`, `Operation`, `Action` y asignarse al Rol Super Administrador (`UserRoleModule`, `RoleAction`).
+2. **Prohibición de Desfase o Scripts Huérfanos**:
+   - No se dará por concluida ninguna tarea de base de datos o entidad si `01_Clean_All_Tables.sql` y `02_Init_RBAC_Seed.sql` no han sido sincronizados y probados.
+
+
