@@ -2,6 +2,26 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-07 10:05:00] - [CONFIG / WEBPUSH / SECURITY] Claves Criptográficas VAPID P-256 Fijas en appsettings.json y Sincronización Multiplataforma
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Listo tenemos el primero error ya instale la app nuevamente y todo la pwa estoy en un ipad pero no funciona las notificaciones como dices que deberian funcionar veo que no tiene los permisos osea no podemos hacer a las personas que la tengan ya instalada les aparezca el permiso una vez para que digan quiere activar notificaciones y si funcione el push por que el push no esta funcionando como dices que debería funcionar. analiza ese pedazo completamente o dime hasta que punto de verdad si es posible hacer esos push por que dijiste que si era posible."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Persistencia Criptográfica VAPID en Servidor**:
+     - Se configuró la clave de servidor permanente en `appsettings.json` (`Vapid:Subject`, `Vapid:PublicKey`, `Vapid:PrivateKey`) utilizando curva elíptica P-256 (prime256v1).
+     - Esto erradica la generación de claves efímeras en memoria que provocaba que, al reiniciarse el pool de aplicaciones en el hosting (IIS/site4now), las suscripciones previas quedaran desfasadas e inválidas.
+  2. **Prueba de Certificación Criptográfica (`HealthControllerTests.cs`)**:
+     - Se agregó una prueba unitaria `VapidKeys_ShouldBeValid()` que valida que la librería `WebPush.VapidDetails` acepte y procese las claves configuradas sin excepciones.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi/appsettings.json`
+  - `ParkingApi/ParkingApi.UnitTests/Controllers/HealthControllerTests.cs`
+  - `ParkingApi/HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **346 de 346 PASADAS (0 fallos, 100% éxito)**.
+
 ## 📌 Entrada: [2026-09-07 09:22:00] - [DATABASE / GOVERNANCE / RBAC] Sincronización Canónica de Scripts Maestros 01 y 02, y Nueva Regla de Oro 6 en AGENTS.md
 
 - **`💬 Prompt Original del Usuario`**:
