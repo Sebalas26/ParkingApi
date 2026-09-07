@@ -230,7 +230,10 @@ public class MultiBranchConfigurations :
     IEntityTypeConfiguration<Branch>,
     IEntityTypeConfiguration<UserBranch>,
     IEntityTypeConfiguration<BranchPaymentMethod>,
-    IEntityTypeConfiguration<BranchCommercialAgreement>
+    IEntityTypeConfiguration<BranchCommercialAgreement>,
+    IEntityTypeConfiguration<BranchOperatingHour>,
+    IEntityTypeConfiguration<PushSubscription>,
+    IEntityTypeConfiguration<UserNotificationPreference>
 {
     public void Configure(EntityTypeBuilder<Company> builder)
     {
@@ -246,6 +249,8 @@ public class MultiBranchConfigurations :
         builder.Property(c => c.PlanType).IsRequired().HasMaxLength(50).HasDefaultValue("Basic");
         builder.Property(c => c.MaxBranches).HasDefaultValue(1);
         builder.Property(c => c.RequireInitialCashAmount).HasDefaultValue(true);
+        builder.Property(c => c.HasPushNotificationsEnabled).HasDefaultValue(false);
+        builder.Property(c => c.AllowedPushTypesJson).HasColumnType("longtext").IsRequired(false);
         builder.Property(c => c.Logo).HasColumnType("longtext").IsRequired(false);
         builder.Ignore(c => c.LogoBase64);
 
@@ -274,6 +279,10 @@ public class MultiBranchConfigurations :
         builder.Property(b => b.AllowChargeByHour).HasDefaultValue(true);
         builder.Property(b => b.AllowChargeByDay).HasDefaultValue(true);
         builder.Property(b => b.AllowChargeByNight).HasDefaultValue(false);
+        builder.Property(b => b.LostTicketFee).HasPrecision(18, 2).HasDefaultValue(0m);
+        builder.Property(b => b.FullDayThresholdMinutes).HasDefaultValue(180);
+        builder.Property(b => b.FullDayApplicableDays).HasMaxLength(50).HasDefaultValue("1,2,3,4,5,6,0");
+        builder.Property(b => b.NightStayMinMinutes).HasDefaultValue(240);
 
         builder.HasIndex(b => new { b.CompanyId, b.Code }).IsUnique();
         builder.HasIndex(b => b.CompanyId);
@@ -343,6 +352,64 @@ public class MultiBranchConfigurations :
             .HasForeignKey(bca => bca.AgreementId)
             .OnDelete(DeleteBehavior.Cascade);
     }
+
+    public void Configure(EntityTypeBuilder<BranchOperatingHour> builder)
+    {
+        builder.ToTable("BranchOperatingHours");
+        builder.HasKey(h => h.Id);
+        builder.Property(h => h.BufferMinutesBefore).HasDefaultValue(30);
+        builder.Property(h => h.BufferMinutesAfter).HasDefaultValue(30);
+
+        builder.HasIndex(h => new { h.BranchId, h.DayOfWeek }).IsUnique();
+
+        builder.HasOne(h => h.Branch)
+            .WithMany(b => b.OperatingHours)
+            .HasForeignKey(h => h.BranchId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    public void Configure(EntityTypeBuilder<PushSubscription> builder)
+    {
+        builder.ToTable("PushSubscriptions");
+        builder.HasKey(ps => ps.Id);
+        builder.Property(ps => ps.Endpoint).IsRequired().HasColumnType("text");
+        builder.Property(ps => ps.P256dh).IsRequired().HasMaxLength(500);
+        builder.Property(ps => ps.Auth).IsRequired().HasMaxLength(500);
+        builder.Property(ps => ps.DeviceName).HasMaxLength(200);
+        builder.Property(ps => ps.UserAgent).HasMaxLength(500);
+
+        builder.HasIndex(ps => new { ps.UserId, ps.BranchId });
+        builder.HasIndex(ps => ps.CompanyId);
+
+        builder.HasOne(ps => ps.User)
+            .WithMany()
+            .HasForeignKey(ps => ps.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(ps => ps.Company)
+            .WithMany()
+            .HasForeignKey(ps => ps.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(ps => ps.Branch)
+            .WithMany()
+            .HasForeignKey(ps => ps.BranchId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+
+    public void Configure(EntityTypeBuilder<UserNotificationPreference> builder)
+    {
+        builder.ToTable("UserNotificationPreferences");
+        builder.HasKey(p => p.Id);
+
+        builder.HasIndex(p => p.UserId).IsUnique();
+
+        builder.HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
 }
 
 public class ParkingBusinessConfigurations :
@@ -367,9 +434,11 @@ public class ParkingBusinessConfigurations :
         builder.Property(r => r.MinuteRate).HasPrecision(18, 2);
         builder.Property(r => r.FullDayRate).HasPrecision(18, 2);
         builder.Property(r => r.NightRate).HasPrecision(18, 2);
+        builder.Property(r => r.DayOfWeek).IsRequired(false);
 
         builder.HasIndex(r => r.BranchId);
         builder.HasIndex(r => r.CompanyId);
+        builder.HasIndex(r => new { r.BranchId, r.VehicleType, r.DayOfWeek });
 
         builder.HasOne(r => r.Company)
             .WithMany(c => c.VehicleRates)
@@ -413,9 +482,20 @@ public class ParkingBusinessConfigurations :
         builder.HasKey(ca => ca.AgreementId);
         builder.Property(ca => ca.Name).IsRequired().HasMaxLength(100);
         builder.Property(ca => ca.MinPurchaseAmount).HasPrecision(18, 2);
+        builder.Property(ca => ca.DiscountType).HasDefaultValue(0);
         builder.Property(ca => ca.DiscountPercentage).HasPrecision(5, 2);
         builder.Property(ca => ca.DiscountFixedAmount).HasPrecision(18, 2);
+        builder.Property(ca => ca.FreeMinutes).IsRequired(false);
+        builder.Property(ca => ca.FreeHours).IsRequired(false);
         builder.Property(ca => ca.ImageUrl).HasColumnType("longtext");
+
+        builder.HasIndex(ca => ca.CompanyId);
+
+        builder.HasOne(ca => ca.Company)
+            .WithMany()
+            .HasForeignKey(ca => ca.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(ca => ca.Store)
             .WithMany(s => s.Agreements)
@@ -438,6 +518,8 @@ public class ParkingBusinessConfigurations :
         builder.Property(t => t.NetAmount).HasPrecision(18, 2);
         builder.Property(t => t.AmountPaid).HasPrecision(18, 2);
         builder.Property(t => t.ChangeGiven).HasPrecision(18, 2);
+        builder.Property(t => t.IsLostTicket).HasDefaultValue(false);
+        builder.Property(t => t.LostTicketFee).HasPrecision(18, 2).HasDefaultValue(0m);
 
         builder.Property(t => t.ResolutionName).HasMaxLength(150);
         builder.Property(t => t.InvoiceNumber).HasMaxLength(50);

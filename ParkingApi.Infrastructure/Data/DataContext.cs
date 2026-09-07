@@ -48,6 +48,11 @@ public class DataContext : DbContext
     public DbSet<BillingResolution> BillingResolutions { get; set; }
     public DbSet<VehicleIncident> VehicleIncidents { get; set; }
     public DbSet<VehicleIncidentBranch> VehicleIncidentBranches { get; set; }
+    public DbSet<BranchOperatingHour> BranchOperatingHours { get; set; }
+
+    // Módulo WebPush Notificaciones PWA
+    public DbSet<PushSubscription> PushSubscriptions { get; set; }
+    public DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

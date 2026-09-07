@@ -12,6 +12,9 @@ use db_acd7d6_parking;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 2. Eliminar tablas de relaciones, intermedias y transacciones operativas
+DROP TABLE IF EXISTS `PushSubscriptions`;
+DROP TABLE IF EXISTS `UserNotificationPreferences`;
+DROP TABLE IF EXISTS `BranchOperatingHours`;
 DROP TABLE IF EXISTS `BranchCommercialAgreements`;
 DROP TABLE IF EXISTS `BranchPaymentMethods`;
 DROP TABLE IF EXISTS `UserBranches`;

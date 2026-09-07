@@ -29,7 +29,7 @@ public class CommercialAgreementRepository : ICommercialAgreementRepository
             var query = _context.CommercialAgreements.AsNoTracking();
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(a => a.Store != null && (a.Store.CompanyId == companyId.Value || a.Store.CompanyId == null));
+                query = query.Where(a => (a.CompanyId.HasValue && a.CompanyId.Value == companyId.Value) || (a.Store != null && a.Store.CompanyId == companyId.Value));
             }
             return await query
                 .Include(a => a.Store)
@@ -97,11 +97,15 @@ public class CommercialAgreementRepository : ICommercialAgreementRepository
             var existing = await _context.CommercialAgreements.FirstOrDefaultAsync(a => a.AgreementId == agreement.AgreementId, cancellationToken);
             if (existing == null) return false;
 
+            existing.CompanyId = agreement.CompanyId ?? existing.CompanyId;
             existing.StoreId = agreement.StoreId;
             existing.Name = agreement.Name;
             existing.MinPurchaseAmount = agreement.MinPurchaseAmount;
+            existing.DiscountType = agreement.DiscountType;
             existing.DiscountPercentage = agreement.DiscountPercentage;
             existing.DiscountFixedAmount = agreement.DiscountFixedAmount;
+            existing.FreeMinutes = agreement.FreeMinutes;
+            existing.FreeHours = agreement.FreeHours;
             existing.MaxHoursApplicable = agreement.MaxHoursApplicable;
             existing.MaxMinutesApplicable = agreement.MaxMinutesApplicable;
             existing.IsActive = agreement.IsActive;

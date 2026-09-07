@@ -60,7 +60,10 @@ public class VehicleRateRepository : IVehicleRateRepository
     public Task<VehicleRate?> GetByTypeAsync(VehicleType type, CancellationToken cancellationToken = default)
         => GetByTypeAsync(type, null, null, cancellationToken);
 
-    public async Task<VehicleRate?> GetByTypeAsync(VehicleType type, int? branchId, int? companyId, CancellationToken cancellationToken = default)
+    public Task<VehicleRate?> GetByTypeAsync(VehicleType type, int? branchId, int? companyId, CancellationToken cancellationToken = default)
+        => GetByTypeAsync(type, branchId, companyId, null, cancellationToken);
+
+    public async Task<VehicleRate?> GetByTypeAsync(VehicleType type, int? branchId, int? companyId, DayOfWeek? dayOfWeek, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -70,22 +73,38 @@ public class VehicleRateRepository : IVehicleRateRepository
 
             if (branchId.HasValue && branchId.Value > 0)
             {
+                if (dayOfWeek.HasValue)
+                {
+                    var branchDayRate = await query
+                        .Where(r => r.BranchId == branchId.Value && r.DayOfWeek == dayOfWeek.Value && (r.HourRate > 0 || r.MinuteRate > 0 || r.FullDayRate > 0))
+                        .FirstOrDefaultAsync(cancellationToken);
+                    if (branchDayRate != null) return branchDayRate;
+                }
+
                 var branchRate = await query
-                    .Where(r => r.BranchId == branchId.Value && r.HourRate > 0)
+                    .Where(r => r.BranchId == branchId.Value && r.DayOfWeek == null && (r.HourRate > 0 || r.MinuteRate > 0 || r.FullDayRate > 0))
                     .FirstOrDefaultAsync(cancellationToken);
                 if (branchRate != null) return branchRate;
             }
 
             if (companyId.HasValue && companyId.Value > 0)
             {
+                if (dayOfWeek.HasValue)
+                {
+                    var companyDayRate = await query
+                        .Where(r => (r.CompanyId == companyId.Value || r.BranchId == null) && r.DayOfWeek == dayOfWeek.Value && (r.HourRate > 0 || r.MinuteRate > 0 || r.FullDayRate > 0))
+                        .FirstOrDefaultAsync(cancellationToken);
+                    if (companyDayRate != null) return companyDayRate;
+                }
+
                 var companyRate = await query
-                    .Where(r => (r.CompanyId == companyId.Value || r.BranchId == null) && r.HourRate > 0)
+                    .Where(r => (r.CompanyId == companyId.Value || r.BranchId == null) && r.DayOfWeek == null && (r.HourRate > 0 || r.MinuteRate > 0 || r.FullDayRate > 0))
                     .FirstOrDefaultAsync(cancellationToken);
                 if (companyRate != null) return companyRate;
             }
 
             return await query
-                .Where(r => r.HourRate > 0)
+                .Where(r => r.HourRate > 0 || r.MinuteRate > 0 || r.FullDayRate > 0)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)

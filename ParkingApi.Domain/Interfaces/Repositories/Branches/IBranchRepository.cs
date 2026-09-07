@@ -22,6 +22,8 @@ public interface IBranchRepository
     Task<bool> SetPaymentMethodsAsync(int branchId, IEnumerable<int> paymentMethodIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BranchCommercialAgreement>> GetAgreementsByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> SetAgreementsAsync(int branchId, IEnumerable<Guid> agreementIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BranchOperatingHour>> GetOperatingHoursByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<bool> SetOperatingHoursAsync(int branchId, IEnumerable<BranchOperatingHour> operatingHours, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<User>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default);
 }

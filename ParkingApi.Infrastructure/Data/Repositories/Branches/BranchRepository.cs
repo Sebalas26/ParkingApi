@@ -28,7 +28,7 @@ public class BranchRepository : IBranchRepository
 
     public async Task<IReadOnlyList<Branch>> GetActiveAsync(int? companyId = null, CancellationToken cancellationToken = default)
     {
-        var query = _context.Branches.AsNoTracking().Where(b => b.IsActive);
+        var query = _context.Branches.AsNoTracking().Include(b => b.OperatingHours).Where(b => b.IsActive);
         if (companyId.HasValue && companyId.Value > 0)
         {
             query = query.Where(b => b.CompanyId == companyId.Value);
@@ -40,6 +40,7 @@ public class BranchRepository : IBranchRepository
     {
         return await _context.Branches
             .AsNoTracking()
+            .Include(b => b.OperatingHours)
             .Where(b => b.CompanyId == companyId)
             .OrderBy(b => b.Name)
             .ToListAsync(cancellationToken);
@@ -51,6 +52,7 @@ public class BranchRepository : IBranchRepository
             .Include(b => b.Company)
             .Include(b => b.BranchPaymentMethods)
                 .ThenInclude(bpm => bpm.PaymentMethod)
+            .Include(b => b.OperatingHours)
             .FirstOrDefaultAsync(b => b.Id == branchId, cancellationToken);
     }
 
@@ -202,6 +204,33 @@ public class BranchRepository : IBranchRepository
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<IReadOnlyList<BranchOperatingHour>> GetOperatingHoursByBranchIdAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        return await _context.BranchOperatingHours
+            .AsNoTracking()
+            .Where(h => h.BranchId == branchId)
+            .OrderBy(h => h.DayOfWeek)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> SetOperatingHoursAsync(int branchId, IEnumerable<BranchOperatingHour> operatingHours, CancellationToken cancellationToken = default)
+    {
+        var current = await _context.BranchOperatingHours
+            .Where(h => h.BranchId == branchId)
+            .ToListAsync(cancellationToken);
+
+        _context.BranchOperatingHours.RemoveRange(current);
+
+        foreach (var hour in operatingHours)
+        {
+            hour.BranchId = branchId;
+            _context.BranchOperatingHours.Add(hour);
         }
 
         await _context.SaveChangesAsync(cancellationToken);

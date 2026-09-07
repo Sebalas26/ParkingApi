@@ -199,26 +199,7 @@ public class CompanyService : ICompanyService
                     });
                 }
 
-                // 6. Crear Sede Inicial Obligatoria para la Empresa (con código único y seguro)
-                var branchCode = $"SEDE-{company.Id:D2}";
-                var defaultBranch = new Branch
-                {
-                    CompanyId = company.Id,
-                    Code = branchCode,
-                    Name = "Sede Principal",
-                    Address = string.IsNullOrWhiteSpace(company.Address) ? "Calle Principal # 1-01" : company.Address.Trim(),
-                    Phone = company.Phone?.Trim(),
-                    City = string.IsNullOrWhiteSpace(company.City) ? "Ciudad Principal" : company.City.Trim(),
-                    TotalCapacity = 100,
-                    Notes = $"Sede principal de operaciones de {company.Name}",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Branches.Add(defaultBranch);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                // 7. Crear Usuario Administrador de la Empresa
+                // 6. Crear Usuario Administrador de la Empresa
                 var hashedPassword = PasswordHasher.HashPassword(dto.AdminPassword.Trim());
                 var nameParts = dto.AdminFullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var firstName = nameParts.Length > 0 ? nameParts[0] : dto.AdminFullName.Trim();
@@ -246,35 +227,9 @@ public class CompanyService : ICompanyService
                 _context.User.Add(user);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // 8. Vincular al Administrador con la Sede Inicial (UserBranches)
-                _context.UserBranches.Add(new UserBranch
-                {
-                    UserId = user.Id,
-                    BranchId = defaultBranch.Id,
-                    IsDefault = true,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    ResponsibleUserId = responsibleUserId
-                });
-
-                // 9. Habilitar Medios de Pago Activos para la Sede Inicial (si existen en la plataforma)
-                var activePaymentMethods = await _context.PaymentMethod.Where(p => p.IsActive).ToListAsync(cancellationToken);
-                foreach (var pm in activePaymentMethods)
-                {
-                    _context.BranchPaymentMethods.Add(new BranchPaymentMethod
-                    {
-                        BranchId = defaultBranch.Id,
-                        PaymentMethodId = pm.Id,
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow,
-                        ResponsibleUserId = responsibleUserId
-                    });
-                }
-
-                await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) aprovisionada exitosamente con sede '{BranchCode}' y administrador '{Username}'", company.Name, company.Id, defaultBranch.Code, user.Username);
+                _logger.LogInformation("Empresa '{CompanyName}' (Id: {CompanyId}) aprovisionada exitosamente en blanco (0 sedes) con administrador '{Username}'", company.Name, company.Id, user.Username);
 
                 return MapToDto(company);
             }

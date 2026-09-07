@@ -9,6 +9,7 @@ public class VehicleRate
     public int? CompanyId { get; set; }
     public int? BranchId { get; set; }
     public VehicleType VehicleType { get; set; }
+    public DayOfWeek? DayOfWeek { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public decimal HourRate { get; set; }
     public decimal MinuteRate { get; set; }

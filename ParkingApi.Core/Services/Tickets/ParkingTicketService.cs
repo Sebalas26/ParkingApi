@@ -120,7 +120,70 @@ public class ParkingTicketService : IParkingTicketService
                 }
             }
 
-            // 4. Obtener tarifa horaria: prioridad DTO -> tarifa específica de la sede -> tarifa de empresa
+            // 3.1. Validar horario operativo de la sede (COT - Colombia UTC-5)
+            // Si el ingreso es fuera de horario, NO se bloquea la venta ni la entrada: se emite el tiquete normalmente
+            // y se registra una novedad de auditoría automática ("INGRESO_EXTEMPORANEO") transparente para el operador.
+            try
+            {
+                var operatingHours = await _branchRepository.GetOperatingHoursByBranchIdAsync(dto.BranchId.Value, cancellationToken);
+                if (operatingHours != null && operatingHours.Count > 0)
+                {
+                    var entryTime = dto.EntryTimeUtc ?? DateTime.UtcNow;
+                    var colombiaTime = entryTime.AddHours(-5);
+                    var dayConfig = operatingHours.FirstOrDefault(h => h.DayOfWeek == colombiaTime.DayOfWeek);
+
+                    if (dayConfig != null)
+                    {
+                        bool isExtemporaneous = false;
+                        string reason = string.Empty;
+
+                        if (!dayConfig.IsOpen)
+                        {
+                            isExtemporaneous = true;
+                            reason = $"La sede se encuentra configurada como CERRADA el día {colombiaTime.DayOfWeek}.";
+                        }
+                        else
+                        {
+                            var currentTime = colombiaTime.TimeOfDay;
+                            var allowedStart = dayConfig.OpeningTime.Subtract(TimeSpan.FromMinutes(dayConfig.BufferMinutesBefore));
+                            var allowedEnd = dayConfig.ClosingTime.Add(TimeSpan.FromMinutes(dayConfig.BufferMinutesAfter));
+
+                            if (currentTime < allowedStart || currentTime > allowedEnd)
+                            {
+                                isExtemporaneous = true;
+                                reason = $"Ingreso a las {colombiaTime:HH:mm} (COT), fuera del horario oficial ({dayConfig.OpeningTime:hh\\:mm} - {dayConfig.ClosingTime:hh\\:mm}) con márgenes ({dayConfig.BufferMinutesBefore}m antes / {dayConfig.BufferMinutesAfter}m después).";
+                            }
+                        }
+
+                        if (isExtemporaneous)
+                        {
+                            var auditIncident = new VehicleIncident
+                            {
+                                IncidentId = Guid.NewGuid(),
+                                CompanyId = resolvedCompanyId.Value,
+                                BranchId = dto.BranchId.Value,
+                                PlateNumber = normalizedPlate,
+                                IncidentType = "INGRESO_EXTEMPORANEO",
+                                Description = $"{reason} Registrado automáticamente por el sistema para auditoría y control operativo.",
+                                IsBlocked = false,
+                                IsGlobal = false,
+                                Status = "Registrada",
+                                ReportedBy = string.IsNullOrWhiteSpace(dto.OperatorName) ? "Sistema (Auditoría Automática)" : dto.OperatorName,
+                                CreatedAtUtc = DateTime.UtcNow
+                            };
+
+                            await _incidentRepository.AddAsync(auditIncident, cancellationToken);
+                            _logger.LogInformation("Novedad de ingreso extemporáneo registrada automáticamente para la placa {Plate} en sede {BranchId}", normalizedPlate, dto.BranchId.Value);
+                        }
+                    }
+                }
+            }
+            catch (Exception exHours)
+            {
+                _logger.LogWarning(exHours, "Error no bloqueante al verificar horario operativo de sede {BranchId} para placa {Plate}", dto.BranchId.Value, normalizedPlate);
+            }
+
+            // 4. Obtener tarifa horaria: prioridad DTO -> tarifa específica de la sede (considerando día de la semana COT) -> tarifa de empresa
             decimal hourRate = 0m;
             if (dto.HourlyRate.HasValue && dto.HourlyRate.Value > 0)
             {
@@ -128,7 +191,9 @@ public class ParkingTicketService : IParkingTicketService
             }
             else
             {
-                var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, dto.BranchId, resolvedCompanyId, cancellationToken);
+                var entryTime = dto.EntryTimeUtc ?? DateTime.UtcNow;
+                var cotDay = entryTime.AddHours(-5).DayOfWeek;
+                var rate = await _rateRepository.GetByTypeAsync(dto.VehicleType, dto.BranchId, resolvedCompanyId, cotDay, cancellationToken);
                 if (rate != null && rate.HourRate > 0)
                 {
                     hourRate = rate.HourRate;
@@ -199,9 +264,35 @@ public class ParkingTicketService : IParkingTicketService
 
             var exitTime = dto.ExitTimeUtc ?? DateTime.UtcNow;
             var totalMinutes = (int)Math.Max(0, (exitTime - ticket.EntryTimeUtc).TotalMinutes);
-            var billableHours = (int)Math.Max(1, Math.Ceiling(totalMinutes / 60.0));
 
-            // Determinar monto bruto: prioridad valor liquidado por terminal -> cálculo por tarifa horaria -> monto pagado
+            // Cargar convenio comercial si fue seleccionado para verificar si otorga Tiempo Libre de estadía
+            int discountMinutes = 0;
+            CommercialAgreement? agreement = null;
+            if (dto.AgreementId.HasValue)
+            {
+                agreement = await _agreementRepository.GetByIdAsync(dto.AgreementId.Value, cancellationToken);
+                if (agreement != null && (agreement.FreeMinutes.GetValueOrDefault() > 0 || agreement.FreeHours.GetValueOrDefault() > 0 || agreement.DiscountType == 2))
+                {
+                    discountMinutes = (agreement.FreeHours.GetValueOrDefault() * 60) + agreement.FreeMinutes.GetValueOrDefault();
+                }
+            }
+
+            // Duración neta tasable tras deducir el tiempo libre otorgado por el convenio
+            var effectiveMinutes = Math.Max(0, totalMinutes - discountMinutes);
+            var billableHours = (int)Math.Max(1, Math.Ceiling(effectiveMinutes / 60.0));
+
+            // Cargar sede para obtener parámetros de tarifa plena, pernocta y tiquete perdido
+            Branch? branch = null;
+            if (ticket.BranchId.HasValue)
+            {
+                branch = await _branchRepository.GetByIdAsync(ticket.BranchId.Value, cancellationToken);
+            }
+            else if (dto.BranchId.HasValue)
+            {
+                branch = await _branchRepository.GetByIdAsync(dto.BranchId.Value, cancellationToken);
+            }
+
+            // Determinar monto bruto: prioridad valor liquidado por terminal -> cálculo por motor de tarifas
             decimal gross;
             if (dto.GrossAmount.HasValue && dto.GrossAmount.Value > 0)
             {
@@ -210,76 +301,112 @@ public class ParkingTicketService : IParkingTicketService
             else
             {
                 decimal calculatedGross = 0m;
-                var rate = await _rateRepository.GetByTypeAsync(ticket.VehicleType, ticket.BranchId, ticket.CompanyId, cancellationToken);
+                var cotExitDay = exitTime.AddHours(-5).DayOfWeek;
+                var rate = await _rateRepository.GetByTypeAsync(ticket.VehicleType, ticket.BranchId, ticket.CompanyId, cotExitDay, cancellationToken);
+
                 if (rate != null)
                 {
                     var grace = rate.GracePeriodMinutes;
-                    if (totalMinutes <= grace)
+                    if (effectiveMinutes <= grace)
                     {
                         calculatedGross = 0m;
                     }
                     else
                     {
-                        bool isNightEntry = ticket.EntryTimeUtc.Hour >= 18 || ticket.EntryTimeUtc.Hour < 6;
-                        bool isNightExit = exitTime.Hour >= 18 || exitTime.Hour < 6;
-                        bool isNightStay = rate.NightRate > 0 && isNightEntry && isNightExit && totalMinutes >= 360;
-
-                        if (isNightStay)
+                        // 1. Validar Pernocta / Tarifa Nocturna
+                        bool isNightStay = false;
+                        if (rate.NightRate > 0)
                         {
-                            calculatedGross = rate.NightRate;
+                            var localEntry = ticket.EntryTimeUtc.AddHours(-5);
+                            var localExit = exitTime.AddHours(-5);
+                            var nightStart = (branch?.NightStartTime) ?? new TimeSpan(18, 0, 0);
+                            var nightEnd = (branch?.NightEndTime) ?? new TimeSpan(6, 0, 0);
+                            int minNightStay = (branch?.NightStayMinMinutes.GetValueOrDefault() > 0) ? branch.NightStayMinMinutes.Value : 360;
+
+                            bool enteredDuringNight = localEntry.TimeOfDay >= nightStart || localEntry.TimeOfDay < nightEnd;
+                            bool exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart || localExit.TimeOfDay < nightEnd || localExit.Date > localEntry.Date;
+
+                            if (enteredDuringNight && exitedDuringNightOrMorning && effectiveMinutes >= minNightStay)
+                            {
+                                isNightStay = true;
+                                calculatedGross = rate.NightRate;
+                            }
                         }
-                        else if (rate.FullDayRate > 0 && totalMinutes >= 1440)
-                        {
-                            var days = totalMinutes / 1440;
-                            var remMins = totalMinutes % 1440;
-                            decimal remFee = 0m;
 
-                            if (rate.MinuteRate > 0 && rate.HourRate > 0)
+                        // 2. Tarifa Plena Cíclica (si no aplicó pernocta)
+                        if (!isNightStay)
+                        {
+                            int fullDayThreshold = (branch != null && branch.FullDayThresholdMinutes.GetValueOrDefault() > 0) ? branch.FullDayThresholdMinutes.Value : 720;
+                            bool fullDayApplies = true;
+                            if (branch != null && !string.IsNullOrWhiteSpace(branch.FullDayApplicableDays))
                             {
-                                var remH = remMins / 60;
-                                var remM = remMins % 60;
-                                remFee = (remH * rate.HourRate) + Math.Min(rate.HourRate, remM * rate.MinuteRate);
+                                var currentDayStr = exitTime.AddHours(-5).DayOfWeek.ToString();
+                                fullDayApplies = branch.FullDayApplicableDays.Contains(currentDayStr, StringComparison.OrdinalIgnoreCase)
+                                              || branch.FullDayApplicableDays.Equals("All", StringComparison.OrdinalIgnoreCase);
                             }
-                            else if (rate.MinuteRate > 0)
+
+                            if (rate.FullDayRate > 0 && fullDayApplies && effectiveMinutes >= fullDayThreshold)
                             {
-                                remFee = remMins * rate.MinuteRate;
-                            }
-                            else if (rate.HourRate > 0)
-                            {
-                                var remHours = (int)Math.Max(1, Math.Ceiling(remMins / 60.0));
-                                remFee = remHours * rate.HourRate;
+                                int fullDaysCount = effectiveMinutes / fullDayThreshold;
+                                int remMins = effectiveMinutes % fullDayThreshold;
+                                decimal remFee = 0m;
+
+                                if (remMins > 0)
+                                {
+                                    if (rate.MinuteRate > 0 && rate.HourRate > 0)
+                                    {
+                                        var remH = remMins / 60;
+                                        var remM = remMins % 60;
+                                        remFee = (remH * rate.HourRate) + Math.Min(rate.HourRate, remM * rate.MinuteRate);
+                                    }
+                                    else if (rate.MinuteRate > 0)
+                                    {
+                                        remFee = remMins * rate.MinuteRate;
+                                    }
+                                    else if (rate.HourRate > 0)
+                                    {
+                                        var remH = (int)Math.Max(1, Math.Ceiling(remMins / 60.0));
+                                        remFee = remH * rate.HourRate;
+                                    }
+                                    else
+                                    {
+                                        remFee = rate.FullDayRate;
+                                    }
+
+                                    if (remFee > rate.FullDayRate)
+                                    {
+                                        remFee = rate.FullDayRate;
+                                    }
+                                }
+
+                                calculatedGross = (fullDaysCount * rate.FullDayRate) + remFee;
                             }
                             else
                             {
-                                remFee = rate.FullDayRate;
-                            }
+                                // Cálculo regular por minuto / hora
+                                if (rate.MinuteRate > 0 && rate.HourRate > 0)
+                                {
+                                    var hours = effectiveMinutes / 60;
+                                    var rem = effectiveMinutes % 60;
+                                    calculatedGross = (hours * rate.HourRate) + Math.Min(rate.HourRate, rem * rate.MinuteRate);
+                                }
+                                else if (rate.MinuteRate > 0)
+                                {
+                                    calculatedGross = effectiveMinutes * rate.MinuteRate;
+                                }
+                                else if (rate.HourRate > 0)
+                                {
+                                    calculatedGross = billableHours * rate.HourRate;
+                                }
+                                else if (rate.FullDayRate > 0)
+                                {
+                                    calculatedGross = rate.FullDayRate;
+                                }
 
-                            calculatedGross = (days * rate.FullDayRate) + Math.Min(rate.FullDayRate, remFee);
-                        }
-                        else
-                        {
-                            if (rate.MinuteRate > 0 && rate.HourRate > 0)
-                            {
-                                var hours = totalMinutes / 60;
-                                var rem = totalMinutes % 60;
-                                calculatedGross = (hours * rate.HourRate) + Math.Min(rate.HourRate, rem * rate.MinuteRate);
-                            }
-                            else if (rate.MinuteRate > 0)
-                            {
-                                calculatedGross = totalMinutes * rate.MinuteRate;
-                            }
-                            else if (rate.HourRate > 0)
-                            {
-                                calculatedGross = billableHours * rate.HourRate;
-                            }
-                            else if (rate.FullDayRate > 0)
-                            {
-                                calculatedGross = rate.FullDayRate;
-                            }
-
-                            if (rate.FullDayRate > 0 && calculatedGross > rate.FullDayRate)
-                            {
-                                calculatedGross = rate.FullDayRate;
+                                if (rate.FullDayRate > 0 && calculatedGross > rate.FullDayRate && fullDayApplies)
+                                {
+                                    calculatedGross = rate.FullDayRate;
+                                }
                             }
                         }
                     }
@@ -292,6 +419,32 @@ public class ParkingTicketService : IParkingTicketService
                 gross = calculatedGross > 0 ? calculatedGross : dto.AmountPaid;
             }
 
+            // Validar recargo por Tiquete Perdido
+            ticket.IsLostTicket = dto.IsLostTicket;
+            if (dto.IsLostTicket)
+            {
+                decimal lostFee = dto.LostTicketFee.HasValue && dto.LostTicketFee.Value > 0
+                    ? dto.LostTicketFee.Value
+                    : (branch?.LostTicketFee ?? 0m);
+
+                ticket.LostTicketFee = lostFee;
+                gross += lostFee;
+            }
+
+            // Determinar monto del descuento comercial
+            decimal calculatedDiscount = dto.DiscountAmount;
+            if (agreement != null && calculatedDiscount <= 0)
+            {
+                if (agreement.DiscountPercentage.HasValue && agreement.DiscountPercentage.Value > 0)
+                {
+                    calculatedDiscount = Math.Round(gross * (agreement.DiscountPercentage.Value / 100m), 2);
+                }
+                else if (agreement.DiscountFixedAmount.HasValue && agreement.DiscountFixedAmount.Value > 0)
+                {
+                    calculatedDiscount = agreement.DiscountFixedAmount.Value;
+                }
+            }
+
             // Determinar monto neto
             decimal net;
             if (dto.NetAmount.HasValue && dto.NetAmount.Value > 0)
@@ -300,7 +453,7 @@ public class ParkingTicketService : IParkingTicketService
             }
             else
             {
-                net = Math.Max(0m, gross - dto.DiscountAmount);
+                net = Math.Max(0m, gross - calculatedDiscount);
                 if (net == 0 && dto.AmountPaid > 0)
                 {
                     net = dto.AmountPaid;
@@ -336,7 +489,7 @@ public class ParkingTicketService : IParkingTicketService
                 }
                 if ((!resolvedComp.HasValue || resolvedComp.Value <= 0) && ticket.BranchId.HasValue)
                 {
-                    var branch = await _branchRepository.GetByIdAsync(ticket.BranchId.Value, cancellationToken);
+                    branch ??= await _branchRepository.GetByIdAsync(ticket.BranchId.Value, cancellationToken);
                     if (branch != null && branch.CompanyId > 0)
                     {
                         resolvedComp = branch.CompanyId;

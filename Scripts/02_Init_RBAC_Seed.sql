@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS `Companies` (
     `MaxOpenShiftsPerUser` INT NOT NULL DEFAULT 1,
     `RequireOpenShiftToOperate` BOOLEAN NOT NULL DEFAULT 1,
     `RequireInitialCashAmount` BOOLEAN NOT NULL DEFAULT 1,
+    `EnablePushNotifications` BOOLEAN NOT NULL DEFAULT 1,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `SubscriptionExpiresAt` DATETIME NULL,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -108,6 +109,14 @@ CREATE TABLE IF NOT EXISTS `Branches` (
     `AllowChargeByHour` BOOLEAN NOT NULL DEFAULT 1,
     `AllowChargeByDay` BOOLEAN NOT NULL DEFAULT 1,
     `AllowChargeByNight` BOOLEAN NOT NULL DEFAULT 0,
+    `LostTicketFee` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `FullDayThresholdMinutes` INT NULL DEFAULT NULL,
+    `FullDayApplicableDays` VARCHAR(50) NULL DEFAULT NULL,
+    `FullDayStartTime` TIME NULL DEFAULT NULL,
+    `FullDayEndTime` TIME NULL DEFAULT NULL,
+    `NightStartTime` TIME NULL DEFAULT NULL,
+    `NightEndTime` TIME NULL DEFAULT NULL,
+    `NightStayMinMinutes` INT NULL DEFAULT NULL,
     `Notes` VARCHAR(500) NULL,
     `LogoBase64` LONGTEXT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
@@ -268,6 +277,62 @@ SET @sqlCmd = (SELECT IF(
   "ALTER TABLE `Branches` ADD COLUMN `AllowChargeByNight` BOOLEAN NOT NULL DEFAULT 0;"
 ));
 PREPARE stmt13 FROM @sqlCmd; EXECUTE stmt13; DEALLOCATE PREPARE stmt13;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'LostTicketFee') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `LostTicketFee` DECIMAL(18,2) NOT NULL DEFAULT 0.00;"
+));
+PREPARE stmt13b FROM @sqlCmd; EXECUTE stmt13b; DEALLOCATE PREPARE stmt13b;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayThresholdMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `FullDayThresholdMinutes` INT NULL DEFAULT NULL;"
+));
+PREPARE stmt13c FROM @sqlCmd; EXECUTE stmt13c; DEALLOCATE PREPARE stmt13c;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayApplicableDays') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `FullDayApplicableDays` VARCHAR(50) NULL DEFAULT NULL;"
+));
+PREPARE stmt13d FROM @sqlCmd; EXECUTE stmt13d; DEALLOCATE PREPARE stmt13d;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayStartTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `FullDayStartTime` TIME NULL DEFAULT NULL;"
+));
+PREPARE stmt13e FROM @sqlCmd; EXECUTE stmt13e; DEALLOCATE PREPARE stmt13e;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayEndTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `FullDayEndTime` TIME NULL DEFAULT NULL;"
+));
+PREPARE stmt13f FROM @sqlCmd; EXECUTE stmt13f; DEALLOCATE PREPARE stmt13f;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightStartTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `NightStartTime` TIME NULL DEFAULT NULL;"
+));
+PREPARE stmt13g FROM @sqlCmd; EXECUTE stmt13g; DEALLOCATE PREPARE stmt13g;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightEndTime') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `NightEndTime` TIME NULL DEFAULT NULL;"
+));
+PREPARE stmt13h FROM @sqlCmd; EXECUTE stmt13h; DEALLOCATE PREPARE stmt13h;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightStayMinMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `NightStayMinMinutes` INT NULL DEFAULT NULL;"
+));
+PREPARE stmt13i FROM @sqlCmd; EXECUTE stmt13i; DEALLOCATE PREPARE stmt13i;
 
 -- 1.3 Tipos de Identificación
 CREATE TABLE IF NOT EXISTS `IdentificationType` (
@@ -473,18 +538,24 @@ CREATE TABLE IF NOT EXISTS `Stores` (
 -- 1.15 Convenios Comerciales
 CREATE TABLE IF NOT EXISTS `CommercialAgreements` (
     `AgreementId` CHAR(36) NOT NULL,
+    `CompanyId` INT NULL,
     `StoreId` CHAR(36) NOT NULL,
     `Name` VARCHAR(100) NOT NULL,
     `MinPurchaseAmount` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `DiscountType` INT NOT NULL DEFAULT 0,
     `DiscountPercentage` DECIMAL(5,2) NULL,
     `DiscountFixedAmount` DECIMAL(18,2) NULL,
+    `FreeMinutes` INT NULL,
+    `FreeHours` INT NULL,
     `MaxHoursApplicable` INT NULL,
     `MaxMinutesApplicable` INT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `ImageUrl` LONGTEXT NULL,
     PRIMARY KEY (`AgreementId`),
+    KEY `IX_CommercialAgreements_CompanyId` (`CompanyId`),
     KEY `IX_CommercialAgreements_StoreId` (`StoreId`),
+    CONSTRAINT `FK_CommercialAgreements_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT,
     CONSTRAINT `FK_CommercialAgreements_Stores_StoreId` FOREIGN KEY (`StoreId`) REFERENCES `Stores` (`StoreId`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -553,6 +624,8 @@ CREATE TABLE IF NOT EXISTS `ParkingTickets` (
     `PaymentMethod` INT NULL,
     `Status` INT NOT NULL,
     `OperatorName` VARCHAR(100) NOT NULL,
+    `IsLostTicket` BOOLEAN NOT NULL DEFAULT 0,
+    `LostTicketFee` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `IsSynchronized` TINYINT(1) NOT NULL DEFAULT 1,
     `ResolutionId` CHAR(36) NULL,
     `ResolutionName` VARCHAR(150) NULL,
@@ -659,6 +732,7 @@ CREATE TABLE IF NOT EXISTS `VehicleRates` (
     `BranchId` INT NULL,
     `CompanyId` INT NULL,
     `VehicleType` INT NOT NULL,
+    `DayOfWeek` INT NULL,
     `DisplayName` VARCHAR(50) NOT NULL,
     `HourRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `MinuteRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
@@ -784,6 +858,61 @@ CREATE TABLE IF NOT EXISTS `UserSessions` (
     KEY `IX_UserSessions_UserId_IsRevoked_ExpiresAtUtc` (`UserId`, `IsRevoked`, `ExpiresAtUtc`),
     KEY `IX_UserSessions_Jti` (`Jti`),
     CONSTRAINT `FK_UserSessions_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.30 Horarios de Operación y Gabela de Sedes
+CREATE TABLE IF NOT EXISTS `BranchOperatingHours` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `BranchId` INT NOT NULL,
+    `DayOfWeek` INT NOT NULL,
+    `IsOpen` BOOLEAN NOT NULL DEFAULT 1,
+    `OpeningTime` TIME NOT NULL DEFAULT '08:00:00',
+    `ClosingTime` TIME NOT NULL DEFAULT '22:00:00',
+    `BufferMinutesBefore` INT NOT NULL DEFAULT 30,
+    `BufferMinutesAfter` INT NOT NULL DEFAULT 30,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_BranchOperatingHours_Branch_Day` (`BranchId`, `DayOfWeek`),
+    KEY `IX_BranchOperatingHours_BranchId` (`BranchId`),
+    CONSTRAINT `FK_BranchOperatingHours_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.31 Dispositivos Suscritos a Notificaciones Push VAPID
+CREATE TABLE IF NOT EXISTS `PushSubscriptions` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `UserId` INT NOT NULL,
+    `CompanyId` INT NOT NULL,
+    `BranchId` INT NULL,
+    `Endpoint` TEXT NOT NULL,
+    `P256dh` VARCHAR(500) NOT NULL,
+    `Auth` VARCHAR(500) NOT NULL,
+    `DeviceName` VARCHAR(200) NULL,
+    `UserAgent` VARCHAR(500) NULL,
+    `IsActive` BOOLEAN NOT NULL DEFAULT 1,
+    `CreatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `LastSentAtUtc` DATETIME(6) NULL,
+    PRIMARY KEY (`Id`),
+    KEY `IX_PushSubscriptions_User_Branch` (`UserId`, `BranchId`),
+    KEY `IX_PushSubscriptions_CompanyId` (`CompanyId`),
+    CONSTRAINT `FK_PushSubscriptions_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE,
+    CONSTRAINT `FK_PushSubscriptions_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT,
+    CONSTRAINT `FK_PushSubscriptions_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1.32 Preferencias de Notificaciones por Usuario
+CREATE TABLE IF NOT EXISTS `UserNotificationPreferences` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `UserId` INT NOT NULL,
+    `NotifyAppUpdates` BOOLEAN NOT NULL DEFAULT 1,
+    `NotifyShiftOpen` BOOLEAN NOT NULL DEFAULT 0,
+    `NotifyShiftClose` BOOLEAN NOT NULL DEFAULT 1,
+    `NotifyCashDiscrepancy` BOOLEAN NOT NULL DEFAULT 1,
+    `NotifyVehicleIncidents` BOOLEAN NOT NULL DEFAULT 1,
+    `NotifyOverdueVehicles` BOOLEAN NOT NULL DEFAULT 0,
+    `NotifyCancelledTickets` BOOLEAN NOT NULL DEFAULT 1,
+    `UpdatedAtUtc` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_UserNotificationPreferences_UserId` (`UserId`),
+    CONSTRAINT `FK_UserNotificationPreferences_User_UserId` FOREIGN KEY (`UserId`) REFERENCES `User` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==================================================================================

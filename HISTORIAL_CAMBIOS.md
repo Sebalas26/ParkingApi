@@ -2,7 +2,95 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: [2026-09-05 09:35:00] - Cálculo Multi-Período (Hoy, Ayer, Este Mes) en Métricas de Recaudo y Facturación de Analítica
+## 📌 Entrada: [2026-09-06 20:20:00] - [TEST / QUALITY / GOVERNANCE] Incorporación de Regla de Oro en AGENTS.md (100% Pruebas Obligatorias) y Certificación de Suite de Tests (345 Tests)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"crear pruebas unitarias completas para este repositorio de parkingwpf. y como regla de oro en agents.md que siempre que se haga un cambio en el codigo del repo, por mas simple que sea, es OBLIGATORIO correr las pruebas del repo al 100% y no dar por terminada la tarea si alguna falla. En agents.md de ambos repositorios (ParkingApi y ParkingWpf) debe quedar esa regla de oro obligatoria."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Incorporación de la Regla de Oro en `ParkingApi/AGENTS.md` (Regla 5)**:
+     - Se instituyó formalmente en [`ParkingApi/AGENTS.md`](file:///c:/Users/migue/source/repos/ParkingApi/AGENTS.md) la obligación estricta de ejecutar la batería completa de pruebas (`dotnet test ParkingApi.slnx`) ante cualquier ajuste o modificación, sin excepción.
+     - Ninguna tarea se considerará finalizada si existe al menos una prueba fallida u omitida.
+  2. **Certificación de la Suite de Pruebas Unitarias de `ParkingApi`**:
+     - Ejecutada la suite completa `ParkingApi.UnitTests` mediante `dotnet test c:\Users\migue\source\repos\ParkingApi\ParkingApi.slnx`.
+     - Resultado: **345 pruebas ejecutadas, 345 superadas (0 fallos, 0 errores)**.
+     - Cobertura completa de servicios de negocio, arquitectura limpia, multi-tenancy, autenticación híbrida, validaciones de sedes, convenios comerciales, auditoría extemporánea de horarios, cálculo de tarifas y notificaciones WebPush VAPID.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/AGENTS.md`
+  - `ParkingApi/HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **345 de 345 PASADAS (0 errores)**.
+  - Compilación de la solución: **0 Errores**.
+
+## 📌 Entrada: [2026-09-06 18:50:00] - [FEAT / CORE / TARIFAS / HORARIOS / WEBPUSH] Implementación Integral de Horarios de Sede, Tarifas Cíclicas, Tiquete Perdido, Convenios por Tiempo y Notificaciones WebPush VAPID
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"01_Clean_All_Tables.sql 02_Init_RBAC_Seed.sql por eso estos dos archivos se deben actualziar en ese nuevo plan y segundo has todo que quiero que cuando termines fase me avises pero vaya continuando no te detengas pero si saber en que fase vas si me explico. arranca con toda."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Creación Limpia de Empresas (Cero Sedes por Defecto)**:
+     - Se refactorizó `CompanyService.CreateCompanyAsync` para eliminar la creación automática de sedes dummy ("Sede Principal") y tarifas mock. Cada empresa arranca con 0 sedes para que el administrador las cree explícitamente respetando su cuota contratada.
+  2. **Aislamiento Multi-Tenant Estricto en Convenios y Comercios**:
+     - `CommercialAgreement` y `Store` incorporaron la propiedad y clave foránea obligatoria `CompanyId`.
+     - `CommercialAgreementRepository` y `StoreRepository` aplican filtros por `CompanyId` garantizando que los convenios de una empresa nunca se mezclen con otras.
+  3. **Horarios de Atención Oficial y Detección Extemporánea (`BranchOperatingHours`)**:
+     - Se implementó la entidad `BranchOperatingHour` (0=Domingo..6=Sábado) con `OpeningTime`, `ClosingTime`, `BufferMinutesBefore`, `BufferMinutesAfter`.
+     - En `ParkingTicketService.CheckInAsync`: Si el ingreso ocurre fuera del horario de atención y sus tolerancias en hora legal de Colombia (COT, UTC-5), se registra de forma transparente y silenciosa una novedad de auditoría `VehicleIncident` con código `INGRESO_EXTEMPORANEO` (`IsBlocked = false`) sin bloquear jamás el paso del usuario.
+     - Endpoints expuestos: `GET /api/branches/{id}/operating-hours` y `POST /api/branches/{id}/operating-hours`.
+  4. **Motor de Tarifas Unificado y Avanzado (`ParkingTicketService.CheckOutAsync`)**:
+     - **Deducción Previa de Tiempo Libre**: Los minutos de cortesía de convenios comerciales se descuentan del tiempo de permanencia *antes* de evaluar si califica para tarifa plena.
+     - **Tarifa Plena Cíclica**: Se evalúa `FullDayThresholdMinutes` y los días aplicables `FullDayApplicableDays`. Si la estancia supera el umbral, se liquida la tarifa plena de forma cíclica (`fullDaysCount * FullDayRate + remainder`).
+     - **Tarifa Nocturna (Pernocta)**: Evaluación de ventana de pernocta (`NightStartTime` a `NightEndTime`) y requisito de estancia mínima (`NightStayMinMinutes`).
+     - **Tiquete Perdido**: Soporte para flag `IsLostTicket` y recargo `LostTicketFee` configurado por sede, sumándose de forma aditiva al monto de permanencia.
+  5. **Notificaciones WebPush Nativas VAPID ($0 Costo Servidor)**:
+     - Instalación y configuración de la librería oficial `WebPush` (1.0.13) en `ParkingApi.Core`.
+     - Entidades `PushSubscription` y `UserNotificationPreference`, DTOs y servicio `PushNotificationService`.
+     - Endpoints en `NotificationsController`: obtención de clave pública VAPID, suscripción, desuscripción, consulta y actualización de preferencias de usuario, envío de prueba y configuración por empresa.
+  6. **Scripts de Base de Datos Actualizados**:
+     - `01_Clean_All_Tables.sql`: Añadidas eliminaciones ordenadas de `PushSubscriptions`, `UserNotificationPreferences`, `BranchOperatingHours`.
+     - `02_Init_RBAC_Seed.sql`: Esquema DDL actualizado con todas las nuevas columnas y tablas operativas.
+     - `09_Add_Hours_Rates_Agreements_And_Push.sql`: Script de migración incremental e idempotente.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Entities/Branches/Branch.cs`
+  - `ParkingApi.Domain/Entities/Branches/BranchOperatingHour.cs` [NEW]
+  - `ParkingApi.Domain/Entities/Companies/Company.cs`
+  - `ParkingApi.Domain/Entities/Rates/VehicleRate.cs`
+  - `ParkingApi.Domain/Entities/Agreements/CommercialAgreement.cs`
+  - `ParkingApi.Domain/Entities/Agreements/Store.cs`
+  - `ParkingApi.Domain/Entities/Tickets/ParkingTicket.cs`
+  - `ParkingApi.Domain/Entities/Notifications/PushSubscription.cs` [NEW]
+  - `ParkingApi.Domain/Entities/Notifications/UserNotificationPreference.cs` [NEW]
+  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
+  - `ParkingApi.Domain/Dtos/Tickets/CheckOutRequestDto.cs`
+  - `ParkingApi.Domain/Dtos/Notifications/PushNotificationDtos.cs` [NEW]
+  - `ParkingApi.Domain/Interfaces/Repositories/Branches/IBranchRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Repositories/Rates/IVehicleRateRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Branches/IBranchService.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Notifications/IPushNotificationService.cs` [NEW]
+  - `ParkingApi.Infrastructure/Data/AppDbContext.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Branches/BranchRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Rates/VehicleRateRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Agreements/CommercialAgreementRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Agreements/StoreRepository.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi.Core/Services/Notifications/PushNotificationService.cs` [NEW]
+  - `ParkingApi.Core/Extensions/ServiceExtensions.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `ParkingApi/Controllers/NotificationsController.cs` [NEW]
+  - `Scripts/01_Clean_All_Tables.sql`
+  - `Scripts/02_Init_RBAC_Seed.sql`
+  - `Scripts/09_Add_Hours_Rates_Agreements_And_Push.sql` [NEW]
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` → **0 Errores**
+  - `dotnet test ParkingApi.slnx` → **345 Pruebas Superadas, 0 Fallos**
+
+---
 
 - **`💬 Prompt Original del Usuario`**:
   > *"tengo el mismo problema para que recalcule y muestre los rpecios ayer ya habia quedado el problema era algo de la fecha que me decias revisa ese ultimo cambio y veras pero entonces necesitamos una solución real por que las demas graficas si muestran esas no necesitamos ver eso producción por que arriba estan los filtros que tienen hoy ayer este mes pero aun ni asi muestra si selecciono el mes si me explico. analiza y dame plan para solución difinitiva."*

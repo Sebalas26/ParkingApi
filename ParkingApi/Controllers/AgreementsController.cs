@@ -75,6 +75,10 @@ public class AgreementsController : ControllerBase
     {
         try
         {
+            if (!agreement.CompanyId.HasValue || agreement.CompanyId.Value <= 0)
+            {
+                agreement.CompanyId = _currentUser.CompanyId;
+            }
             var created = await _agreementService.CreateAsync(agreement, cancellationToken);
             return Ok(created);
         }

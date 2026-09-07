@@ -222,6 +222,25 @@ public class BranchesController : ControllerBase
         return Ok(users);
     }
 
+    [HttpGet("{id:int}/operating-hours")]
+    public async Task<IActionResult> GetOperatingHours(int id, CancellationToken cancellationToken)
+    {
+        var hours = await _branchService.GetOperatingHoursAsync(id, cancellationToken);
+        return Ok(hours);
+    }
+
+    [HttpPost("{id:int}/operating-hours")]
+    public async Task<IActionResult> ConfigureOperatingHours(int id, [FromBody] List<BranchOperatingHourDto> dtos, CancellationToken cancellationToken)
+    {
+        var success = await _branchService.ConfigureOperatingHoursAsync(id, dtos ?? new List<BranchOperatingHourDto>(), cancellationToken);
+        if (success)
+        {
+            _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(id, "Horarios Actualizados", "Se actualizaron los horarios de atención de la sede.", "OperatingHoursChanged", cancellationToken);
+            return Ok(new { message = "Horarios de atención configurados correctamente para la sede." });
+        }
+        return BadRequest(new { message = "No se pudieron configurar los horarios de la sede." });
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {

@@ -43,3 +43,16 @@ Este documento define las **Reglas de Oro y Estándares Obligatorios** para cual
    - Cuando el usuario inicie en otro computador o abra un nuevo chat e indique *"Lee el historial de cambios / contexto"* o similar, la IA **DEBE LEER OBLIGATORIAMENTE `HISTORIAL_CAMBIOS.md`** como primer paso antes de elaborar planes o tocar código.
 4. **Cero Errores de Compilación**:
    - Todo cambio debe compilar limpiamente con `dotnet build` (**0 Errores**) antes de dar por finalizada la tarea.
+
+---
+
+## 🧪 5. REGLA DE ORO: EJECUCIÓN OBLIGATORIA DEL 100% DE PRUEBAS UNITARIAS EN CADA CAMBIO O COMMIT
+> [!CAUTION]
+> **EJECUCIÓN TOTAL OBLIGATORIA (CERO OMISIONES)**: Ante CUALQUIER modificación, refactorización, corrección de bug o nueva funcionalidad en el repositorio (incluso si solo se modificó una línea, un método, un modelo, un DTO o un controlador), es **ESTRICTAMENTE OBLIGATORIO ejecutar TODAS las pruebas unitarias de la solución completa** (`dotnet test ParkingApi.slnx`).
+
+1. **Prohibición de Pruebas Parciales o Selectivas**:
+   - Está terminantemente prohibido ejecutar únicamente una clase o suite de pruebas por comodidad o asumir que el cambio no tuvo efectos colaterales. Se deben ejecutar **TODAS** las pruebas unitarias del backend sin excepción.
+2. **Cero Fallos Tolerados**:
+   - La tarea **NUNCA** se dará por concluida si existe un solo fallo (`Failed > 0`) o error en los tests.
+   - Todo cambio debe certificar **100% de Pruebas Superadas (0 Fallos)** y **0 Errores de Compilación** antes de responder al usuario y registrar en [`HISTORIAL_CAMBIOS.md`](file:///c:/Users/migue/source/repos/ParkingApi/HISTORIAL_CAMBIOS.md).
+

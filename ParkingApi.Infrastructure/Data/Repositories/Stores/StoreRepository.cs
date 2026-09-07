@@ -29,7 +29,7 @@ public class StoreRepository : IStoreRepository
             var query = _context.Stores.AsNoTracking();
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(s => s.CompanyId == companyId.Value || s.CompanyId == null);
+                query = query.Where(s => s.CompanyId == companyId.Value);
             }
             return await query
                 .Include(s => s.Agreements)

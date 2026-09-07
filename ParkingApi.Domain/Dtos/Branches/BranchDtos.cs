@@ -22,6 +22,15 @@ public class BranchDto
     public bool AllowChargeByHour { get; set; } = true;
     public bool AllowChargeByDay { get; set; } = true;
     public bool AllowChargeByNight { get; set; } = false;
+    public decimal LostTicketFee { get; set; } = 0m;
+    public int FullDayThresholdMinutes { get; set; } = 720;
+    public string? FullDayApplicableDays { get; set; }
+    public string? FullDayStartTime { get; set; }
+    public string? FullDayEndTime { get; set; }
+    public string? NightStartTime { get; set; } = "18:00";
+    public string? NightEndTime { get; set; } = "06:00";
+    public int NightStayMinMinutes { get; set; } = 360;
+    public List<BranchOperatingHourDto> OperatingHours { get; set; } = new();
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -44,6 +53,14 @@ public class CreateBranchDto
     public bool AllowChargeByHour { get; set; } = true;
     public bool AllowChargeByDay { get; set; } = true;
     public bool AllowChargeByNight { get; set; } = false;
+    public decimal LostTicketFee { get; set; } = 0m;
+    public int FullDayThresholdMinutes { get; set; } = 720;
+    public string? FullDayApplicableDays { get; set; }
+    public string? FullDayStartTime { get; set; }
+    public string? FullDayEndTime { get; set; }
+    public string? NightStartTime { get; set; } = "18:00";
+    public string? NightEndTime { get; set; } = "06:00";
+    public int NightStayMinMinutes { get; set; } = 360;
 }
 
 public class UpdateBranchDto
@@ -62,7 +79,27 @@ public class UpdateBranchDto
     public bool AllowChargeByHour { get; set; } = true;
     public bool AllowChargeByDay { get; set; } = true;
     public bool AllowChargeByNight { get; set; } = false;
+    public decimal LostTicketFee { get; set; } = 0m;
+    public int FullDayThresholdMinutes { get; set; } = 720;
+    public string? FullDayApplicableDays { get; set; }
+    public string? FullDayStartTime { get; set; }
+    public string? FullDayEndTime { get; set; }
+    public string? NightStartTime { get; set; } = "18:00";
+    public string? NightEndTime { get; set; } = "06:00";
+    public int NightStayMinMinutes { get; set; } = 360;
     public bool IsActive { get; set; }
+}
+
+public class BranchOperatingHourDto
+{
+    public int Id { get; set; }
+    public int BranchId { get; set; }
+    public DayOfWeek DayOfWeek { get; set; }
+    public bool IsOpen { get; set; } = true;
+    public string OpeningTime { get; set; } = "08:00";
+    public string ClosingTime { get; set; } = "22:00";
+    public int BufferMinutesBefore { get; set; } = 30;
+    public int BufferMinutesAfter { get; set; } = 30;
 }
 
 public class AssignUserBranchDto

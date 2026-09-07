@@ -133,6 +133,14 @@ public class BranchService : IBranchService
             AllowChargeByHour = dto.AllowChargeByHour,
             AllowChargeByDay = dto.AllowChargeByDay,
             AllowChargeByNight = dto.AllowChargeByNight,
+            LostTicketFee = dto.LostTicketFee >= 0 ? dto.LostTicketFee : 0m,
+            FullDayThresholdMinutes = dto.FullDayThresholdMinutes > 0 ? dto.FullDayThresholdMinutes : 720,
+            FullDayApplicableDays = dto.FullDayApplicableDays?.Trim(),
+            FullDayStartTime = TimeSpan.TryParse(dto.FullDayStartTime, out var fds) ? fds : null,
+            FullDayEndTime = TimeSpan.TryParse(dto.FullDayEndTime, out var fde) ? fde : null,
+            NightStartTime = TimeSpan.TryParse(dto.NightStartTime, out var ns) ? ns : new TimeSpan(18, 0, 0),
+            NightEndTime = TimeSpan.TryParse(dto.NightEndTime, out var ne) ? ne : new TimeSpan(6, 0, 0),
+            NightStayMinMinutes = dto.NightStayMinMinutes > 0 ? dto.NightStayMinMinutes : 360,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -174,6 +182,18 @@ public class BranchService : IBranchService
         branch.AllowChargeByHour = dto.AllowChargeByHour;
         branch.AllowChargeByDay = dto.AllowChargeByDay;
         branch.AllowChargeByNight = dto.AllowChargeByNight;
+        branch.LostTicketFee = dto.LostTicketFee >= 0 ? dto.LostTicketFee : branch.LostTicketFee;
+        branch.FullDayThresholdMinutes = dto.FullDayThresholdMinutes > 0 ? dto.FullDayThresholdMinutes : branch.FullDayThresholdMinutes;
+        branch.FullDayApplicableDays = dto.FullDayApplicableDays?.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.FullDayStartTime))
+            branch.FullDayStartTime = TimeSpan.TryParse(dto.FullDayStartTime, out var ufds) ? ufds : branch.FullDayStartTime;
+        if (!string.IsNullOrWhiteSpace(dto.FullDayEndTime))
+            branch.FullDayEndTime = TimeSpan.TryParse(dto.FullDayEndTime, out var ufde) ? ufde : branch.FullDayEndTime;
+        if (!string.IsNullOrWhiteSpace(dto.NightStartTime))
+            branch.NightStartTime = TimeSpan.TryParse(dto.NightStartTime, out var uns) ? uns : branch.NightStartTime;
+        if (!string.IsNullOrWhiteSpace(dto.NightEndTime))
+            branch.NightEndTime = TimeSpan.TryParse(dto.NightEndTime, out var une) ? une : branch.NightEndTime;
+        branch.NightStayMinMinutes = dto.NightStayMinMinutes > 0 ? dto.NightStayMinMinutes : branch.NightStayMinMinutes;
         if (dto.LogoBase64 != null)
         {
             branch.LogoBase64 = dto.LogoBase64.Trim();
@@ -322,6 +342,38 @@ public class BranchService : IBranchService
         }).ToList();
     }
 
+    public async Task<IReadOnlyList<BranchOperatingHourDto>> GetOperatingHoursAsync(int branchId, CancellationToken cancellationToken = default)
+    {
+        var hours = await _branchRepository.GetOperatingHoursByBranchIdAsync(branchId, cancellationToken);
+        return hours.Select(h => new BranchOperatingHourDto
+        {
+            Id = h.Id,
+            BranchId = h.BranchId,
+            DayOfWeek = h.DayOfWeek,
+            IsOpen = h.IsOpen,
+            OpeningTime = h.OpeningTime.ToString(@"hh\:mm"),
+            ClosingTime = h.ClosingTime.ToString(@"hh\:mm"),
+            BufferMinutesBefore = h.BufferMinutesBefore,
+            BufferMinutesAfter = h.BufferMinutesAfter
+        }).ToList();
+    }
+
+    public async Task<bool> ConfigureOperatingHoursAsync(int branchId, IEnumerable<BranchOperatingHourDto> dtos, CancellationToken cancellationToken = default)
+    {
+        var entities = dtos.Select(d => new BranchOperatingHour
+        {
+            BranchId = branchId,
+            DayOfWeek = d.DayOfWeek,
+            IsOpen = d.IsOpen,
+            OpeningTime = TimeSpan.TryParse(d.OpeningTime, out var ot) ? ot : new TimeSpan(8, 0, 0),
+            ClosingTime = TimeSpan.TryParse(d.ClosingTime, out var ct) ? ct : new TimeSpan(22, 0, 0),
+            BufferMinutesBefore = d.BufferMinutesBefore >= 0 ? d.BufferMinutesBefore : 30,
+            BufferMinutesAfter = d.BufferMinutesAfter >= 0 ? d.BufferMinutesAfter : 30
+        }).ToList();
+
+        return await _branchRepository.SetOperatingHoursAsync(branchId, entities, cancellationToken);
+    }
+
     public async Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default)
     {
         return await _branchRepository.DeleteAsync(branchId, cancellationToken);
@@ -346,6 +398,25 @@ public class BranchService : IBranchService
         AllowChargeByHour = b.AllowChargeByHour,
         AllowChargeByDay = b.AllowChargeByDay,
         AllowChargeByNight = b.AllowChargeByNight,
+        LostTicketFee = b.LostTicketFee,
+        FullDayThresholdMinutes = b.FullDayThresholdMinutes.GetValueOrDefault(720),
+        FullDayApplicableDays = b.FullDayApplicableDays,
+        FullDayStartTime = b.FullDayStartTime?.ToString(@"hh\:mm"),
+        FullDayEndTime = b.FullDayEndTime?.ToString(@"hh\:mm"),
+        NightStartTime = b.NightStartTime?.ToString(@"hh\:mm") ?? "18:00",
+        NightEndTime = b.NightEndTime?.ToString(@"hh\:mm") ?? "06:00",
+        NightStayMinMinutes = b.NightStayMinMinutes.GetValueOrDefault(360),
+        OperatingHours = b.OperatingHours?.Select(h => new BranchOperatingHourDto
+        {
+            Id = h.Id,
+            BranchId = h.BranchId,
+            DayOfWeek = h.DayOfWeek,
+            IsOpen = h.IsOpen,
+            OpeningTime = h.OpeningTime.ToString(@"hh\:mm"),
+            ClosingTime = h.ClosingTime.ToString(@"hh\:mm"),
+            BufferMinutesBefore = h.BufferMinutesBefore,
+            BufferMinutesAfter = h.BufferMinutesAfter
+        }).ToList() ?? new List<BranchOperatingHourDto>(),
         IsActive = b.IsActive,
         CreatedAt = b.CreatedAt
     };

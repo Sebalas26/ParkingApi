@@ -23,4 +23,6 @@ public class CheckOutRequestDto
     public string? FiscalInvoiceNumber { get; set; }
     public decimal? GrossAmount { get; set; }
     public decimal? NetAmount { get; set; }
+    public bool IsLostTicket { get; set; }
+    public decimal? LostTicketFee { get; set; }
 }

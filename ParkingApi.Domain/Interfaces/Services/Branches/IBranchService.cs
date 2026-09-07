@@ -22,6 +22,8 @@ public interface IBranchService
     Task<bool> ConfigureAgreementsAsync(ConfigureBranchAgreementsDto dto, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Domain.Dtos.Billing.BillingResolutionDto>> GetResolutionsAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> ConfigureResolutionsAsync(ConfigureBranchResolutionsDto dto, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BranchOperatingHourDto>> GetOperatingHoursAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<bool> ConfigureOperatingHoursAsync(int branchId, IEnumerable<BranchOperatingHourDto> hours, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Domain.Dtos.Users.GetUsersDto>> GetUsersByBranchIdAsync(int branchId, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int branchId, CancellationToken cancellationToken = default);
 }

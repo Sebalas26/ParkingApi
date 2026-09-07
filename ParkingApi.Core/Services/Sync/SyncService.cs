@@ -95,13 +95,9 @@ public class SyncService : ISyncService
                     targetCompany = branch.Company;
                     targetCompanyId = branch.CompanyId;
                     totalCapacity = branch.TotalCapacity;
-                    branches = new List<Branch> { branch };
-                }
-                else
-                {
-                    branches = (await _branchRepository.GetActiveAsync(null, cancellationToken)).ToList();
                 }
 
+                branches = (await _branchRepository.GetActiveAsync(targetCompanyId, cancellationToken)).ToList();
                 users = (await _branchRepository.GetUsersByBranchIdAsync(branchId.Value, cancellationToken)).ToList();
 
                 var branchPms = await _branchRepository.GetPaymentMethodsByBranchIdAsync(branchId.Value, cancellationToken);
@@ -174,34 +170,18 @@ public class SyncService : ISyncService
             }
 
             var allRates = await _rateRepository.GetAllAsync(targetCompanyId, cancellationToken);
-            var rates = branchId.HasValue
-                ? allRates.Where(r => r.IsActive && r.BranchId == branchId.Value).ToList()
-                : allRates.Where(r => r.IsActive).ToList();
+            var rates = allRates.Where(r => r.IsActive).ToList();
 
             var allStores = await _storeRepository.GetAllAsync(targetCompanyId, cancellationToken);
             var allAgreements = await _agreementRepository.GetAllAsync(targetCompanyId, cancellationToken);
-            var stores = branchId.HasValue
-                ? allStores.Where(s => s.IsActive && (s.BranchId == null || s.BranchId == branchId.Value)).ToList()
-                : allStores.Where(s => s.IsActive).ToList();
+            var stores = allStores.Where(s => s.IsActive).ToList();
+            var agreements = allAgreements.Where(a => a.IsActive).ToList();
 
-            var storeIds = stores.Select(s => s.StoreId).ToHashSet();
-            List<CommercialAgreement> agreements;
-            if (branchId.HasValue)
+            var allOperatingHours = new List<BranchOperatingHour>();
+            foreach (var b in branches)
             {
-                var branchAgreements = await _branchRepository.GetAgreementsByBranchIdAsync(branchId.Value, cancellationToken);
-                if (branchAgreements.Any(ba => ba.IsActive))
-                {
-                    var activeAgIds = branchAgreements.Where(ba => ba.IsActive).Select(ba => ba.AgreementId).ToHashSet();
-                    agreements = allAgreements.Where(a => a.IsActive && activeAgIds.Contains(a.AgreementId)).ToList();
-                }
-                else
-                {
-                    agreements = allAgreements.Where(a => a.IsActive && storeIds.Contains(a.StoreId)).ToList();
-                }
-            }
-            else
-            {
-                agreements = allAgreements.Where(a => a.IsActive && storeIds.Contains(a.StoreId)).ToList();
+                var bHours = await _branchRepository.GetOperatingHoursByBranchIdAsync(b.Id, cancellationToken);
+                allOperatingHours.AddRange(bHours);
             }
 
             var allShifts = await _shiftRepository.GetHistoryAsync(DateTime.UtcNow.AddDays(-30), null, branchId, cancellationToken);
@@ -256,6 +236,7 @@ public class SyncService : ISyncService
                 Rates = rates,
                 Stores = stores,
                 Agreements = agreements,
+                OperatingHours = allOperatingHours,
                 WorkShifts = shifts,
                 MonthlySubscriptions = subscriptions,
                 ActiveTickets = activeTickets,

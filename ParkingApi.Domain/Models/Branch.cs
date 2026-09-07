@@ -24,6 +24,16 @@ public class Branch : GeneralEntity
     public bool AllowChargeByDay { get; set; } = true;
     public bool AllowChargeByNight { get; set; } = false;
 
+    public decimal LostTicketFee { get; set; } = 0m;
+    public int? FullDayThresholdMinutes { get; set; } = 180;
+    public string? FullDayApplicableDays { get; set; } = "1,2,3,4,5,6,0";
+    public System.TimeSpan? FullDayStartTime { get; set; }
+    public System.TimeSpan? FullDayEndTime { get; set; }
+    public System.TimeSpan? NightStartTime { get; set; } = new System.TimeSpan(18, 0, 0);
+    public System.TimeSpan? NightEndTime { get; set; } = new System.TimeSpan(6, 0, 0);
+    public int? NightStayMinMinutes { get; set; } = 240;
+
+    public virtual ICollection<BranchOperatingHour> OperatingHours { get; set; } = new List<BranchOperatingHour>();
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
     public virtual ICollection<BranchPaymentMethod> BranchPaymentMethods { get; set; } = new List<BranchPaymentMethod>();
     public virtual ICollection<VehicleRate> VehicleRates { get; set; } = new List<VehicleRate>();

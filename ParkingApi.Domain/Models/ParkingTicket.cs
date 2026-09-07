@@ -24,6 +24,8 @@ public class ParkingTicket
     public decimal NetAmount { get; set; }
     public decimal AmountPaid { get; set; }
     public decimal ChangeGiven { get; set; }
+    public bool IsLostTicket { get; set; } = false;
+    public decimal LostTicketFee { get; set; } = 0m;
     public PaymentMethodEnum? PaymentMethod { get; set; }
     /// <summary>ID real del catálogo maestro de medios de pago (tabla PaymentMethods). Tiene prioridad sobre el enum PaymentMethod para analytics.</summary>
     public int? PaymentMethodId { get; set; }

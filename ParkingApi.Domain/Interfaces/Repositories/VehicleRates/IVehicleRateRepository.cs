@@ -13,6 +13,7 @@ public interface IVehicleRateRepository
     Task<VehicleRate?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<VehicleRate?> GetByTypeAsync(VehicleType type, CancellationToken cancellationToken = default);
     Task<VehicleRate?> GetByTypeAsync(VehicleType type, int? branchId, int? companyId, CancellationToken cancellationToken = default);
+    Task<VehicleRate?> GetByTypeAsync(VehicleType type, int? branchId, int? companyId, DayOfWeek? dayOfWeek, CancellationToken cancellationToken = default);
     Task<VehicleRate> AddAsync(VehicleRate rate, CancellationToken cancellationToken = default);
     Task<bool> UpdateAsync(VehicleRate rate, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);

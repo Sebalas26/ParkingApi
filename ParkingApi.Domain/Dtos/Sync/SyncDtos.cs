@@ -39,6 +39,7 @@ public class BootstrapSyncDto
     public List<ParkingTicket> RecentTickets { get; set; } = new();
     public List<VehicleIncident> Incidents { get; set; } = new();
     public List<BillingResolution> Resolutions { get; set; } = new();
+    public List<BranchOperatingHour> OperatingHours { get; set; } = new();
 
     // Directivas Operativas de la Empresa
     public bool RequireOpenShiftToOperate { get; set; } = true;

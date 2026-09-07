@@ -33,6 +33,10 @@ public class Company : GeneralEntity
     public bool RequireOpenShiftToOperate { get; set; } = true;
     public bool RequireInitialCashAmount { get; set; } = true;
 
+    // Notificaciones Push PWA
+    public bool HasPushNotificationsEnabled { get; set; } = false;
+    public string? AllowedPushTypesJson { get; set; }
+
     public string? Logo { get; set; }
     
     [NotMapped]
