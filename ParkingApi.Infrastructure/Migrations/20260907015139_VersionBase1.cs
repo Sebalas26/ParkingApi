@@ -118,6 +118,15 @@ namespace ParkingApi.Infrastructure.Migrations
                     AllowChargeByHour = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
                     AllowChargeByDay = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
                     AllowChargeByNight = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    LostTicketFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
+                    FullDayThresholdMinutes = table.Column<int>(type: "int", nullable: true, defaultValue: 180),
+                    FullDayApplicableDays = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, defaultValue: "1,2,3,4,5,6,0")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    FullDayStartTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    FullDayEndTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    NightStartTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    NightEndTime = table.Column<TimeSpan>(type: "time(6)", nullable: true),
+                    NightStayMinMinutes = table.Column<int>(type: "int", nullable: true, defaultValue: 240),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
@@ -126,6 +135,32 @@ namespace ParkingApi.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Branches", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "BranchOperatingHours",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "int", nullable: false),
+                    IsOpen = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    OpeningTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
+                    ClosingTime = table.Column<TimeSpan>(type: "time(6)", nullable: false),
+                    BufferMinutesBefore = table.Column<int>(type: "int", nullable: false, defaultValue: 30),
+                    BufferMinutesAfter = table.Column<int>(type: "int", nullable: false, defaultValue: 30)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BranchOperatingHours", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BranchOperatingHours_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -161,12 +196,16 @@ namespace ParkingApi.Infrastructure.Migrations
                 columns: table => new
                 {
                     AgreementId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CompanyId = table.Column<int>(type: "int", nullable: true),
                     StoreId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     MinPurchaseAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    DiscountType = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     DiscountPercentage = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: true),
                     DiscountFixedAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    FreeMinutes = table.Column<int>(type: "int", nullable: true),
+                    FreeHours = table.Column<int>(type: "int", nullable: true),
                     MaxHoursApplicable = table.Column<int>(type: "int", nullable: true),
                     MaxMinutesApplicable = table.Column<int>(type: "int", nullable: true),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -219,6 +258,9 @@ namespace ParkingApi.Infrastructure.Migrations
                     MaxOpenShiftsPerUser = table.Column<int>(type: "int", nullable: false),
                     RequireOpenShiftToOperate = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RequireInitialCashAmount = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    HasPushNotificationsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    AllowedPushTypesJson = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Logo = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -257,6 +299,8 @@ namespace ParkingApi.Infrastructure.Migrations
                     NetAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     AmountPaid = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     ChangeGiven = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    IsLostTicket = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    LostTicketFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
                     PaymentMethod = table.Column<int>(type: "int", nullable: true),
                     PaymentMethodId = table.Column<int>(type: "int", nullable: true),
                     Status = table.Column<int>(type: "int", nullable: false),
@@ -376,6 +420,7 @@ namespace ParkingApi.Infrastructure.Migrations
                     CompanyId = table.Column<int>(type: "int", nullable: true),
                     BranchId = table.Column<int>(type: "int", nullable: true),
                     VehicleType = table.Column<int>(type: "int", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "int", nullable: true),
                     DisplayName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     HourRate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -710,6 +755,47 @@ namespace ParkingApi.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "PushSubscriptions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    CompanyId = table.Column<int>(type: "int", nullable: false),
+                    BranchId = table.Column<int>(type: "int", nullable: true),
+                    Endpoint = table.Column<string>(type: "text", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    P256dh = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Auth = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DeviceName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UserAgent = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    LastSentAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PushSubscriptions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PushSubscriptions_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_PushSubscriptions_Companies_CompanyId",
+                        column: x => x.CompanyId,
+                        principalTable: "Companies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "RoleAction",
                 columns: table => new
                 {
@@ -819,6 +905,34 @@ namespace ParkingApi.Infrastructure.Migrations
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_UserBranches_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "UserNotificationPreferences",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    NotifyAppUpdates = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    NotifyShiftOpen = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    NotifyShiftClose = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    NotifyCashDiscrepancy = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    NotifyVehicleIncidents = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    NotifyOverdueVehicles = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    NotifyCancelledTickets = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserNotificationPreferences", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserNotificationPreferences_User_UserId",
                         column: x => x.UserId,
                         principalTable: "User",
                         principalColumn: "Id",
@@ -1087,6 +1201,12 @@ namespace ParkingApi.Infrastructure.Migrations
                 column: "ResponsibleUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BranchOperatingHours_BranchId_DayOfWeek",
+                table: "BranchOperatingHours",
+                columns: new[] { "BranchId", "DayOfWeek" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BranchPaymentMethods_BranchId_PaymentMethodId",
                 table: "BranchPaymentMethods",
                 columns: new[] { "BranchId", "PaymentMethodId" },
@@ -1101,6 +1221,11 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "IX_BranchPaymentMethods_ResponsibleUserIdNavigationId",
                 table: "BranchPaymentMethods",
                 column: "ResponsibleUserIdNavigationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CommercialAgreements_CompanyId",
+                table: "CommercialAgreements",
+                column: "CompanyId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CommercialAgreements_StoreId",
@@ -1235,6 +1360,21 @@ namespace ParkingApi.Infrastructure.Migrations
                 column: "ResponsibleUserIdNavigationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PushSubscriptions_BranchId",
+                table: "PushSubscriptions",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PushSubscriptions_CompanyId",
+                table: "PushSubscriptions",
+                column: "CompanyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PushSubscriptions_UserId_BranchId",
+                table: "PushSubscriptions",
+                columns: new[] { "UserId", "BranchId" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RoleAction_ActionId",
                 table: "RoleAction",
                 column: "ActionId");
@@ -1309,6 +1449,12 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "IX_UserBranches_UserId_BranchId",
                 table: "UserBranches",
                 columns: new[] { "UserId", "BranchId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserNotificationPreferences_UserId",
+                table: "UserNotificationPreferences",
+                column: "UserId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1395,6 +1541,11 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "IX_VehicleRates_BranchId",
                 table: "VehicleRates",
                 column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VehicleRates_BranchId_VehicleType_DayOfWeek",
+                table: "VehicleRates",
+                columns: new[] { "BranchId", "VehicleType", "DayOfWeek" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_VehicleRates_CompanyId",
@@ -1516,6 +1667,14 @@ namespace ParkingApi.Infrastructure.Migrations
                 principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_CommercialAgreements_Companies_CompanyId",
+                table: "CommercialAgreements",
+                column: "CompanyId",
+                principalTable: "Companies",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_CommercialAgreements_Stores_StoreId",
                 table: "CommercialAgreements",
                 column: "StoreId",
@@ -1622,6 +1781,14 @@ namespace ParkingApi.Infrastructure.Migrations
                 principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_PushSubscriptions_User_UserId",
+                table: "PushSubscriptions",
+                column: "UserId",
+                principalTable: "User",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_RoleAction_UserRole_RoleId",
                 table: "RoleAction",
                 column: "RoleId",
@@ -1676,6 +1843,9 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "BranchCommercialAgreements");
 
             migrationBuilder.DropTable(
+                name: "BranchOperatingHours");
+
+            migrationBuilder.DropTable(
                 name: "BranchPaymentMethods");
 
             migrationBuilder.DropTable(
@@ -1688,6 +1858,9 @@ namespace ParkingApi.Infrastructure.Migrations
                 name: "PasswordResetToken");
 
             migrationBuilder.DropTable(
+                name: "PushSubscriptions");
+
+            migrationBuilder.DropTable(
                 name: "RoleAction");
 
             migrationBuilder.DropTable(
@@ -1695,6 +1868,9 @@ namespace ParkingApi.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserBranches");
+
+            migrationBuilder.DropTable(
+                name: "UserNotificationPreferences");
 
             migrationBuilder.DropTable(
                 name: "UserParkings");
