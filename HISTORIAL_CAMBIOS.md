@@ -2,7 +2,30 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: [2026-09-07 17:00:00] - [FEATURE / TICKETS / REPORTS / RANGE] Soporte de Rango de Fechas (From / To) en Endpoint de Historial de Tiquetes para Reportes y Exportación
+## 📌 Entrada: [2026-09-07 17:28:00] - [FIX / SYNC / BOOTSTRAP / DEDUPLICATION] Exclusión Mutua y Deduplicación Estricta entre ActiveTickets y RecentTickets en Bootstrap Sync
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Cuando se sincroniza el wpf automaticamente por algun cambio que hago dede el pwa , se sincroniza y pasa esto en el wpf"* (Error de SQLite UNIQUE constraint en `TicketNumber`)
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Exclusión Mutua en Generación de Bootstrap (`SyncService.cs`)**:
+     - `GetBootstrapDataAsync` ahora deduplica `activeTickets` y construye `recentTickets` excluyendo estrictamente cualquier tiquete que ya figure en `activeTickets` (tanto por `TicketId` como por `TicketNumber.Trim()`).
+     - Deduplicación secundaria por `TicketNumber` en `recentTickets` antes de la serialización DTO para clientes de escritorio (WPF) y móviles.
+  2. **Pruebas Unitarias y Compilación**:
+     - 100% de pruebas unitarias superadas (`dotnet test ParkingApi.slnx` -> **348 de 348 PASADAS, 0 fallos**).
+     - `dotnet build ParkingApi.slnx` -> **0 Errores**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Sync/SyncService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **348 de 348 PASADAS (0 fallos, 100% éxito)**.
+  - `dotnet build ParkingApi.slnx` -> **0 Errores**.
+
+---
+
+
 
 - **`💬 Prompt Original del Usuario`**:
   > *"Requiero que en la pantalla de centro de reportes y en la exportacion de excel me muestre adicionalmente una filas que sea con que forma de pago de pago y que resolucion fue, valida si es necesario modificar el wpf para enviar esos datos"*

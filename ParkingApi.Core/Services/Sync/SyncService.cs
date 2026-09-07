@@ -192,13 +192,26 @@ public class SyncService : ISyncService
             var allSubs = await _monthlySubscriptionRepository.GetAllAsync(targetCompanyId, branchId, cancellationToken);
             var subscriptions = allSubs.Where(s => s.IsActive).ToList();
 
-            var activeTickets = (await _ticketRepository.GetActiveTicketsAsync(branchId, targetCompanyId, cancellationToken)).ToList();
+            var activeTickets = (await _ticketRepository.GetActiveTicketsAsync(branchId, targetCompanyId, cancellationToken))
+                .GroupBy(t => t.TicketId)
+                .Select(g => g.First())
+                .ToList();
+
+            var activeTicketIds = activeTickets.Select(t => t.TicketId).ToHashSet();
+            var activeTicketNumbers = activeTickets
+                .Where(t => !string.IsNullOrWhiteSpace(t.TicketNumber))
+                .Select(t => t.TicketNumber.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             var todayCompleted = await _ticketRepository.GetTodayCompletedTicketsAsync(branchId, targetCompanyId, offsetMinutes: 300, cancellationToken);
             var recentCompleted = await _ticketRepository.GetRecentCompletedTicketsAsync(branchId, targetCompanyId, hours: 48, limit: 100, cancellationToken);
 
             var recentTickets = todayCompleted
                 .Concat(recentCompleted)
+                .Where(t => !activeTicketIds.Contains(t.TicketId) && (string.IsNullOrWhiteSpace(t.TicketNumber) || !activeTicketNumbers.Contains(t.TicketNumber.Trim())))
                 .GroupBy(t => t.TicketId)
+                .Select(g => g.First())
+                .GroupBy(t => string.IsNullOrWhiteSpace(t.TicketNumber) ? t.TicketId.ToString() : t.TicketNumber.Trim(), StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
                 .OrderByDescending(t => t.ExitTimeUtc)
                 .ToList();
