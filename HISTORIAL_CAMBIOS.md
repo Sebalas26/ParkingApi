@@ -1,6 +1,29 @@
 # 📜 HISTORIAL DE CAMBIOS Y CONTEXTO TÉCNICO MULTI-PC
-
+ 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
+
+## 📌 Entrada: [2026-09-06 23:18:00] - Mapeo de DefaultInitialCash en DTO de Sucursal durante Login de Operador
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Ayudame a que al abrir caja en el wpf , la base inciial sea lo mismo que se parametrizo al crearla sede desde el pwa (editar sede- base incial cjaja)"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico**:
+    - Al autenticar un usuario en `AuthService.LoginAsync`, las entidades `Branch` se proyectaban a `BranchDto` omitiendo el campo `DefaultInitialCash` (y propiedades asociadas de tickets/resoluciones), lo cual provocaba que clientes de escritorio (WPF) recibieran `DefaultInitialCash` como nulo o 0 en el payload de sesión tras el inicio de sesión.
+  - **Cambios Implementados en ParkingApi**:
+    - **`ParkingApi.Core/Services/Auth/AuthService.cs`**:
+      - En la proyección `branchDtos` dentro de `LoginAsync`, se asignaron explícitamente `DefaultInitialCash = b.DefaultInitialCash`, `LogoBase64`, `PaperWidth`, `AllowBicycleCharge`, etc., asegurando coherencia total del DTO de sucursal con el modelo de datos.
+  - **Pruebas y Certificación**:
+    - `dotnet build ParkingApi.slnx`: **Compilación Correcta (0 Errores, 0 Advertencias)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: **0 Errores**.
+
+---
 
 ## 📌 Entrada: [2026-09-03 20:10:00] - Sincronización Reactiva en Tiempo Real (SignalR) para Límites de Sedes y Configuración de Empresa
 
