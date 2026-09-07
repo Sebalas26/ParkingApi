@@ -2,6 +2,33 @@
  
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-06 23:48:00] - Creación de NotificationsController para Notificaciones WebPush (VAPID)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"trato de activar desde mobile y sale [Error al activar notificaciones push: Http failure response for https://api.parking-flow.com/api/notifications/vapid-public-key: 404 OK] - no, solucionalo"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico**:
+    - El backend central carecía de los endpoints para notificaciones push (`api/notifications`), respondiendo 404 a las solicitudes del PWA.
+  - **Cambios Implementados en ParkingApi**:
+    - **`ParkingApi/Controllers/NotificationsController.cs`**:
+      - Se implementó `GET /api/notifications/vapid-public-key` con la clave VAPID pública P-256 oficial.
+      - Se implementaron los endpoints `GET / PUT /api/notifications/preferences` para gestión de preferencias de alertas por usuario.
+      - Se implementaron los endpoints `POST /api/notifications/subscribe` y `POST /api/notifications/unsubscribe` para registro de suscripciones WebPush.
+      - Se implementó `POST /api/notifications/send-test` para envío de alertas de prueba.
+      - Se implementaron `GET / PUT /api/notifications/company-config` para control a nivel de empresa/tenant.
+  - **Pruebas y Certificación**:
+    - `dotnet build ParkingApi.slnx`: **Compilación Correcta (0 Errores, 0 Advertencias)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Controllers/NotificationsController.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: **0 Errores**.
+
+---
+
 ## 📌 Entrada: [2026-09-06 23:18:00] - Mapeo de DefaultInitialCash en DTO de Sucursal durante Login de Operador
 
 - **`💬 Prompt Original del Usuario`**:
