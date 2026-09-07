@@ -2,7 +2,35 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
-## 📌 Entrada: [2026-09-07 11:27:00] - [FEATURE / WEBPUSH / CI-CD] Endpoint de Difusión Global de Versión Multiplataforma (Android, iOS y Desktop)
+## 📌 Entrada: [2026-09-07 17:00:00] - [FEATURE / TICKETS / REPORTS / RANGE] Soporte de Rango de Fechas (From / To) en Endpoint de Historial de Tiquetes para Reportes y Exportación
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Requiero que en la pantalla de centro de reportes y en la exportacion de excel me muestre adicionalmente una filas que sea con que forma de pago de pago y que resolucion fue, valida si es necesario modificar el wpf para enviar esos datos"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Validación de Integración con Parking WPF**:
+     - Se auditó el modelo de sincronización `TicketApiModels.cs` y los servicios `EfParkingTicketService.cs` y `SyncEngineService.cs` en WPF.
+     - Confirmado que WPF envía de manera íntegra `paymentMethod`, `paymentMethodId`, `resolutionId`, `resolutionName` y `fiscalInvoiceNumber` al liquidar tiquetes.
+  2. **Sobrecarga de Interfaz y Servicio en Backend (`IParkingTicketService` / `ParkingTicketService`)**:
+     - Agregada sobrecarga `GetHistoryAsync(long branchId, DateTime from, DateTime to, CancellationToken cancellationToken = default)` para permitir consultas por rango acotado en reportes históricos y exportación a Excel.
+  3. **Controlador de Tiquetes (`TicketsController.GetHistory`)**:
+     - Parámetros opcionales `from` y `to` (`DateTime?`) mapeados desde query parameters, manteniendo retrocompatibilidad total con la firma previa por fecha única `date`.
+  4. **Pruebas Unitarias y Compilación**:
+     - 100% de la suite de pruebas unitarias ejecutada (`dotnet test ParkingApi.slnx` -> **348 de 348 superadas, 0 fallos**).
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Services/Tickets/IParkingTicketService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi/Controllers/TicketsController.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **348 de 348 PASADAS (0 fallos, 100% éxito)**.
+  - `dotnet build ParkingApi.slnx` -> **0 Errores**.
+
+---
+
+
 
 - **`💬 Prompt Original del Usuario`**:
   > *"solo me gusta la primera pero estas enfocado solo en iphone y ipad necesitamos ver que tambien funciona en android es claro no ? esto es dimanico claro no algo quemado por la versión. si me explico"*

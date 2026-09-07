@@ -119,12 +119,24 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("history")]
-    public async Task<IActionResult> GetHistory([FromQuery] DateTime? date, [FromQuery] int? branchId, [FromQuery] int? companyId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetHistory(
+        [FromQuery] DateTime? date,
+        [FromQuery] int? branchId,
+        [FromQuery] int? companyId,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            var targetDate = date ?? DateTime.UtcNow;
             var effectiveCompanyId = _currentUser.GetEffectiveCompanyId(companyId);
+            if (from.HasValue && to.HasValue)
+            {
+                var historyRange = await _ticketService.GetHistoryAsync(null, branchId, effectiveCompanyId, from, to, cancellationToken);
+                return Ok(historyRange);
+            }
+
+            var targetDate = date ?? DateTime.UtcNow;
             var history = await _ticketService.GetHistoryAsync(targetDate, branchId, effectiveCompanyId, cancellationToken);
             return Ok(history);
         }
@@ -134,4 +146,7 @@ public class TicketsController : ControllerBase
             return StatusCode(500, new { message = "Error interno al consultar historial de tiquetes." });
         }
     }
+
+    public Task<IActionResult> GetHistory(DateTime? date, int? branchId, int? companyId, CancellationToken cancellationToken)
+        => GetHistory(date, branchId, companyId, null, null, cancellationToken);
 }

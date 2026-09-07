@@ -643,6 +643,29 @@ public class ParkingTicketService : IParkingTicketService
         }
     }
 
+    public async Task<IReadOnlyList<ParkingTicket>> GetHistoryAsync(DateTime? date, int? branchId, int? companyId, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (from.HasValue && to.HasValue)
+            {
+                return await _ticketRepository.GetTicketsByRangeAsync(from.Value, to.Value, branchId, companyId, cancellationToken);
+            }
+
+            if (date.HasValue)
+            {
+                return await _ticketRepository.GetHistoryAsync(date.Value, branchId, companyId, cancellationToken);
+            }
+
+            return await _ticketRepository.GetAllAsync(branchId, companyId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al consultar historial de tiquetes", Constants.TicketError);
+            return new List<ParkingTicket>();
+        }
+    }
+
     private static bool IsDayApplicable(string? applicableDays, DayOfWeek day)
     {
         if (string.IsNullOrWhiteSpace(applicableDays) || applicableDays.Equals("All", StringComparison.OrdinalIgnoreCase))
