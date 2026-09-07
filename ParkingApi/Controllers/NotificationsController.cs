@@ -53,20 +53,54 @@ public class NotificationsController : ControllerBase
         }
 
         var userId = _currentUser.ParsedUserId ?? 0;
-        var companyId = _currentUser.CompanyId ?? 0;
-
-        if (userId <= 0 || companyId <= 0)
+        if (userId <= 0)
         {
             return Unauthorized(new { message = "Sesión no válida para vincular dispositivo WebPush." });
+        }
+
+        // 1. Obtener companyId del contexto o del DTO
+        var companyId = _currentUser.GetEffectiveCompanyId(dto.CompanyId) ?? dto.CompanyId ?? _currentUser.CompanyId ?? 0;
+
+        // 2. Si no se tiene companyId y se envió branchId, buscar la empresa asociada a la sucursal
+        if (companyId <= 0 && dto.BranchId.HasValue && dto.BranchId.Value > 0)
+        {
+            var branch = await _context.Branches.AsNoTracking().FirstOrDefaultAsync(b => b.Id == dto.BranchId.Value, cancellationToken);
+            if (branch != null)
+            {
+                companyId = branch.CompanyId;
+            }
+        }
+
+        // 3. Si aún no se tiene companyId, buscar la empresa asociada al usuario o la primera empresa activa
+        if (companyId <= 0)
+        {
+            var user = await _context.User.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            if (user?.CompanyId.HasValue == true && user.CompanyId.Value > 0)
+            {
+                companyId = user.CompanyId.Value;
+            }
+            else
+            {
+                var defaultCompany = await _context.Companies.AsNoTracking().FirstOrDefaultAsync(c => c.IsActive, cancellationToken);
+                if (defaultCompany != null)
+                {
+                    companyId = defaultCompany.Id;
+                }
+            }
+        }
+
+        if (companyId <= 0)
+        {
+            return BadRequest(new { message = "No se pudo determinar la empresa para registrar la suscripción push." });
         }
 
         var success = await _pushService.SubscribeAsync(dto, userId, companyId, cancellationToken);
         if (success)
         {
-            return Ok(new { message = "Dispositivo suscrito a notificaciones push exitosamente." });
+            return Ok(new { message = "Dispositivo suscrito a notificaciones push exitosamente.", companyId });
         }
 
-        return StatusCode(500, new { message = "No se pudo registrar la suscripción push." });
+        return StatusCode(500, new { message = "No se pudo registrar la suscripción push en la base de datos." });
     }
 
     [HttpPost("unsubscribe")]
@@ -115,7 +149,19 @@ public class NotificationsController : ControllerBase
     [HttpPost("send-test")]
     public async Task<IActionResult> SendTest([FromBody] SendPushNotificationRequestDto dto, CancellationToken cancellationToken)
     {
-        var companyId = dto.CompanyId ?? _currentUser.CompanyId ?? 0;
+        var companyId = _currentUser.GetEffectiveCompanyId(dto.CompanyId) ?? dto.CompanyId ?? _currentUser.CompanyId ?? 0;
+        if (companyId <= 0 && dto.BranchId.HasValue && dto.BranchId.Value > 0)
+        {
+            var branch = await _context.Branches.AsNoTracking().FirstOrDefaultAsync(b => b.Id == dto.BranchId.Value, cancellationToken);
+            if (branch != null) companyId = branch.CompanyId;
+        }
+
+        if (companyId <= 0)
+        {
+            var defaultCompany = await _context.Companies.AsNoTracking().FirstOrDefaultAsync(c => c.IsActive, cancellationToken);
+            if (defaultCompany != null) companyId = defaultCompany.Id;
+        }
+
         if (companyId <= 0)
         {
             return BadRequest(new { message = "CompanyId requerido para enviar notificación push." });
@@ -130,7 +176,7 @@ public class NotificationsController : ControllerBase
             dto.Url,
             cancellationToken);
 
-        return Ok(new { message = $"Notificación enviada a {sentCount} dispositivos.", sentCount });
+        return Ok(new { message = $"Notificación enviada a {sentCount} dispositivos.", sentCount, companyId });
     }
 
     [HttpGet("company-config/{companyId:int}")]

@@ -132,29 +132,39 @@ public class PublicTicketsController : ControllerBase
                 _ => "Desconocido"
             };
 
+            var isTicketActive = foundTicket.Status == TicketStatus.Active;
             var publicUrl = $"{Request.Scheme}://{Request.Host}/api/public/tickets/status?plate={foundTicket.PlateNumber}";
+
+            var parkingName = !string.IsNullOrWhiteSpace(foundTicket.Branch?.Name)
+                ? foundTicket.Branch.Name
+                : "Parqueadero Parking Flow";
+
+            var message = isTicketActive
+                ? "Consulta exitosa de vehículo activo."
+                : "El vehículo ya registró su salida del parqueadero. Ya no es posible consultar este vehículo.";
 
             return Ok(new PublicTicketStatusDto
             {
                 IsFound = true,
-                Message = "Consulta exitosa de tiquete.",
+                IsActive = isTicketActive,
+                Message = message,
                 TicketId = foundTicket.TicketId,
-                TicketNumber = foundTicket.TicketNumber,
+                TicketNumber = isTicketActive ? foundTicket.TicketNumber : string.Empty,
                 PlateNumber = foundTicket.PlateNumber,
                 VehicleType = (int)foundTicket.VehicleType,
                 VehicleTypeName = vehicleTypeName,
-                EntryTimeUtc = foundTicket.EntryTimeUtc,
-                EntryTimeLocal = foundTicket.EntryTimeUtc.ToLocalTime(),
+                EntryTimeUtc = isTicketActive ? foundTicket.EntryTimeUtc : null,
+                EntryTimeLocal = isTicketActive ? foundTicket.EntryTimeUtc.ToLocalTime() : null,
                 ExitTimeUtc = foundTicket.ExitTimeUtc,
                 ExitTimeLocal = foundTicket.ExitTimeUtc?.ToLocalTime(),
-                ElapsedMinutes = elapsedMinutes,
-                FormattedDuration = formattedDuration,
-                HourlyRate = foundTicket.HourlyRate,
-                EstimatedAmount = estimatedAmount,
+                ElapsedMinutes = isTicketActive ? elapsedMinutes : 0,
+                FormattedDuration = isTicketActive ? formattedDuration : string.Empty,
+                HourlyRate = isTicketActive ? foundTicket.HourlyRate : 0m,
+                EstimatedAmount = isTicketActive ? estimatedAmount : 0m,
                 TotalPaid = foundTicket.Status == TicketStatus.Completed ? foundTicket.AmountPaid : 0m,
                 Status = (int)foundTicket.Status,
-                StatusDescription = statusDescription,
-                ParkingName = "Parqueadero ParkFlow Central",
+                StatusDescription = isTicketActive ? statusDescription : "Vehículo Retirado (Salida Registrada)",
+                ParkingName = parkingName,
                 ConsultationUrl = publicUrl
             });
         }

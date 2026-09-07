@@ -5,6 +5,7 @@ namespace ParkingApi.Domain.Dtos.Tickets;
 public class PublicTicketStatusDto
 {
     public bool IsFound { get; set; }
+    public bool IsActive { get; set; }
     public string Message { get; set; } = string.Empty;
     public Guid? TicketId { get; set; }
     public string TicketNumber { get; set; } = string.Empty;

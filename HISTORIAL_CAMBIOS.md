@@ -721,6 +721,55 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 - **`✅ Verificación y Compilación`**:
   - `dotnet test`: **341 pruebas pasadas (0 fallos, 0 errores)**.
+
+---
+
+## 📌 Entrada: [2026-09-06 23:48:00] - Creación de NotificationsController para Notificaciones WebPush (VAPID)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"trato de activar desde mobile y sale [Error al activar notificaciones push: Http failure response for https://api.parking-flow.com/api/notifications/vapid-public-key: 404 OK] - no, solucionalo"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico**:
+    - El backend central carecía de los endpoints para notificaciones push (`api/notifications`), respondiendo 404 a las solicitudes del PWA.
+  - **Cambios Implementados en ParkingApi**:
+    - **`ParkingApi/Controllers/NotificationsController.cs`**:
+      - Se implementó `GET /api/notifications/vapid-public-key` con la clave VAPID pública P-256 oficial.
+      - Se implementaron los endpoints `GET / PUT /api/notifications/preferences` para gestión de preferencias de alertas por usuario.
+      - Se implementaron los endpoints `POST /api/notifications/subscribe` y `POST /api/notifications/unsubscribe` para registro de suscripciones WebPush.
+      - Se implementó `POST /api/notifications/send-test` para envío de alertas de prueba.
+      - Se implementaron `GET / PUT /api/notifications/company-config` para control a nivel de empresa/tenant.
+  - **Pruebas y Certificación**:
+    - `dotnet build ParkingApi.slnx`: **Compilación Correcta (0 Errores, 0 Advertencias)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Controllers/NotificationsController.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: **0 Errores**.
+
+---
+
+## 📌 Entrada: [2026-09-06 23:18:00] - Mapeo de DefaultInitialCash en DTO de Sucursal durante Login de Operador
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Ayudame a que al abrir caja en el wpf , la base inciial sea lo mismo que se parametrizo al crearla sede desde el pwa (editar sede- base incial cjaja)"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  - **Diagnóstico**:
+    - Al autenticar un usuario en `AuthService.LoginAsync`, las entidades `Branch` se proyectaban a `BranchDto` omitiendo el campo `DefaultInitialCash` (y propiedades asociadas de tickets/resoluciones), lo cual provocaba que clientes de escritorio (WPF) recibieran `DefaultInitialCash` como nulo o 0 en el payload de sesión tras el inicio de sesión.
+  - **Cambios Implementados en ParkingApi**:
+    - **`ParkingApi.Core/Services/Auth/AuthService.cs`**:
+      - En la proyección `branchDtos` dentro de `LoginAsync`, se asignaron explícitamente `DefaultInitialCash = b.DefaultInitialCash`, `LogoBase64`, `PaperWidth`, `AllowBicycleCharge`, etc., asegurando coherencia total del DTO de sucursal con el modelo de datos.
+  - **Pruebas y Certificación**:
+    - `dotnet build ParkingApi.slnx`: **Compilación Correcta (0 Errores, 0 Advertencias)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Auth/AuthService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
   - `dotnet build`: **0 Errores**.
 
 ---

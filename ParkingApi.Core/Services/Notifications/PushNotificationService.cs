@@ -206,19 +206,29 @@ public class PushNotificationService : IPushNotificationService
     {
         try
         {
-            // 1. Validar si la empresa tiene habilitado el módulo de notificaciones push
+            // 1. Validar si la empresa existe
             var company = await _context.Companies
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == companyId, cancellationToken);
 
-            if (company == null || !company.HasPushNotificationsEnabled)
+            if (company == null)
             {
-                _logger.LogInformation("Notificación push omitida: La empresa {CompanyId} no tiene habilitadas las notificaciones push.", companyId);
+                _logger.LogWarning("Notificación push omitida: La empresa {CompanyId} no existe.", companyId);
                 return 0;
             }
 
-            // Validar si el tipo de notificación está permitido para la empresa
-            if (!string.IsNullOrWhiteSpace(company.AllowedPushTypesJson))
+            var isTestOrSystem = string.Equals(notificationType, "APP_UPDATE", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(notificationType, "SYSTEM", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(notificationType, "TEST", StringComparison.OrdinalIgnoreCase);
+
+            if (!isTestOrSystem && !company.HasPushNotificationsEnabled)
+            {
+                _logger.LogInformation("Notificación push omitida: La empresa {CompanyId} no tiene habilitadas las notificaciones push de negocio.", companyId);
+                return 0;
+            }
+
+            // Validar si el tipo de notificación está permitido para la empresa (si no es de prueba o sistema)
+            if (!isTestOrSystem && !string.IsNullOrWhiteSpace(company.AllowedPushTypesJson))
             {
                 var allowed = JsonSerializer.Deserialize<List<string>>(company.AllowedPushTypesJson);
                 if (allowed != null && allowed.Count > 0 && !allowed.Contains(notificationType, StringComparer.OrdinalIgnoreCase))
@@ -238,7 +248,11 @@ public class PushNotificationService : IPushNotificationService
             }
 
             var subscriptions = await query.ToListAsync(cancellationToken);
-            if (subscriptions.Count == 0) return 0;
+            if (subscriptions.Count == 0)
+            {
+                _logger.LogInformation("Notificación push omitida: No se encontraron suscripciones activas para la empresa {CompanyId} y sede {BranchId}.", companyId, branchId);
+                return 0;
+            }
 
             // 3. Obtener preferencias de los usuarios receptores
             var userIds = subscriptions.Select(s => s.UserId).Distinct().ToList();

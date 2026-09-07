@@ -10,6 +10,7 @@ public class PushSubscriptionDto
     public string? DeviceName { get; set; }
     public string? UserAgent { get; set; }
     public int? BranchId { get; set; }
+    public int? CompanyId { get; set; }
 }
 
 public class UserNotificationPreferenceDto
