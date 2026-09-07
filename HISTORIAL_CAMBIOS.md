@@ -2,6 +2,37 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-07 11:27:00] - [FEATURE / WEBPUSH / CI-CD] Endpoint de Difusión Global de Versión Multiplataforma (Android, iOS y Desktop)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"solo me gusta la primera pero estas enfocado solo en iphone y ipad necesitamos ver que tambien funciona en android es claro no ? esto es dimanico claro no algo quemado por la versión. si me explico"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Compatibilidad Multiplataforma Universal (Android + iOS/iPadOS + PC)**:
+     - Se reafirmó que el estándar WebPush VAPID conecta de manera nativa a Google FCM (`fcm.googleapis.com`) para dispositivos Android y a Apple APNs (`web.push.apple.com`) para iOS/iPadOS, permitiendo despertar dispositivos en segundo plano con la app cerrada.
+  2. **Endpoint de Difusión Masiva (`POST /api/notifications/broadcast-version`)**:
+     - Creado en `NotificationsController.cs` con validación de cabecera `X-Deploy-Key` para automatización desde CI/CD (GitHub Actions).
+     - Recibe `BroadcastVersionRequestDto` con `Version`, `Title`, `Message` y `Url`, formateando dinámicamente el mensaje sin valores quemados.
+  3. **Método en Servicio (`PushNotificationService.BroadcastVersionNotificationAsync`)**:
+     - Despacha el WebPush a todas las suscripciones activas en la base de datos MySQL sin distinción de empresa o sistema operativo.
+     - Limpia de forma resiliente suscripciones caducadas o removidas (`404` / `410 Gone`).
+  4. **Pruebas Unitarias (`NotificationsControllerTests.cs`)**:
+     - 2 pruebas unitarias agregadas validando autorización por `X-Deploy-Key` y ejecución de difusión.
+     - `dotnet test ParkingApi.slnx`: **348 de 348 pruebas superadas (0 fallos, 0 errores, 100% éxito)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Notifications/PushNotificationDtos.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Notifications/IPushNotificationService.cs`
+  - `ParkingApi.Core/Services/Notifications/PushNotificationService.cs`
+  - `ParkingApi/Controllers/NotificationsController.cs`
+  - `ParkingApi.UnitTests/Controllers/NotificationsControllerTests.cs` [NEW]
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **348 de 348 PASADAS (0 fallos, 100% éxito)**.
+
+---
+
 ## 📌 Entrada: [2026-09-07 10:05:00] - [CONFIG / WEBPUSH / SECURITY] Claves Criptográficas VAPID P-256 Fijas en appsettings.json y Sincronización Multiplataforma
 
 - **`💬 Prompt Original del Usuario`**:

@@ -336,4 +336,84 @@ public class PushNotificationService : IPushNotificationService
             return 0;
         }
     }
+
+    public async Task<int> BroadcastVersionNotificationAsync(BroadcastVersionRequestDto dto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            EnsureVapidDetails();
+
+            var subscriptions = await _context.PushSubscriptions
+                .Where(s => s.IsActive)
+                .ToListAsync(cancellationToken);
+
+            if (subscriptions.Count == 0)
+            {
+                _logger.LogInformation("Difusión de versión omitida: No hay dispositivos activos registrados.");
+                return 0;
+            }
+
+            var title = string.IsNullOrWhiteSpace(dto.Title)
+                ? (string.IsNullOrWhiteSpace(dto.Version) ? "🚀 ¡Nueva Versión de ParkFlow Disponible!" : $"🚀 ¡Nueva Versión de ParkFlow Disponible! ({dto.Version})")
+                : dto.Title;
+
+            var message = string.IsNullOrWhiteSpace(dto.Message)
+                ? (string.IsNullOrWhiteSpace(dto.Version) ? "Se ha publicado una nueva actualización en el sistema. Toca aquí para actualizar." : $"Se ha publicado la versión {dto.Version} con mejoras en el sistema. Toca aquí para actualizar.")
+                : dto.Message;
+
+            var webPushClient = new WebPushClient();
+            var payloadObj = new
+            {
+                notification = new
+                {
+                    title = title,
+                    body = message,
+                    icon = "/assets/icons/icon-192x192.png",
+                    badge = "/assets/icons/icon-72x72.png",
+                    vibrate = new int[] { 100, 50, 100 },
+                    data = new
+                    {
+                        url = dto.Url ?? "/",
+                        type = "APP_UPDATE",
+                        version = dto.Version,
+                        timestamp = DateTime.UtcNow.ToString("o")
+                    }
+                }
+            };
+            var payloadJson = JsonSerializer.Serialize(payloadObj);
+
+            int sentCount = 0;
+            foreach (var sub in subscriptions)
+            {
+                try
+                {
+                    var pushSub = new WebPush.PushSubscription(sub.Endpoint, sub.P256dh, sub.Auth);
+                    await webPushClient.SendNotificationAsync(pushSub, payloadJson, _vapidDetails);
+                    sub.LastSentAtUtc = DateTime.UtcNow;
+                    sentCount++;
+                }
+                catch (WebPushException webEx)
+                {
+                    _logger.LogWarning("Fallo al enviar notificación push de versión al dispositivo {Endpoint}: {Status}", sub.Endpoint, webEx.StatusCode);
+                    if (webEx.StatusCode == System.Net.HttpStatusCode.Gone || webEx.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        sub.IsActive = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error no fatal al despachar WebPush al endpoint {Endpoint}", sub.Endpoint);
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("WebPush Difusión: Notificada versión '{Version}' a {SentCount} dispositivos activos (Android e iOS).", dto.Version, sentCount);
+            return sentCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error general en difusión masiva de nueva versión.");
+            return 0;
+        }
+    }
 }

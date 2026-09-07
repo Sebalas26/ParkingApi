@@ -33,3 +33,11 @@ public class SendPushNotificationRequestDto
     public string Message { get; set; } = string.Empty;
     public string? Url { get; set; }
 }
+
+public class BroadcastVersionRequestDto
+{
+    public string Version { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? Message { get; set; }
+    public string? Url { get; set; }
+}

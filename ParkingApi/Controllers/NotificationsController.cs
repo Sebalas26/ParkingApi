@@ -22,17 +22,20 @@ public class NotificationsController : ControllerBase
     private readonly IPushNotificationService _pushService;
     private readonly ICurrentUserService _currentUser;
     private readonly DataContext _context;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
     private readonly ILogger<NotificationsController> _logger;
 
     public NotificationsController(
         IPushNotificationService pushService,
         ICurrentUserService currentUser,
         DataContext context,
+        Microsoft.Extensions.Configuration.IConfiguration configuration,
         ILogger<NotificationsController> logger)
     {
         _pushService = pushService;
         _currentUser = currentUser;
         _context = context;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -227,5 +230,24 @@ public class NotificationsController : ControllerBase
 
         await _context.SaveChangesAsync(cancellationToken);
         return Ok(new { message = "Configuración de notificaciones push de la empresa actualizada correctamente." });
+    }
+
+    [HttpPost("broadcast-version")]
+    [AllowAnonymous]
+    public async Task<IActionResult> BroadcastVersion([FromBody] BroadcastVersionRequestDto dto, CancellationToken cancellationToken)
+    {
+        var expectedSecret = _configuration["Deploy:SecretKey"] ?? "PARKFLOW_DEPLOY_KEY_2026_AUTOMATION_SECRET";
+        if (!Request.Headers.TryGetValue("X-Deploy-Key", out var headerKey) || headerKey != expectedSecret)
+        {
+            return Unauthorized(new { message = "Acceso no autorizado para difusión de despliegue." });
+        }
+
+        var sentCount = await _pushService.BroadcastVersionNotificationAsync(dto, cancellationToken);
+        return Ok(new
+        {
+            message = $"Difusión de versión '{dto.Version}' enviada a {sentCount} dispositivos.",
+            sentCount,
+            version = dto.Version
+        });
     }
 }

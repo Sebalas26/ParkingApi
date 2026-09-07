@@ -12,4 +12,5 @@ public interface IPushNotificationService
     Task<UserNotificationPreferenceDto> GetUserPreferencesAsync(int userId, CancellationToken cancellationToken = default);
     Task<bool> UpdateUserPreferencesAsync(int userId, UserNotificationPreferenceDto dto, CancellationToken cancellationToken = default);
     Task<int> SendPushNotificationAsync(int companyId, int? branchId, string notificationType, string title, string message, string? url = null, CancellationToken cancellationToken = default);
+    Task<int> BroadcastVersionNotificationAsync(BroadcastVersionRequestDto dto, CancellationToken cancellationToken = default);
 }
