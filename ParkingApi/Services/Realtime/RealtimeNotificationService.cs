@@ -65,11 +65,19 @@ public class RealtimeNotificationService : IRealtimeNotificationService
         {
             if (notification.BranchId.HasValue)
             {
-                var groupName = $"Branch_{notification.BranchId.Value}";
-                _logger.LogInformation("[SignalR] Emitiendo notificación a grupo '{GroupName}': {Title} - {Message}", groupName, notification.Title, notification.Message);
-                await _hubContext.Clients.Group(groupName).SendAsync("OnConfigUpdateRequired", notification, cancellationToken);
+                var branchGroup = $"Branch_{notification.BranchId.Value}";
+                _logger.LogInformation("[SignalR] Emitiendo notificación a grupo '{GroupName}': {Title} - {Message}", branchGroup, notification.Title, notification.Message);
+                await _hubContext.Clients.Group(branchGroup).SendAsync("OnConfigUpdateRequired", notification, cancellationToken);
             }
-            else
+
+            if (notification.CompanyId.HasValue)
+            {
+                var companyGroup = $"Company_{notification.CompanyId.Value}";
+                _logger.LogInformation("[SignalR] Emitiendo notificación a grupo de empresa '{GroupName}': {Title} - {Message}", companyGroup, notification.Title, notification.Message);
+                await _hubContext.Clients.Group(companyGroup).SendAsync("OnConfigUpdateRequired", notification, cancellationToken);
+            }
+
+            if (!notification.BranchId.HasValue && !notification.CompanyId.HasValue)
             {
                 _logger.LogInformation("[SignalR] Emitiendo notificación global a todos los clientes: {Title} - {Message}", notification.Title, notification.Message);
                 await _hubContext.Clients.All.SendAsync("OnConfigUpdateRequired", notification, cancellationToken);

@@ -2,6 +2,28 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 17:50:00] - [FEATURE / SIGNALR / REALTIME / MULTI-GROUP / NET10] Emisión Dual de Eventos de Turno a Grupo de Sede y Grupo de Empresa (ShiftOpened, ShiftClosed)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Listo el wpf ya sincroniza cuando desde la pwa cierra caja en el wpf sale el aviso pero lo deja en el modulo que esta deberia devolverlo a obligarlo a abrir turno nuevamente si me explico eso no lo esta haciendo otra cosa no esta siendo reactivo con la pwa cuando se abre el turno en el wpf por que en la pwa no se avisa estoy en el modulo caja y no aparece que se abrio caja y me toca darle actualizar para que se refresque si me explico."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Propagación Dual de Eventos SignalR (`RealtimeNotificationService.cs`)**:
+     - En `NotifyCustomAsync`, anteriormente si la notificación tenía `BranchId` únicamente se emitía a `Branch_{branchId}`. Si un administrador se encontraba en la PWA con *"Todos los Parqueaderos"* seleccionado (`activeBranchId == null`), pertenecía exclusivamente al grupo `Company_{companyId}` y no recibía las notificaciones de los terminales.
+     - Se actualizó `NotifyCustomAsync` para que emita de forma concurrente tanto al grupo de sede (`Branch_{branchId}`) como al grupo de empresa (`Company_{companyId}`) si ambos IDs están presentes en el payload.
+  2. **Enriquecimiento de Payload en Turnos (`ShiftsController.cs`)**:
+     - Al procesar `OpenShift` (`POST /api/shifts/open`) y `CloseShift` (`POST /api/shifts/close`), se construye `ConfigNotificationDto` incluyendo explícitamente `BranchId`, `CompanyId`, el nombre del operador y el nombre de la caja (`CashRegisterName`).
+     - Se invoca `NotifyCustomAsync`, garantizando que todos los clientes conectados a la sede o a la empresa en tiempo real reciban la actualización instantánea.
+  3. **Verificación y Pruebas Unitarias**:
+     - Compilación limpia con `dotnet build` (0 errores, 0 advertencias).
+     - `dotnet test ParkingApi.slnx`: **475 de 475 pruebas superadas (0 fallos)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi/Services/Realtime/RealtimeNotificationService.cs`
+  - `ParkingApi/ParkingApi/Controllers/ShiftsController.cs`
+
+---
+
 ## 📌 Entrada: [2026-09-08 17:15:00] - [FEATURE / SAAS-PLANS / FORMULA / RATIO / NET10] Flexibilización de Planes SaaS con Fórmula Comercial (UsersPerBranch), Mapeo en DTOs y Migración Defensiva SQL
 
 - **`💬 Prompt Original del Usuario`**:

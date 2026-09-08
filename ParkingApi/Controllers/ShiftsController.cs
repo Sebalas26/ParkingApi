@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using ParkingApi.Domain.Dtos.Realtime;
 using ParkingApi.Domain.Dtos.Shifts;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services;
@@ -67,12 +68,16 @@ public class ShiftsController : ControllerBase
 
             if (result.BranchId.HasValue && result.BranchId.Value > 0)
             {
-                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
-                    result.BranchId.Value,
-                    "Turno Abierto",
-                    $"Se abrió un nuevo turno de caja para la sede '{result.BranchId.Value}'.",
-                    "ShiftOpened",
-                    cancellationToken);
+                var notification = new ConfigNotificationDto
+                {
+                    EventType = "ShiftOpened",
+                    BranchId = result.BranchId.Value,
+                    CompanyId = result.CompanyId,
+                    Title = "Turno Abierto",
+                    Message = $"Se abrió un nuevo turno de caja ({result.OperatorName} - {result.CashRegisterName ?? "Caja"}).",
+                    TimestampUtc = DateTime.UtcNow
+                };
+                _ = _realtimeNotifier.NotifyCustomAsync(notification, cancellationToken);
             }
 
             return Ok(result);
@@ -176,12 +181,16 @@ public class ShiftsController : ControllerBase
 
             if (closedShift.BranchId.HasValue && closedShift.BranchId.Value > 0)
             {
-                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
-                    closedShift.BranchId.Value,
-                    "Turno Cerrado",
-                    $"El turno de caja para la sede '{closedShift.BranchId.Value}' fue cerrado desde el panel central.",
-                    "ShiftClosed",
-                    cancellationToken);
+                var notification = new ConfigNotificationDto
+                {
+                    EventType = "ShiftClosed",
+                    BranchId = closedShift.BranchId.Value,
+                    CompanyId = closedShift.CompanyId,
+                    Title = "Turno Cerrado",
+                    Message = $"El turno de caja ({closedShift.OperatorName} - {closedShift.CashRegisterName ?? "Caja"}) fue cerrado.",
+                    TimestampUtc = DateTime.UtcNow
+                };
+                _ = _realtimeNotifier.NotifyCustomAsync(notification, cancellationToken);
             }
 
             return Ok(closedShift);
