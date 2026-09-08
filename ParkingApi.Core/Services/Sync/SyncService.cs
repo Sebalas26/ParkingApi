@@ -162,8 +162,8 @@ public class SyncService : ISyncService
                     roleActionsList.Add(new RoleActionSyncDto
                     {
                         RoleId = r.Id,
-                        ActionSlug = a.ActionName,
-                        ActionName = a.ActionName,
+                        ActionSlug = a.ActionName ?? string.Empty,
+                        ActionName = a.ActionName ?? string.Empty,
                         IsActive = a.IsActive
                     });
                 }

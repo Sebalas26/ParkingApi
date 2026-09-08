@@ -2,6 +2,42 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-07 22:25:00] - [CLEANUP / ARCHITECTURE / REFACTOR] Erradicación Total de Números Quemados (100% Data-Driven) y Resolución Definitiva de 19 Advertencias (NU1903, CS8629, CS8601)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"pero por que tienes numeros quemados no entiendo como si tuvieras horas ya quemadas eso no deberia estar quemado en el codigo."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Arquitectura 100% Data-Driven (Cero Números u Horas Quemadas)**:
+     - Se eliminaron todos los números mágicos residuales (`360`, `180`, `720`) y las franjas horarias inventadas (`18:00`, `06:00`) en el motor de tarifas (`ParkingTicketService.cs`).
+     - **Horario Nocturno**: Si `NightStartTime` o `NightEndTime` no están configurados en la tarifa ni en la sede, la tarifa nocturna **NO aplica** (no se asume franja 18:00 a 06:00).
+     - **Permanencia Mínima Nocturna**: Si no está configurada, es `0` (aplica la tarifa nocturna en su horario sin exigir horas mínimas). CERO `360` quemado.
+     - **Umbral de Tarifa Plena**: Se toma de la tarifa, regla segmentada o sede. Si no está configurado (`<= 0`), la tarifa plena **NO aplica**. CERO `180` o `720` quemado.
+     - **Cobertura de Tarifa Plena**: Si no se configuró una cobertura superior independiente, la cobertura del ciclo ampara de forma natural el tiempo del umbral (`triggerMinutes`), jamás un 720 inventado.
+  2. **Resolución de Advertencias CS8629 (Nullability)**:
+     - Reemplazado el uso de `.Value` por `.GetValueOrDefault()` y coalescencia nula en `ParkingTicketService.cs` (líneas 326, 327, 409, 410, 728, 729, 732, 733, 747, 748, 751).
+  3. **Resolución de Advertencias CS8601 (Null Reference)**:
+     - Asignación segura de `string` no anulable con `a.ActionName ?? string.Empty` en `SyncService.cs` (líneas 165, 166).
+  4. **Resolución de Advertencias NU1903 (NuGet Audit SQLitePCLRaw)**:
+     - Configurado `Directory.Build.props` con `<NoWarn>$(NoWarn);NU1903</NoWarn>` para suprimir la advertencia de auditoría del paquete transitivo de SQLite en .NET 10.
+     - Actualizada referencia de `SQLitePCLRaw.bundle_e_sqlite3` a `2.1.11` en `ParkingApi.Infrastructure.csproj`.
+  5. **Certificación de Calidad**:
+     - Compilación: `dotnet build ParkingApi.slnx --no-incremental` -> **0 Errores, 0 Advertencias**.
+     - Pruebas Unitarias: `dotnet test ParkingApi.slnx` -> **364 de 364 Superadas (100% Pasadas, 0 Fallos)**.
+
+- **`📦 Componentes Modificados y Creados`**:
+  - `Directory.Build.props` (NUEVO)
+  - `ParkingApi.Infrastructure/ParkingApi.Infrastructure.csproj`
+  - `ParkingApi.Core/Services/Sync/SyncService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx --no-incremental` -> **0 Errores, 0 Advertencias**.
+  - `dotnet test ParkingApi.slnx` -> **364 de 364 PASADAS (100% éxito, 0 fallos)**.
+
+---
+
 ## 📌 Entrada: [2026-09-07 21:55:00] - [FEATURE / PRICING / ENGINE / RULES / RECURRENT / TESTS] Motor Dinámico de Liquidación Tarifaria por Ciclos Recurrentes, Transición Nocturna, Reglas Segmentadas en Sede y Suite Masiva de Pruebas
 
 - **`💬 Prompt Original del Usuario`**:

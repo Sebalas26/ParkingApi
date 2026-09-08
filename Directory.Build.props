@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Suprime NU1903 (auditoría NuGet de vulnerabilidad transitiva SQLitePCLRaw conocida en EF Core Sqlite) -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+</Project>

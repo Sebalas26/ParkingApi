@@ -320,32 +320,36 @@ public class ParkingTicketService : IParkingTicketService
                         bool isNightStay = false;
                         if (rate.NightRate > 0)
                         {
-                            var nightStart = rate.NightStartTime ?? branch?.NightStartTime ?? new TimeSpan(18, 0, 0);
-                            var nightEnd = rate.NightEndTime ?? branch?.NightEndTime ?? new TimeSpan(6, 0, 0);
-                            int minNightStay = (rate.NightStayMinMinutes.GetValueOrDefault() > 0) 
-                                ? rate.NightStayMinMinutes.Value 
-                                : ((branch?.NightStayMinMinutes.GetValueOrDefault() > 0) ? branch.NightStayMinMinutes.Value : 360);
+                            var nightStart = rate.NightStartTime ?? branch?.NightStartTime;
+                            var nightEnd = rate.NightEndTime ?? branch?.NightEndTime;
 
-                            bool nightDayApplies = IsDayApplicable(branch?.NightApplicableDays, localEntry.DayOfWeek);
-
-                            bool enteredDuringNight;
-                            bool exitedDuringNightOrMorning;
-
-                            if (nightStart > nightEnd) // Cruza medianoche (ej: 20:00 a 06:00)
+                            if (nightStart.HasValue && nightEnd.HasValue)
                             {
-                                enteredDuringNight = localEntry.TimeOfDay >= nightStart || localEntry.TimeOfDay < nightEnd;
-                                exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart || localExit.TimeOfDay < nightEnd || localExit.Date > localEntry.Date;
-                            }
-                            else // Dentro del mismo día calendario
-                            {
-                                enteredDuringNight = localEntry.TimeOfDay >= nightStart && localEntry.TimeOfDay < nightEnd;
-                                exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart && localExit.TimeOfDay <= nightEnd;
-                            }
+                                int minNightStay = rate.NightStayMinMinutes.GetValueOrDefault() > 0 
+                                    ? rate.NightStayMinMinutes.GetValueOrDefault() 
+                                    : (branch?.NightStayMinMinutes.GetValueOrDefault() ?? 0);
 
-                            if (nightDayApplies && enteredDuringNight && exitedDuringNightOrMorning && effectiveMinutes >= minNightStay)
-                            {
-                                isNightStay = true;
-                                calculatedGross = rate.NightRate;
+                                bool nightDayApplies = IsDayApplicable(branch?.NightApplicableDays, localEntry.DayOfWeek);
+
+                                bool enteredDuringNight;
+                                bool exitedDuringNightOrMorning;
+
+                                if (nightStart.Value > nightEnd.Value) // Cruza medianoche (ej: 20:00 a 06:00)
+                                {
+                                    enteredDuringNight = localEntry.TimeOfDay >= nightStart.Value || localEntry.TimeOfDay < nightEnd.Value;
+                                    exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart.Value || localExit.TimeOfDay < nightEnd.Value || localExit.Date > localEntry.Date;
+                                }
+                                else // Dentro del mismo día calendario
+                                {
+                                    enteredDuringNight = localEntry.TimeOfDay >= nightStart.Value && localEntry.TimeOfDay < nightEnd.Value;
+                                    exitedDuringNightOrMorning = localExit.TimeOfDay >= nightStart.Value && localExit.TimeOfDay <= nightEnd.Value;
+                                }
+
+                                if (nightDayApplies && enteredDuringNight && exitedDuringNightOrMorning && effectiveMinutes >= minNightStay)
+                                {
+                                    isNightStay = true;
+                                    calculatedGross = rate.NightRate;
+                                }
                             }
                         }
 
@@ -405,21 +409,24 @@ public class ParkingTicketService : IParkingTicketService
                                 {
                                     // Validar si el vehículo ingresó de día pero su estancia finalizó en franja nocturna
                                     // y el tiempo excedente después de la plena diurna cumple con el mínimo de permanencia nocturna
-                                    int minStay = (rate.NightStayMinMinutes.GetValueOrDefault() > 0)
-                                        ? rate.NightStayMinMinutes.Value
-                                        : ((branch?.NightStayMinMinutes.GetValueOrDefault() > 0) ? branch.NightStayMinMinutes.Value : 360);
+                                    int minStay = rate.NightStayMinMinutes.GetValueOrDefault() > 0
+                                        ? rate.NightStayMinMinutes.GetValueOrDefault()
+                                        : (branch?.NightStayMinMinutes.GetValueOrDefault() ?? 0);
 
                                     if (rate.NightRate > 0 && completeCycles >= 1 && remMins >= minStay)
                                     {
-                                        var nightStart = rate.NightStartTime ?? branch?.NightStartTime ?? new TimeSpan(18, 0, 0);
-                                        var nightEnd = rate.NightEndTime ?? branch?.NightEndTime ?? new TimeSpan(6, 0, 0);
-                                        bool inNight = (nightStart > nightEnd)
-                                            ? (localExit.TimeOfDay >= nightStart || localExit.TimeOfDay < nightEnd)
-                                            : (localExit.TimeOfDay >= nightStart && localExit.TimeOfDay <= nightEnd);
-
-                                        if (inNight)
+                                        var nightStart = rate.NightStartTime ?? branch?.NightStartTime;
+                                        var nightEnd = rate.NightEndTime ?? branch?.NightEndTime;
+                                        if (nightStart.HasValue && nightEnd.HasValue)
                                         {
-                                            remFee = rate.NightRate;
+                                            bool inNight = (nightStart.Value > nightEnd.Value)
+                                                ? (localExit.TimeOfDay >= nightStart.Value || localExit.TimeOfDay < nightEnd.Value)
+                                                : (localExit.TimeOfDay >= nightStart.Value && localExit.TimeOfDay <= nightEnd.Value);
+
+                                            if (inNight)
+                                            {
+                                                remFee = rate.NightRate;
+                                            }
                                         }
                                     }
 
@@ -724,15 +731,19 @@ public class ParkingTicketService : IParkingTicketService
                     var matchingRule = rules.FirstOrDefault(r => IsDayApplicable(r.Days, day));
                     if (matchingRule != null)
                     {
-                        int trigger = (rate.FullDayThresholdMinutes.GetValueOrDefault() > 0)
-                            ? rate.FullDayThresholdMinutes.Value
-                            : (matchingRule.TriggerMinutes.GetValueOrDefault() > 0 ? matchingRule.TriggerMinutes.Value : 180);
+                        int trigger = rate.FullDayThresholdMinutes.GetValueOrDefault() > 0
+                            ? rate.FullDayThresholdMinutes.GetValueOrDefault()
+                            : (matchingRule.TriggerMinutes.GetValueOrDefault() > 0 
+                                ? matchingRule.TriggerMinutes.GetValueOrDefault() 
+                                : (branch?.FullDayThresholdMinutes.GetValueOrDefault() ?? 0));
 
-                        int coverage = (rate.FullDayCoverageMinutes.GetValueOrDefault() > 0)
-                            ? rate.FullDayCoverageMinutes.Value
-                            : (matchingRule.CoverageMinutes.GetValueOrDefault() > 0 ? matchingRule.CoverageMinutes.Value : 720);
+                        int coverage = rate.FullDayCoverageMinutes.GetValueOrDefault() > 0
+                            ? rate.FullDayCoverageMinutes.GetValueOrDefault()
+                            : (matchingRule.CoverageMinutes.GetValueOrDefault() > 0 
+                                ? matchingRule.CoverageMinutes.GetValueOrDefault() 
+                                : trigger);
 
-                        return (true, trigger, Math.Max(trigger, coverage));
+                        return (trigger > 0, trigger, Math.Max(trigger, coverage));
                     }
                 }
             }
@@ -743,15 +754,15 @@ public class ParkingTicketService : IParkingTicketService
         }
 
         bool fullDayApplies = IsDayApplicable(branch?.FullDayApplicableDays, day);
-        int defaultTrigger = (rate.FullDayThresholdMinutes.GetValueOrDefault() > 0)
-            ? rate.FullDayThresholdMinutes.Value
-            : ((branch?.FullDayThresholdMinutes.GetValueOrDefault() > 0) ? branch.FullDayThresholdMinutes.Value : 720);
+        int defaultTrigger = rate.FullDayThresholdMinutes.GetValueOrDefault() > 0
+            ? rate.FullDayThresholdMinutes.GetValueOrDefault()
+            : (branch?.FullDayThresholdMinutes.GetValueOrDefault() ?? 0);
 
-        int defaultCoverage = (rate.FullDayCoverageMinutes.GetValueOrDefault() > 0)
-            ? rate.FullDayCoverageMinutes.Value
-            : Math.Max(defaultTrigger, 720);
+        int defaultCoverage = rate.FullDayCoverageMinutes.GetValueOrDefault() > 0
+            ? rate.FullDayCoverageMinutes.GetValueOrDefault()
+            : defaultTrigger;
 
-        return (fullDayApplies, defaultTrigger, defaultCoverage);
+        return (fullDayApplies && defaultTrigger > 0, defaultTrigger, Math.Max(defaultTrigger, defaultCoverage));
     }
 
     private sealed class FullDayRuleItem
