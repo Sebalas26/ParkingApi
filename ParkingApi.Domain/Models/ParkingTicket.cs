@@ -41,4 +41,11 @@ public class ParkingTicket
     public virtual Company? Company { get; set; }
     public virtual Branch? Branch { get; set; }
     public virtual ICollection<TicketDiscount> Discounts { get; set; } = new List<TicketDiscount>();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? AgreementName => Discounts?.FirstOrDefault(d => d.Agreement != null)?.Agreement?.Name 
+        ?? Discounts?.FirstOrDefault(d => d.Store != null)?.Store?.Name;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? StoreName => Discounts?.FirstOrDefault(d => d.Store != null)?.Store?.Name;
 }

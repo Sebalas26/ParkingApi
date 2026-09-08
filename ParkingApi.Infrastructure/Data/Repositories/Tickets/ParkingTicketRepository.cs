@@ -204,7 +204,8 @@ public class ParkingTicketRepository : IParkingTicketRepository
             var targetDate = date.Date;
             var query = _context.ParkingTickets
                 .AsNoTracking()
-                .Include(t => t.Discounts)
+                .Include(t => t.Discounts).ThenInclude(d => d.Agreement)
+                .Include(t => t.Discounts).ThenInclude(d => d.Store)
                 .Include(t => t.Branch)
                 .Where(t => t.EntryTimeUtc.Date == targetDate || (t.ExitTimeUtc.HasValue && t.ExitTimeUtc.Value.Date == targetDate));
 
@@ -234,7 +235,8 @@ public class ParkingTicketRepository : IParkingTicketRepository
         {
             var query = _context.ParkingTickets
                 .AsNoTracking()
-                .Include(t => t.Discounts)
+                .Include(t => t.Discounts).ThenInclude(d => d.Agreement)
+                .Include(t => t.Discounts).ThenInclude(d => d.Store)
                 .Include(t => t.Branch)
                 .AsQueryable();
 
@@ -264,6 +266,9 @@ public class ParkingTicketRepository : IParkingTicketRepository
         {
             var query = _context.ParkingTickets
                 .AsNoTracking()
+                .Include(t => t.Discounts).ThenInclude(d => d.Agreement)
+                .Include(t => t.Discounts).ThenInclude(d => d.Store)
+                .Include(t => t.Branch)
                 .Where(t => t.EntryTimeUtc >= fromUtc && t.EntryTimeUtc <= toUtc);
 
             if (branchId.HasValue && branchId.Value > 0)
@@ -272,7 +277,7 @@ public class ParkingTicketRepository : IParkingTicketRepository
             }
             if (companyId.HasValue && companyId.Value > 0)
             {
-                query = query.Where(t => t.Branch != null && t.Branch.CompanyId == companyId.Value);
+                query = query.Where(t => t.CompanyId == companyId.Value || (t.Branch != null && t.Branch.CompanyId == companyId.Value));
             }
 
             return await query
