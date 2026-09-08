@@ -11,6 +11,7 @@ public class PlanDto
     public decimal? AnnualPriceCop { get; set; }
     public int MaxBranches { get; set; } = 1;
     public int MaxUsers { get; set; } = 5;
+    public int UsersPerBranch { get; set; } = 5;
     public bool HasDesktopAccess { get; set; } = true;
     public bool HasWebAccess { get; set; } = true;
     public bool AllowMultipleSessions { get; set; } = false;
@@ -30,6 +31,7 @@ public class CreatePlanDto
     public decimal? AnnualPriceCop { get; set; }
     public int MaxBranches { get; set; } = 1;
     public int MaxUsers { get; set; } = 5;
+    public int UsersPerBranch { get; set; } = 5;
     public bool HasDesktopAccess { get; set; } = true;
     public bool HasWebAccess { get; set; } = true;
     public bool AllowMultipleSessions { get; set; } = false;
@@ -46,6 +48,7 @@ public class UpdatePlanDto
     public decimal? AnnualPriceCop { get; set; }
     public int MaxBranches { get; set; } = 1;
     public int MaxUsers { get; set; } = 5;
+    public int UsersPerBranch { get; set; } = 5;
     public bool HasDesktopAccess { get; set; } = true;
     public bool HasWebAccess { get; set; } = true;
     public bool AllowMultipleSessions { get; set; } = false;

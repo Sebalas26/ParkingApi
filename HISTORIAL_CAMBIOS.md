@@ -2,6 +2,32 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 17:15:00] - [FEATURE / SAAS-PLANS / FORMULA / RATIO / NET10] Flexibilización de Planes SaaS con Fórmula Comercial (UsersPerBranch), Mapeo en DTOs y Migración Defensiva SQL
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Necesito ahora crear de terminar el modulo de planes, que sucede necesito que eso sea super dinamico y flexible, que yo pueda colocar la formula ejemplo de la formula principal es que yo pueda decir 1 sede + 5 usuarios si me explico esa es la formula principal y eso tiene un precio que yo pueda colocar si me explico, entonces cuadno yo arme planes yo diga 2 sedes el sistema ya sabes cuantos usuarios se habilitaran entonces esos campos en la creación de la empresa de auto llenan las sedes y usuarios, si me epxlico ya el precio sigue en el plan pero entonces se necesita que se pueda colocar el valor , creo que con eso ya me entendiste , por que hay falta colocar si requiere wpa pos que modulos si me explico ya con esa idea revisa lo que te estoy diciendo y dame tu idea completa has el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Modelo de Dominio y Contratos de Datos (`SaaSPlan.cs`, `PlanDtos.cs`)**:
+     - Agregada propiedad `UsersPerBranch` (`int`, por defecto `5`) a la entidad `SaaSPlan` para registrar el ratio comercial de usuarios por cada sede incluida en el plan.
+     - Actualizados los DTOs `PlanDto`, `CreatePlanDto` y `UpdatePlanDto` para transportar `UsersPerBranch` hacia clientes Web PWA y Desktop.
+  2. **Lógica de Servicio (`PlanService.cs`)**:
+     - Mapeado `UsersPerBranch` en los métodos `CreateAsync`, `UpdateAsync` y `MapToDto`, preservando la integridad de los planes existentes.
+  3. **Scripts de Base de Datos Canónicos (`02_Init_RBAC_Seed.sql`)**:
+     - Actualizada la instrucción canónica `CREATE TABLE IF NOT EXISTS Plans` con la columna `UsersPerBranch INT NOT NULL DEFAULT 5`.
+     - Incorporado bloque de migración defensiva condicional consultando `INFORMATION_SCHEMA.COLUMNS` para ejecutar `ALTER TABLE Plans ADD COLUMN UsersPerBranch INT NOT NULL DEFAULT 5` sin afectar registros preexistentes ni requerir reinicios destructivos.
+  4. **Verificación y Pruebas Unitarias**:
+     - Compilación limpia con `dotnet build` (0 errores, 0 advertencias).
+     - Ejecución del 100% de la suite de pruebas unitarias: `dotnet test ParkingApi.slnx` -> **475 de 475 pruebas superadas (0 fallos)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/SaaSPlan.cs`
+  - `ParkingApi.Domain/Dtos/Plans/PlanDtos.cs`
+  - `ParkingApi.Core/Services/Plans/PlanService.cs`
+  - `Scripts/02_Init_RBAC_Seed.sql`
+
+---
+
 ## 📌 Entrada: [2026-09-08 13:30:00] - [FEATURE / SIGNALR / SHIFTS / REALTIME] Emisión de Eventos SignalR para Apertura y Cierre de Turnos (ShiftOpened, ShiftClosed)
 
 - **`💬 Prompt Original del Usuario`**:

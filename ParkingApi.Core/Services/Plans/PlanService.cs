@@ -65,6 +65,7 @@ public class PlanService : IPlanService
             AnnualPriceCop = dto.AnnualPriceCop,
             MaxBranches = dto.MaxBranches,
             MaxUsers = dto.MaxUsers,
+            UsersPerBranch = dto.UsersPerBranch > 0 ? dto.UsersPerBranch : 5,
             HasDesktopAccess = dto.HasDesktopAccess,
             HasWebAccess = dto.HasWebAccess,
             AllowMultipleSessions = dto.AllowMultipleSessions,
@@ -108,6 +109,7 @@ public class PlanService : IPlanService
         plan.AnnualPriceCop = dto.AnnualPriceCop;
         plan.MaxBranches = dto.MaxBranches;
         plan.MaxUsers = dto.MaxUsers;
+        plan.UsersPerBranch = dto.UsersPerBranch > 0 ? dto.UsersPerBranch : 5;
         plan.HasDesktopAccess = dto.HasDesktopAccess;
         plan.HasWebAccess = dto.HasWebAccess;
         plan.AllowMultipleSessions = dto.AllowMultipleSessions;
@@ -159,6 +161,7 @@ public class PlanService : IPlanService
             AnnualPriceCop = plan.AnnualPriceCop,
             MaxBranches = plan.MaxBranches,
             MaxUsers = plan.MaxUsers,
+            UsersPerBranch = plan.UsersPerBranch > 0 ? plan.UsersPerBranch : 5,
             HasDesktopAccess = plan.HasDesktopAccess,
             HasWebAccess = plan.HasWebAccess,
             AllowMultipleSessions = plan.AllowMultipleSessions,

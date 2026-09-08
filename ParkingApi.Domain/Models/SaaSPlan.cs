@@ -11,6 +11,7 @@ public class SaaSPlan : GeneralEntity
     public decimal? AnnualPriceCop { get; set; }
     public int MaxBranches { get; set; } = 1;
     public int MaxUsers { get; set; } = 5;
+    public int UsersPerBranch { get; set; } = 5;
     public bool HasDesktopAccess { get; set; } = true;
     public bool HasWebAccess { get; set; } = true;
     public bool AllowMultipleSessions { get; set; } = false;

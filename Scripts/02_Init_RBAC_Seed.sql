@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `Plans` (
     `AnnualPriceCop` DECIMAL(18,2) NULL,
     `MaxBranches` INT NOT NULL DEFAULT 1,
     `MaxUsers` INT NOT NULL DEFAULT 5,
+    `UsersPerBranch` INT NOT NULL DEFAULT 5,
     `HasDesktopAccess` BOOLEAN NOT NULL DEFAULT 1,
     `HasWebAccess` BOOLEAN NOT NULL DEFAULT 1,
     `AllowMultipleSessions` BOOLEAN NOT NULL DEFAULT 0,
@@ -137,6 +138,15 @@ CREATE TABLE IF NOT EXISTS `Branches` (
 
 -- Migración Defensiva de Columnas para Bases de Datos Existentes
 SET @dbname = DATABASE();
+
+-- 1.2a0 Columna UsersPerBranch en Plans
+SET @tableName = "Plans";
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'UsersPerBranch') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Plans` ADD COLUMN `UsersPerBranch` INT NOT NULL DEFAULT 5 AFTER `MaxUsers`;"
+));
+PREPARE stmt1_plan FROM @sqlCmd; EXECUTE stmt1_plan; DEALLOCATE PREPARE stmt1_plan;
 
 -- 1.2a Columnas de Planes y Cuotas en Companies
 SET @tableName = "Companies";
