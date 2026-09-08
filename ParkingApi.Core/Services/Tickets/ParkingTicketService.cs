@@ -705,6 +705,59 @@ public class ParkingTicketService : IParkingTicketService
         }
     }
 
+    public async Task<ParkingTicket?> EmitElectronicInvoiceAsync(Guid ticketId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var ticket = await _ticketRepository.GetByIdAsync(ticketId, cancellationToken);
+            if (ticket == null)
+            {
+                return null;
+            }
+
+            if (ticket.IsElectronicInvoice)
+            {
+                throw new InvalidOperationException($"El tiquete #{ticket.TicketNumber} ya cuenta con Factura Electrónica DIAN emitida ({ticket.InvoiceNumber}).");
+            }
+
+            if (ticket.Status != TicketStatus.Completed && !ticket.ExitTimeUtc.HasValue)
+            {
+                throw new InvalidOperationException($"El tiquete #{ticket.TicketNumber} debe estar liquidado antes de emitir Factura Electrónica.");
+            }
+
+            var activeResolutions = await _resolutionRepository.GetActiveAsync(ticket.BranchId, ticket.CompanyId, cancellationToken);
+            var activeRes = activeResolutions.FirstOrDefault();
+            if (activeRes == null)
+            {
+                throw new InvalidOperationException("No se encontró una resolución de facturación DIAN activa para la sede. Por favor configure una resolución en Configuración -> Resoluciones.");
+            }
+
+            ticket.ResolutionId = activeRes.ResolutionId;
+            ticket.ResolutionName = !string.IsNullOrWhiteSpace(activeRes.Prefix) && !string.IsNullOrWhiteSpace(activeRes.Name)
+                ? $"{activeRes.Prefix} - {activeRes.Name}"
+                : activeRes.Name;
+            ticket.InvoiceNumber = $"{activeRes.Prefix}{activeRes.CurrentNumber}";
+            ticket.IsElectronicInvoice = true;
+
+            activeRes.CurrentNumber++;
+            activeRes.UpdatedAtUtc = DateTime.UtcNow;
+
+            await _resolutionRepository.UpdateAsync(activeRes, cancellationToken);
+            await _ticketRepository.UpdateAsync(ticket, cancellationToken);
+
+            return ticket;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Error}: Error al emitir factura electrónica para tiquete {TicketId}", Constants.TicketError, ticketId);
+            throw new Exception("Error interno al procesar la emisión de factura electrónica DIAN.", ex);
+        }
+    }
+
     private static bool IsDayApplicable(string? applicableDays, DayOfWeek day)
     {
         if (string.IsNullOrWhiteSpace(applicableDays) || applicableDays.Equals("All", StringComparison.OrdinalIgnoreCase))

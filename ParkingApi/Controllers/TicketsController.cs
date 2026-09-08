@@ -118,6 +118,29 @@ public class TicketsController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/emit-electronic-invoice")]
+    public async Task<IActionResult> EmitElectronicInvoice(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ticket = await _ticketService.EmitElectronicInvoiceAsync(id, cancellationToken);
+            if (ticket == null)
+            {
+                return NotFound(new { message = "Tiquete no encontrado." });
+            }
+            return Ok(ticket);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al emitir factura electrónica para tiquete {Id}", id);
+            return StatusCode(500, new { message = "Error interno al emitir factura electrónica." });
+        }
+    }
+
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory(
         [FromQuery] DateTime? date,
