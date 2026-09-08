@@ -121,6 +121,8 @@ CREATE TABLE IF NOT EXISTS `Branches` (
     `NightStartTime` TIME NULL DEFAULT NULL,
     `NightEndTime` TIME NULL DEFAULT NULL,
     `NightStayMinMinutes` INT NULL DEFAULT NULL,
+    `EntryGracePeriodMinutes` INT NOT NULL DEFAULT 0,
+    `ExitGracePeriodMinutes` INT NOT NULL DEFAULT 0,
     `Notes` VARCHAR(500) NULL,
     `LogoBase64` LONGTEXT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
@@ -365,6 +367,20 @@ SET @sqlCmd = (SELECT IF(
   "ALTER TABLE `Branches` ADD COLUMN `NightApplicableDays` VARCHAR(50) NULL DEFAULT '1,2,3,4,5,6,0' AFTER `FullDayEndTime`;"
 ));
 PREPARE stmt13j FROM @sqlCmd; EXECUTE stmt13j; DEALLOCATE PREPARE stmt13j;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'EntryGracePeriodMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `EntryGracePeriodMinutes` INT NOT NULL DEFAULT 0;"
+));
+PREPARE stmt13k FROM @sqlCmd; EXECUTE stmt13k; DEALLOCATE PREPARE stmt13k;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'ExitGracePeriodMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `ExitGracePeriodMinutes` INT NOT NULL DEFAULT 0;"
+));
+PREPARE stmt13l FROM @sqlCmd; EXECUTE stmt13l; DEALLOCATE PREPARE stmt13l;
 
 -- 1.3 Tipos de Identificación
 CREATE TABLE IF NOT EXISTS `IdentificationType` (

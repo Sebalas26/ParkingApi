@@ -34,6 +34,8 @@ public class Branch : GeneralEntity
     public System.TimeSpan? NightStartTime { get; set; } = new System.TimeSpan(18, 0, 0);
     public System.TimeSpan? NightEndTime { get; set; } = new System.TimeSpan(6, 0, 0);
     public int? NightStayMinMinutes { get; set; } = 240;
+    public int EntryGracePeriodMinutes { get; set; } = 0;
+    public int ExitGracePeriodMinutes { get; set; } = 0;
 
     public virtual ICollection<BranchOperatingHour> OperatingHours { get; set; } = new List<BranchOperatingHour>();
     public virtual ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();

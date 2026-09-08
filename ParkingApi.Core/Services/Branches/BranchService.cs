@@ -143,6 +143,8 @@ public class BranchService : IBranchService
             NightStartTime = TimeSpan.TryParse(dto.NightStartTime, out var ns) ? ns : new TimeSpan(18, 0, 0),
             NightEndTime = TimeSpan.TryParse(dto.NightEndTime, out var ne) ? ne : new TimeSpan(6, 0, 0),
             NightStayMinMinutes = dto.NightStayMinMinutes > 0 ? dto.NightStayMinMinutes : 360,
+            EntryGracePeriodMinutes = dto.EntryGracePeriodMinutes.GetValueOrDefault(0),
+            ExitGracePeriodMinutes = dto.ExitGracePeriodMinutes.GetValueOrDefault(0),
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -198,6 +200,14 @@ public class BranchService : IBranchService
         if (!string.IsNullOrWhiteSpace(dto.NightEndTime))
             branch.NightEndTime = TimeSpan.TryParse(dto.NightEndTime, out var une) ? une : branch.NightEndTime;
         branch.NightStayMinMinutes = dto.NightStayMinMinutes > 0 ? dto.NightStayMinMinutes : branch.NightStayMinMinutes;
+        if (dto.EntryGracePeriodMinutes.HasValue)
+        {
+            branch.EntryGracePeriodMinutes = dto.EntryGracePeriodMinutes.Value;
+        }
+        if (dto.ExitGracePeriodMinutes.HasValue)
+        {
+            branch.ExitGracePeriodMinutes = dto.ExitGracePeriodMinutes.Value;
+        }
         if (dto.LogoBase64 != null)
         {
             branch.LogoBase64 = dto.LogoBase64.Trim();
@@ -412,6 +422,8 @@ public class BranchService : IBranchService
         NightStartTime = b.NightStartTime?.ToString(@"hh\:mm") ?? "18:00",
         NightEndTime = b.NightEndTime?.ToString(@"hh\:mm") ?? "06:00",
         NightStayMinMinutes = b.NightStayMinMinutes.GetValueOrDefault(360),
+        EntryGracePeriodMinutes = b.EntryGracePeriodMinutes,
+        ExitGracePeriodMinutes = b.ExitGracePeriodMinutes,
         OperatingHours = b.OperatingHours?.Select(h => new BranchOperatingHourDto
         {
             Id = h.Id,

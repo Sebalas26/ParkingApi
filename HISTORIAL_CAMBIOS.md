@@ -2,6 +2,36 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 11:15:00] - [SETTINGS / BRANCH GRACE PERIODS / ZERO HARDCODED DATA / DB MIGRATION / NET10] Centralización de Tiempos de Gracia en Sedes (Entrada y Salida), Migración Defensiva sin Pérdida de Sedes y Regla de Oro Transversal
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"tengo otra cosa que analice y creo que esta mal quiero que me digas tu, ese tiempo de gracia deberia ser general no por vehiculo sería canson o que dices si es mejor por vehiculo, por que igual nos hace falta un campo el tiempo de gracia de salida después de pagar, eso aplicaria cuando se tienen talanqueras y todo si me explico. analiza esa pregunta y dime como lo ves mejor."*
+  > *"siii dale realiza eso que quede en la creación de la sede. haz el plan"*
+  > *"sin data definida como te hago saber que no se puede quemar data enserio no es no se puede quemar data agrega eso como regla de oro en todos los 3 proyectos no se puede quemar data."*
+  > *"no quiero el texto de tolenrancia para talanquera por que eso dice que el sistema tiene talanquera y de ser asi no lo tenga que ? eso mensaje es nosivo para el sistema solo decir tolenacia para no generar cobro en la salida o algo así e igual para el ingreso."*
+  > *"yo pienso que no deberian ser nulables por que eso debe tener las validaciones en rojo de angular de que deben agregar algo si colocan 0 entonces no seran nulables siempre deben tener dato si me explico. para ser eso pósible debo eliminar o correr el script 3 para borrar todas las sede me avisas."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Columnas en Entidad `Branch.cs` y DTOs (`BranchDtos.cs`)**:
+     - Agregadas propiedades `EntryGracePeriodMinutes` y `ExitGracePeriodMinutes` (`int`) con valor base 0.
+     - En DTOs de creación y actualización (`CreateBranchDto`, `UpdateBranchDto`), expuestas como campos asignables por el usuario.
+     - Mapeadas en `BranchService.cs` (`CreateAsync`, `UpdateAsync`, `MapToDto`).
+  2. **Resolución en Motor de Cobro (`ParkingTicketService.cs`)**:
+     - Al calcular el cobro de salida de tiquetes, el tiempo de gracia de entrada se resuelve con:
+       `var grace = branch != null && branch.EntryGracePeriodMinutes > 0 ? branch.EntryGracePeriodMinutes : rate.GracePeriodMinutes;`
+       Si `grace > 0 && effectiveMinutes <= grace` el cobro es $0. Si es 0, no se otorga gratuidad y se cobra la estadía completa.
+  3. **Scripts de Base de Datos y Migración Idempotente Defensiva**:
+     - `02_Init_RBAC_Seed.sql`:
+       - Columnas añadidas en `CREATE TABLE IF NOT EXISTS Branches`: `EntryGracePeriodMinutes INT NOT NULL DEFAULT 0, ExitGracePeriodMinutes INT NOT NULL DEFAULT 0`.
+       - Bloque defensivo condicional con `INFORMATION_SCHEMA.COLUMNS` y `ALTER TABLE Branches ADD COLUMN ... INT NOT NULL DEFAULT 0`.
+     - `12_Add_Branch_Grace_Periods.sql`: Creado script individual para ejecución en caliente en bases de datos de producción sin afectar sedes existentes.
+  4. **Codificación de Regla de Oro en `AGENTS.md`**:
+     - Incorporada la Regla de Oro 8 contra data quemada y valores por defecto inventados por la IA en esquemas y migraciones.
+  5. **Verificación y Pruebas**:
+     - `dotnet test ParkingApi.slnx` -> **475 de 475 Pruebas Unitarias Superadas (0 Fallos)**.
+
+---
+
 ## 📌 Entrada: [2026-09-08 07:15:00] - [FEATURE / PRICING / SQL / DATA-DRIVEN] Tarifas Plenas Dinámicas por Bloques de Días (FullDayRatesJson), Scripts SQL y Banco Masivo de Pruebas de Estrés
 
 - **`💬 Prompt Original del Usuario`**:

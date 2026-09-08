@@ -73,4 +73,28 @@ Este documento define las **Reglas de Oro y Estándares Obligatorios** para cual
 2. **Prohibición de Desfase o Scripts Huérfanos**:
    - No se dará por concluida ninguna tarea de base de datos o entidad si `01_Clean_All_Tables.sql` y `02_Init_RBAC_Seed.sql` no han sido sincronizados y probados.
 
+---
+
+## 🛑 7. REGLA DE ORO: PROHIBICIÓN ESTRICTA DE REGRESIONES Y ALTERACIÓN DE FUNCIONALIDADES ESTABLES (NO DAÑAR LO QUE YA FUNCIONA)
+> [!CAUTION]
+> **PROHIBICIÓN ESTRICTA DE ALTERAR COMPORTAMIENTOS PREVIAMENTE FUNCIONALES**:
+> Está terminantemente prohibido modificar contratos de datos (DTOs), endpoints, lógica de negocio o comportamientos existentes que ya estén funcionando correctamente si el usuario no lo ha solicitado de forma expresa.
+
+1. **Principio de Modificación Quirúrgica y Mínima**:
+   - Todo cambio debe limitarse exclusivamente al endpoint, servicio o línea exacta requerida para cumplir la solicitud puntual del usuario.
+2. **Cero Tolerancia a Regresiones de Backend**:
+   - Todo cambio debe garantizar retrocompatibilidad total con los clientes frontend (WPF y PWA) previamente probados y aprobados.
+
+---
+
+## 🛑 8. REGLA DE ORO: PROHIBICIÓN ESTRICTA DE DATA QUEMADA (HARDCODED) EN ESQUEMAS Y MIGRACIONES
+> [!CAUTION]
+> **PROHIBICIÓN ESTRICTA DE QUEMAR DATA O IMPONER VALORES DE NEGOCIO ARBITRARIOS**:
+> Jamás asumir o imponer valores de negocio por defecto inventados por la IA en la base de datos o en los modelos de entidades.
+
+1. **Cero Data Quemada en Esquemas y Migraciones**:
+   - Las columnas de base de datos no deben imponer valores de negocio inventados en cláusulas `DEFAULT` de SQL (ej: `DEFAULT 15`). Deben ser `NULL DEFAULT NULL` o `DEFAULT 0` si son requeridas.
+2. **Respeto a las Políticas de Negocio**:
+   - Los servicios del backend no deben forzar fallbacks de cortesía o gratuidad no solicitados (ej: si una sede tiene tiempo de gracia en 0 o no configurado, el tiempo de gracia efectivo es 0 minutos).
+
 

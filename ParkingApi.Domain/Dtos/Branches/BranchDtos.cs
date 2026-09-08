@@ -32,6 +32,8 @@ public class BranchDto
     public string? NightStartTime { get; set; } = "18:00";
     public string? NightEndTime { get; set; } = "06:00";
     public int NightStayMinMinutes { get; set; } = 360;
+    public int EntryGracePeriodMinutes { get; set; } = 0;
+    public int ExitGracePeriodMinutes { get; set; } = 0;
     public List<BranchOperatingHourDto> OperatingHours { get; set; } = new();
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
@@ -65,6 +67,8 @@ public class CreateBranchDto
     public string? NightStartTime { get; set; } = "18:00";
     public string? NightEndTime { get; set; } = "06:00";
     public int NightStayMinMinutes { get; set; } = 360;
+    public int? EntryGracePeriodMinutes { get; set; }
+    public int? ExitGracePeriodMinutes { get; set; }
 }
 
 public class UpdateBranchDto
@@ -93,6 +97,8 @@ public class UpdateBranchDto
     public string? NightStartTime { get; set; } = "18:00";
     public string? NightEndTime { get; set; } = "06:00";
     public int NightStayMinMinutes { get; set; } = 360;
+    public int? EntryGracePeriodMinutes { get; set; }
+    public int? ExitGracePeriodMinutes { get; set; }
     public bool IsActive { get; set; }
 }
 

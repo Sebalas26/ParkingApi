@@ -306,8 +306,10 @@ public class ParkingTicketService : IParkingTicketService
 
                 if (rate != null)
                 {
-                    var grace = rate.GracePeriodMinutes;
-                    if (effectiveMinutes <= grace)
+                    var grace = branch != null && branch.EntryGracePeriodMinutes > 0 
+                        ? branch.EntryGracePeriodMinutes 
+                        : rate.GracePeriodMinutes;
+                    if (grace > 0 && effectiveMinutes <= grace)
                     {
                         calculatedGross = 0m;
                     }
