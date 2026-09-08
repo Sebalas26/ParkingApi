@@ -2,6 +2,45 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 06:15:00] - [FEATURE / SECURITY / SQL / ARCHITECTURE] Script de Limpieza Rápida (03) y Protocolo de Alta Seguridad en Eliminación Permanente de Empresas SaaS
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Sabes que seria bueno, tenerlo es mira tenemos estos dos archivos que son los principales 01_Clean_All_Tables.sql 02_Init_RBAC_Seed.sql , pero eso es cuando tocamos varias campos o modificamos la BD mucho pero si yo quisiera arrancar con la data desde cero solo con lo del superadministrador dime que archivo me serviria para eliminar todas las compañias uy otra cosa si yo desde el superadministrador elimino una compañia eso hace eliminación en cadena elimina todos los registros de esa compañia de la BD ? o como sería el manejo con eso me explicas ? eso es un gran punto importante a tener encuenta. analiza esa responsabilidad que tal que uno se equivoque y elimine una compañia como queda uno y la data se pierda, eso debería tener algo de seguridad como la contraseña pasos de verificación me explico yo."*
+  > *"has las dos me parecen perfectas enserio es lo ideal lo que mencionas ."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Script SQL de Mantenimiento y Arranque Limpio (`03_Reset_Operational_Data_Keep_SuperAdmin.sql`)**:
+     - Limpieza selectiva y transaccional profunda de tablas operativas, transacciones (`ParkingTickets`, `TicketDiscounts`, `WorkShifts`, `BillingResolutions`, `VehicleIncidents`), convenios, mensualidades, tarifas y sedes (`Branches`), empresas (`Companies`) y planes dinámicos (`Plans`).
+     - Eliminación de usuarios y credenciales de empresas (`User` donde `CompanyId IS NOT NULL OR Id > 1`, `Login`, `PasswordResetToken`, `UserRole` personalizados).
+     - **Preserva intactos**: El catálogo RBAC completo (17 Módulos, 7 Operaciones, 107 Acciones), el Rol Super Administrador (Id = 1) y sus permisos asignados, el Usuario SuperAdmin `admin` (Id = 1, `CompanyId = NULL`), y los catálogos base (`IdentificationType`, `PaymentMethod`).
+     - Reinicia de forma limpia los contadores `AUTO_INCREMENT` de las tablas operativas e incluye una consulta de verificación al cierre.
+  2. **Protocolo de Alta Seguridad para Eliminación Permanente de Empresas**:
+     - Creado `DeleteCompanyRequestDto` con `ConfirmCompanyName` y `SuperAdminPassword`.
+     - Endpoint seguro `[HttpDelete("{id}")]` y `[HttpPost("{id}/secure-delete")]` en `CompaniesController`:
+       - Restricción estricta a usuarios con rol `IsSuperAdmin == true` (`403 Forbidden` si no lo son).
+       - Exige campos completos en el cuerpo de la solicitud (`400 Bad Request` si están vacíos).
+       - Validación criptográfica de la contraseña actual del SuperAdministrador (`PasswordHasher.VerifyPassword`) contra el usuario autenticado (`401 Unauthorized` si es errónea).
+       - Validación de coincidencia exacta del nombre de la empresa ingresado por el usuario (`400 Bad Request` ante discrepancias).
+     - En `CompanyService.DeleteCompanyAsync`: Prevención de fallos de integridad referencial incorporando la limpieza previa de `PushSubscriptions` (que posee `ON DELETE RESTRICT` hacia `Companies`), `UserNotificationPreferences`, `UserSessions`, `BranchOperatingHours` y `BranchCommercialAgreements`.
+  3. **Certificación y Cobertura de Pruebas**:
+     - Actualizadas y ampliadas las pruebas unitarias en `CompaniesControllerTests.cs` cubriendo: eliminación exitosa, rechazo por falta de rol SuperAdmin (403), rechazo por payload nulo (400), nombre no coincidente (400), contraseña inválida (401), empresa no encontrada (404) y fallo interno (500).
+     - `dotnet test ParkingApi.slnx` -> **368 de 368 Superadas (100% Éxito, 0 Fallos)**.
+
+- **`📦 Componentes Modificados y Creados`**:
+  - `Scripts/03_Reset_Operational_Data_Keep_SuperAdmin.sql` (NUEVO)
+  - `ParkingApi.Domain/Dtos/Companies/CompanyDtos.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Companies/ICompanyService.cs`
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi/Controllers/CompaniesController.cs`
+  - `ParkingApi.UnitTests/Controllers/CompaniesControllerTests.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+  - `dotnet test ParkingApi.slnx` -> **368 de 368 PASADAS (100% éxito, 0 fallos)**.
+
+---
+
 ## 📌 Entrada: [2026-09-07 22:25:00] - [CLEANUP / ARCHITECTURE / REFACTOR] Erradicación Total de Números Quemados (100% Data-Driven) y Resolución Definitiva de 19 Advertencias (NU1903, CS8629, CS8601)
 
 - **`💬 Prompt Original del Usuario`**:

@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ParkingApi.Controllers;
 using ParkingApi.Domain.Dtos.Companies;
+using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.Companies;
 using Xunit;
 
@@ -19,14 +20,18 @@ public class CompaniesControllerTests
 {
     private readonly Mock<ICompanyService> _companyServiceMock;
     private readonly Mock<ILogger<CompaniesController>> _loggerMock;
+    private readonly Mock<ICurrentUserService> _currentUserMock;
     private readonly CompaniesController _controller;
 
     public CompaniesControllerTests()
     {
         _companyServiceMock = new Mock<ICompanyService>();
         _loggerMock = new Mock<ILogger<CompaniesController>>();
+        _currentUserMock = new Mock<ICurrentUserService>();
+        _currentUserMock.Setup(u => u.IsSuperAdmin).Returns(true);
+        _currentUserMock.Setup(u => u.ParsedUserId).Returns(1);
 
-        _controller = new CompaniesController(_companyServiceMock.Object, _loggerMock.Object);
+        _controller = new CompaniesController(_companyServiceMock.Object, _loggerMock.Object, _currentUserMock.Object);
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
@@ -352,25 +357,103 @@ public class CompaniesControllerTests
     public async Task Delete_WhenSuccessful_ShouldReturnOk()
     {
         // Arrange
-        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(1, It.IsAny<CancellationToken>()))
+        var request = new DeleteCompanyRequestDto
+        {
+            ConfirmCompanyName = "Empresa Alfa",
+            SuperAdminPassword = "SecurePassword123"
+        };
+        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(1, request, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         // Act
-        var result = await _controller.Delete(1, CancellationToken.None);
+        var result = await _controller.Delete(1, request, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
     }
 
     [Fact]
+    public async Task Delete_WhenNotSuperAdmin_ShouldReturn403()
+    {
+        // Arrange
+        _currentUserMock.Setup(u => u.IsSuperAdmin).Returns(false);
+        var request = new DeleteCompanyRequestDto
+        {
+            ConfirmCompanyName = "Empresa Alfa",
+            SuperAdminPassword = "SecurePassword123"
+        };
+
+        // Act
+        var result = await _controller.Delete(1, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(403);
+    }
+
+    [Fact]
+    public async Task Delete_WhenRequestIsNull_ShouldReturn400()
+    {
+        // Act
+        var result = await _controller.Delete(1, null, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task Delete_WhenNameMismatch_ShouldReturn400()
+    {
+        // Arrange
+        var request = new DeleteCompanyRequestDto
+        {
+            ConfirmCompanyName = "Nombre Erroneo",
+            SuperAdminPassword = "SecurePassword123"
+        };
+        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(1, request, 1, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("El nombre de confirmación no coincide."));
+
+        // Act
+        var result = await _controller.Delete(1, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task Delete_WhenPasswordInvalid_ShouldReturn401()
+    {
+        // Arrange
+        var request = new DeleteCompanyRequestDto
+        {
+            ConfirmCompanyName = "Empresa Alfa",
+            SuperAdminPassword = "WrongPassword"
+        };
+        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(1, request, 1, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UnauthorizedAccessException("Contraseña incorrecta."));
+
+        // Act
+        var result = await _controller.Delete(1, request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(401);
+    }
+
+    [Fact]
     public async Task Delete_WhenNotFound_ShouldReturn404()
     {
         // Arrange
-        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(999, It.IsAny<CancellationToken>()))
+        var request = new DeleteCompanyRequestDto
+        {
+            ConfirmCompanyName = "Empresa Inexistente",
+            SuperAdminPassword = "SecurePassword123"
+        };
+        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(999, request, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         // Act
-        var result = await _controller.Delete(999, CancellationToken.None);
+        var result = await _controller.Delete(999, request, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
@@ -380,11 +463,16 @@ public class CompaniesControllerTests
     public async Task Delete_WhenExceptionThrown_ShouldReturn500()
     {
         // Arrange
-        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(1, It.IsAny<CancellationToken>()))
+        var request = new DeleteCompanyRequestDto
+        {
+            ConfirmCompanyName = "Empresa Alfa",
+            SuperAdminPassword = "SecurePassword123"
+        };
+        _companyServiceMock.Setup(s => s.DeleteCompanyAsync(1, request, 1, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Database deletion lock"));
 
         // Act
-        var result = await _controller.Delete(1, CancellationToken.None);
+        var result = await _controller.Delete(1, request, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<ObjectResult>()

@@ -424,25 +424,59 @@ public class CompanyService : ICompanyService
         return true;
     }
 
-    public async Task<bool> DeleteCompanyAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteCompanyAsync(
+        int id,
+        DeleteCompanyRequestDto? request = null,
+        int? currentUserId = null,
+        CancellationToken cancellationToken = default)
     {
+        var company = await _context.Companies
+            .Include(c => c.Branches)
+            .Include(c => c.Users)
+            .Include(c => c.UserRoles)
+            .Include(c => c.VehicleRates)
+            .Include(c => c.Stores)
+            .Include(c => c.BillingResolutions)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (company == null) return false;
+
+        if (request != null)
+        {
+            if (string.IsNullOrWhiteSpace(request.ConfirmCompanyName) ||
+                !string.Equals(request.ConfirmCompanyName.Trim(), company.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"El nombre de confirmación '{request.ConfirmCompanyName}' no coincide con el nombre de la empresa '{company.Name}'.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.SuperAdminPassword))
+            {
+                throw new UnauthorizedAccessException("Se requiere la contraseña del Super Administrador para autorizar la eliminación permanente.");
+            }
+
+            User? authUser = null;
+            if (currentUserId.HasValue)
+            {
+                authUser = await _context.User.FirstOrDefaultAsync(u => u.Id == currentUserId.Value, cancellationToken);
+            }
+
+            if (authUser == null)
+            {
+                authUser = await _context.User.FirstOrDefaultAsync(u => u.UserRoleId == 1 && !u.CompanyId.HasValue, cancellationToken);
+            }
+
+            if (authUser == null || !PasswordHasher.VerifyPassword(request.SuperAdminPassword, authUser.Password))
+            {
+                throw new UnauthorizedAccessException("Contraseña de Super Administrador incorrecta. No se autorizó la eliminación.");
+            }
+        }
+
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                var company = await _context.Companies
-                    .Include(c => c.Branches)
-                    .Include(c => c.Users)
-                    .Include(c => c.UserRoles)
-                    .Include(c => c.VehicleRates)
-                    .Include(c => c.Stores)
-                    .Include(c => c.BillingResolutions)
-                    .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-
-                if (company == null) return false;
-
                 var branchIds = company.Branches.Select(b => b.Id).ToList();
                 var userIds = company.Users.Select(u => u.Id).ToList();
 
@@ -489,6 +523,18 @@ public class CompanyService : ICompanyService
                     .ToListAsync(cancellationToken);
                 _context.BranchPaymentMethods.RemoveRange(branchPaymentMethods);
 
+                // 5.1 Eliminar horarios operativos de sedes
+                var operatingHours = await _context.BranchOperatingHours
+                    .Where(boh => branchIds.Contains(boh.BranchId))
+                    .ToListAsync(cancellationToken);
+                _context.BranchOperatingHours.RemoveRange(operatingHours);
+
+                // 5.2 Eliminar convenios comerciales por sede
+                var branchAgreements = await _context.BranchCommercialAgreements
+                    .Where(bca => branchIds.Contains(bca.BranchId))
+                    .ToListAsync(cancellationToken);
+                _context.BranchCommercialAgreements.RemoveRange(branchAgreements);
+
                 // 6. Eliminar UserBranches
                 var userBranches = await _context.UserBranches
                     .Where(ub => branchIds.Contains(ub.BranchId) || userIds.Contains(ub.UserId))
@@ -520,6 +566,23 @@ public class CompanyService : ICompanyService
                     .Where(ms => ms.CompanyId == id || (ms.BranchId.HasValue && branchIds.Contains(ms.BranchId.Value)))
                     .ToListAsync(cancellationToken);
                 _context.MonthlySubscriptions.RemoveRange(subscriptions);
+
+                // 10. Eliminar suscripciones Push (previene restricción ON DELETE RESTRICT)
+                var pushSubs = await _context.PushSubscriptions
+                    .Where(ps => ps.CompanyId == id || (ps.BranchId.HasValue && branchIds.Contains(ps.BranchId.Value)) || userIds.Contains(ps.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.PushSubscriptions.RemoveRange(pushSubs);
+
+                // 10.1 Eliminar preferencias de notificación y sesiones de usuario
+                var notifPrefs = await _context.UserNotificationPreferences
+                    .Where(np => userIds.Contains(np.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.UserNotificationPreferences.RemoveRange(notifPrefs);
+
+                var userSessions = await _context.UserSessions
+                    .Where(us => userIds.Contains(us.UserId))
+                    .ToListAsync(cancellationToken);
+                _context.UserSessions.RemoveRange(userSessions);
 
                 // 11. Eliminar Logins y PasswordResetTokens de usuarios
                 var userLogins = await _context.Login

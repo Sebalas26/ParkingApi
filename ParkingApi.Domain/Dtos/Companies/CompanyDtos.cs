@@ -121,3 +121,9 @@ public class UpdateCompanyDto
     public string? AllowedPushTypesJson { get; set; }
     public System.Collections.Generic.List<string>? AllowedPushTypes { get; set; }
 }
+
+public class DeleteCompanyRequestDto
+{
+    public string ConfirmCompanyName { get; set; } = string.Empty;
+    public string SuperAdminPassword { get; set; } = string.Empty;
+}

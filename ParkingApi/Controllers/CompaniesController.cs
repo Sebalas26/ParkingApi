@@ -3,9 +3,11 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Companies;
+using ParkingApi.Domain.Interfaces.Services;
 using ParkingApi.Domain.Interfaces.Services.Companies;
 
 namespace ParkingApi.Controllers;
@@ -16,12 +18,17 @@ namespace ParkingApi.Controllers;
 public class CompaniesController : ControllerBase
 {
     private readonly ICompanyService _companyService;
+    private readonly ICurrentUserService? _currentUser;
     private readonly ILogger<CompaniesController> _logger;
 
-    public CompaniesController(ICompanyService companyService, ILogger<CompaniesController> logger)
+    public CompaniesController(
+        ICompanyService companyService,
+        ILogger<CompaniesController> logger,
+        ICurrentUserService? currentUser = null)
     {
         _companyService = companyService;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
@@ -156,16 +163,38 @@ public class CompaniesController : ControllerBase
         }
     }
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    [HttpPost("{id}/secure-delete")]
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromBody] DeleteCompanyRequestDto? request,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var success = await _companyService.DeleteCompanyAsync(id, cancellationToken);
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "Solo el Super Administrador de la plataforma SaaS puede eliminar empresas." });
+            }
+
+            if (request == null || string.IsNullOrWhiteSpace(request.ConfirmCompanyName) || string.IsNullOrWhiteSpace(request.SuperAdminPassword))
+            {
+                return BadRequest(new { message = "Se requiere el nombre exacto de la empresa y la contraseña del Super Administrador para confirmar la eliminación." });
+            }
+
+            var success = await _companyService.DeleteCompanyAsync(id, request, _currentUser?.ParsedUserId, cancellationToken);
             if (!success)
             {
                 return NotFound(new { message = $"Empresa con ID {id} no encontrada." });
             }
             return Ok(new { message = "Empresa y todos sus datos asociados eliminados exitosamente." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status401Unauthorized, new { message = ex.Message });
         }
         catch (Exception ex)
         {
