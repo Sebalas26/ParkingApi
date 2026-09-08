@@ -18,6 +18,7 @@ public class VehicleRate
     public TimeSpan? FullDayEndTime { get; set; }
     public int? FullDayThresholdMinutes { get; set; }
     public int? FullDayCoverageMinutes { get; set; }
+    public string? FullDayRatesJson { get; set; }
     public decimal NightRate { get; set; }
     public TimeSpan? NightStartTime { get; set; }
     public TimeSpan? NightEndTime { get; set; }

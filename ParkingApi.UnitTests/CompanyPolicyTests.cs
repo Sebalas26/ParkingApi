@@ -88,4 +88,109 @@ public class CompanyPolicyTests
         // Debe haber emitido el evento en tiempo real CompanyUpdated
         _realtimeMock.Verify(r => r.NotifyCustomAsync(It.Is<ConfigNotificationDto>(n => n.EventType == "CompanyUpdated" && n.CompanyId == 5), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task CreateCompany_WhenInvalidPhone_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        var service = new CompanyService(_companyRepoMock.Object, _sessionRepoMock.Object, _realtimeMock.Object, context, _loggerMock.Object);
+
+        var dto = new CreateCompanyDto
+        {
+            Name = "Parqueadero Express",
+            Nit = "900555666",
+            Email = "express@test.com",
+            Phone = "12345", // Menos de 10 dígitos
+            AdminUsername = "admin_express",
+            AdminPassword = "Password123*",
+            AdminFullName = "Carlos Perez"
+        };
+
+        // Act & Assert
+        var act = async () => await service.CreateCompanyAsync(dto);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*10 dígitos*");
+    }
+
+    [Fact]
+    public async Task CreateCompany_WhenDuplicateNit_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        context.Companies.Add(new Company { Id = 10, Name = "Otra Empresa", Nit = "900111222", Email = "otra@test.com" });
+        await context.SaveChangesAsync();
+
+        var service = new CompanyService(_companyRepoMock.Object, _sessionRepoMock.Object, _realtimeMock.Object, context, _loggerMock.Object);
+
+        var dto = new CreateCompanyDto
+        {
+            Name = "Nueva Empresa",
+            Nit = "900111222", // Duplicado
+            Email = "nueva@test.com",
+            Phone = "3001234567",
+            AdminUsername = "admin_nueva",
+            AdminPassword = "Password123*",
+            AdminFullName = "Admin Nueva"
+        };
+
+        // Act & Assert
+        var act = async () => await service.CreateCompanyAsync(dto);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*registrada*NIT*");
+    }
+
+    [Fact]
+    public async Task CreateCompany_WhenDuplicateName_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        context.Companies.Add(new Company { Id = 11, Name = "Parqueadero Central", Nit = "900333444", Email = "central@test.com" });
+        await context.SaveChangesAsync();
+
+        var service = new CompanyService(_companyRepoMock.Object, _sessionRepoMock.Object, _realtimeMock.Object, context, _loggerMock.Object);
+
+        var dto = new CreateCompanyDto
+        {
+            Name = "Parqueadero Central", // Duplicado
+            Nit = "900999888",
+            Email = "otro@test.com",
+            Phone = "3001234567",
+            AdminUsername = "admin_otro",
+            AdminPassword = "Password123*",
+            AdminFullName = "Admin Otro"
+        };
+
+        // Act & Assert
+        var act = async () => await service.CreateCompanyAsync(dto);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*nombre comercial o razón social*ya se encuentra registrado*");
+    }
+
+    [Fact]
+    public async Task CreateCompany_WhenDuplicateUsername_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        context.User.Add(new User { Id = 1, Username = "admin", Email = "admin@test.com", IdentificationNumber = "123", Password = "hash", FullName = "Admin", FirstName = "Admin", FirstSurname = "Admin" });
+        await context.SaveChangesAsync();
+
+        var service = new CompanyService(_companyRepoMock.Object, _sessionRepoMock.Object, _realtimeMock.Object, context, _loggerMock.Object);
+
+        var dto = new CreateCompanyDto
+        {
+            Name = "Empresa Tres",
+            Nit = "900777888",
+            Email = "tres@test.com",
+            Phone = "3001234567",
+            AdminUsername = "admin", // Ya existe
+            AdminPassword = "Password123*",
+            AdminFullName = "Admin Tres"
+        };
+
+        // Act & Assert
+        var act = async () => await service.CreateCompanyAsync(dto);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*nombre de usuario*ya está en uso*");
+    }
 }

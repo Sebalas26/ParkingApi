@@ -821,6 +821,7 @@ CREATE TABLE IF NOT EXISTS `VehicleRates` (
     `FullDayEndTime` TIME NULL DEFAULT NULL,
     `FullDayThresholdMinutes` INT NULL DEFAULT NULL,
     `FullDayCoverageMinutes` INT NULL DEFAULT NULL,
+    `FullDayRatesJson` LONGTEXT NULL DEFAULT NULL,
     `NightRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `NightStartTime` TIME NULL DEFAULT NULL,
     `NightEndTime` TIME NULL DEFAULT NULL,
@@ -874,6 +875,13 @@ SET @sqlCmd = (SELECT IF(
   "ALTER TABLE `VehicleRates` ADD COLUMN `FullDayCoverageMinutes` INT NULL DEFAULT NULL AFTER `FullDayThresholdMinutes`;"
 ));
 PREPARE stmtVr4b FROM @sqlCmd; EXECUTE stmtVr4b; DEALLOCATE PREPARE stmtVr4b;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayRatesJson') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `FullDayRatesJson` LONGTEXT NULL DEFAULT NULL AFTER `FullDayCoverageMinutes`;"
+));
+PREPARE stmtVr4c FROM @sqlCmd; EXECUTE stmtVr4c; DEALLOCATE PREPARE stmtVr4c;
 
 SET @sqlCmd = (SELECT IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightStartTime') > 0,

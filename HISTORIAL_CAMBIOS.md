@@ -2,6 +2,88 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 07:15:00] - [FEATURE / PRICING / SQL / DATA-DRIVEN] Tarifas Plenas Dinámicas por Bloques de Días (FullDayRatesJson), Scripts SQL y Banco Masivo de Pruebas de Estrés
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"entonces revisa analiza y dame el plan completo ."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Modelo y Persistencia de Tarifas Vehiculares (`VehicleRate.cs`, `VehicleRateService.cs`)**:
+     - Incorporada columna `FullDayRatesJson` (`string?`) a la entidad `VehicleRate` para almacenar la matriz JSON de tarifas plenas diferenciadas por bloque de días (`[{"days":"1,2,3,4,5","rate":15000},{"days":"6,0","rate":25000}]`).
+     - Mapeada la persistencia en `VehicleRateService.cs` tanto en creación (`CreateAsync`) como en actualización (`UpdateAsync`).
+  2. **Motor Central de Cobro de Tiquetes (`ParkingTicketService.cs`)**:
+     - Diseñado el algoritmo `ResolveFullDayRate(VehicleRate rate, DayOfWeek dayOfWeek)`:
+       - Si existe `FullDayRatesJson`, parsea la colección `FullDayRateItem` y busca el bloque que contenga el día de la semana de la salida (`IsDayApplicable`).
+       - Fallback limpio hacia `rate.FullDayRate` si no hay coincidencias o si la propiedad está vacía.
+       - Tratamiento defensivo con `try-catch (JsonException)` ante payloads malformados o truncados.
+     - Aplicado el valor resuelto tanto a los ciclos completos acumulados como a la tarifa remanente por umbral de permanencia.
+  3. **Scripts SQL Maestros de Inicialización y Migración**:
+     - `01_Clean_All_Tables.sql`: Verificada la secuencia correcta de borrado en cascada relacional.
+     - `02_Init_RBAC_Seed.sql`:
+       - Agregada columna `FullDayRatesJson TEXT NULL` en la definición `CREATE TABLE IF NOT EXISTS VehicleRates`.
+       - Incorporada migración defensiva condicional idempotente (`stmtVr4c`) mediante `INFORMATION_SCHEMA.COLUMNS` y `ALTER TABLE VehicleRates ADD COLUMN FullDayRatesJson TEXT NULL`.
+     - `12_Add_VehicleRate_FullDayRatesJson.sql`: Creado script complementario de migración individual para entornos existentes.
+  4. **Banco Extensivo de Pruebas Unitarias de Estrés (`PricingEngineComprehensiveTests.cs`)**:
+     - Pruebas dedicadas para resolución dinámica por día (`CheckOut_DynamicFullDayRatesJson_ResolvesExactRateByDayBlock`).
+     - Pruebas de resiliencia ante JSON corrupto o nulo.
+     - Batería masiva de pruebas de estrés mediante `[Theory]` y `[MemberData]` (`CheckOut_ExtensivePricingStressScenarios_CalculatesExactExpectedGross`) cubriendo 150+ combinaciones de cobro por minuto, hora, umbrales, coberturas independientes, transiciones nocturnas y permanencias prolongadas (24h a 120h).
+  5. **Verificación y Cobertura**:
+     - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+     - `dotnet test ParkingApi.slnx` -> **475 de 475 PASADAS (100% éxito, 0 fallos)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/VehicleRate.cs`
+  - `ParkingApi.Core/Services/VehicleRates/VehicleRateService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `Scripts/02_Init_RBAC_Seed.sql`
+  - `Scripts/12_Add_VehicleRate_FullDayRatesJson.sql`
+  - `ParkingApi.UnitTests/Pricing/PricingEngineComprehensiveTests.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+  - `dotnet test ParkingApi.slnx` -> **475 de 475 PASADAS (100% éxito, 0 fallos)**.
+
+---
+
+## 📌 Entrada: [2026-09-08 06:35:00] - [FEATURE / VALIDATION / SECURITY] Validaciones Robustas de Unicidad y Formato en Creación de Empresas SaaS
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"revisa todo bien con buen detalle para poder tener claro esos ajustes."*
+  > *"has las dos me parecen perfectas enserio es lo ideal lo que mencionas ."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Validación Exhaustiva de Unicidad en Creación de Empresas (`CompanyService.cs`)**:
+     - **NIT / RUT**: Verificación previa contra la base de datos (`_companyRepository.ExistsByNitAsync`).
+     - **Nombre Comercial y Razón Social**: Detección de duplicados para evitar empresas homónimas tanto en nombre comercial como en razón social (`LegalName`).
+     - **Correo de Empresa**: Verificación estricta de unicidad en `Companies`.
+     - **Teléfono de Empresa**: Validación de formato numérico de exactamente 10 dígitos mediante expresión regular `^\d{10}$`.
+     - **Administrador Inicial**:
+       - Unicidad de nombre de usuario (`AdminUsername`) contra la tabla `Users`.
+       - Unicidad de correo electrónico (`AdminEmail`) contra la tabla `Users`.
+       - Unicidad de documento de identidad (`AdminIdentificationNumber`) contra la tabla `Users`.
+     - Cada validación arroja una excepción `InvalidOperationException` con mensaje explícito y amigable para ser capturada y mapeada por los controladores hacia respuestas HTTP 400 Bad Request.
+  2. **Batería de Pruebas Unitarias Automatizadas (`CompanyPolicyTests.cs`)**:
+     - Incorporadas 4 nuevas pruebas unitarias cubriendo:
+       - `CreateCompany_ShouldThrow_WhenNitAlreadyExists`: Rechazo si el NIT ya existe.
+       - `CreateCompany_ShouldThrow_WhenNameAlreadyExists`: Rechazo si el nombre comercial o razón social ya existe.
+       - `CreateCompany_ShouldThrow_WhenEmailAlreadyExists`: Rechazo si el correo de la empresa ya existe.
+       - `CreateCompany_ShouldThrow_WhenPhoneIsInvalid`: Rechazo si el teléfono no cuenta con 10 dígitos numéricos.
+  3. **Certificación y Cobertura de Pruebas**:
+     - `dotnet test ParkingApi.slnx` -> **372 de 372 Superadas (100% Éxito, 0 Fallos)**.
+     - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi.UnitTests/CompanyPolicyTests.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+  - `dotnet test ParkingApi.slnx` -> **372 de 372 PASADAS (100% éxito, 0 fallos)**.
+
+---
+
 ## 📌 Entrada: [2026-09-08 06:15:00] - [FEATURE / SECURITY / SQL / ARCHITECTURE] Script de Limpieza Rápida (03) y Protocolo de Alta Seguridad en Eliminación Permanente de Empresas SaaS
 
 - **`💬 Prompt Original del Usuario`**:

@@ -62,18 +62,62 @@ public class CompanyService : ICompanyService
 
     public async Task<CompanyDto> CreateCompanyAsync(CreateCompanyDto dto, int? responsibleUserId = null, CancellationToken cancellationToken = default)
     {
-        // 1. Validar NIT único
-        var existingWithNit = await _companyRepository.GetByNitAsync(dto.Nit.Trim(), cancellationToken);
-        if (existingWithNit != null)
+        // 1. Validar formato de teléfono (exactamente 10 dígitos numéricos si se suministra)
+        if (!string.IsNullOrWhiteSpace(dto.Phone))
         {
-            throw new InvalidOperationException($"Ya existe una empresa registrada con el NIT/Documento '{dto.Nit.Trim()}'.");
+            var cleanPhone = dto.Phone.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(cleanPhone, @"^\d{10}$"))
+            {
+                throw new InvalidOperationException("El número de teléfono debe contener exactamente 10 dígitos numéricos.");
+            }
         }
 
-        // 2. Validar que el username del admin no exista
-        var existingUser = await _context.User.FirstOrDefaultAsync(u => u.Username.ToLower() == dto.AdminUsername.Trim().ToLower(), cancellationToken);
-        if (existingUser != null)
+        // 2. Validar NIT único
+        var trimmedNit = dto.Nit.Trim();
+        var existingWithNit = await _companyRepository.GetByNitAsync(trimmedNit, cancellationToken);
+        if (existingWithNit != null || await _context.Companies.AnyAsync(c => c.Nit.ToLower() == trimmedNit.ToLower(), cancellationToken))
         {
-            throw new InvalidOperationException($"El nombre de usuario '{dto.AdminUsername.Trim()}' ya está en uso.");
+            throw new InvalidOperationException($"Ya existe una empresa registrada con el NIT/Documento '{trimmedNit}'.");
+        }
+
+        // 3. Validar Nombre Comercial y Razón Social únicos
+        var trimmedName = dto.Name.Trim();
+        var trimmedLegalName = string.IsNullOrWhiteSpace(dto.LegalName) ? trimmedName : dto.LegalName.Trim();
+        var existingNameOrLegal = await _context.Companies.FirstOrDefaultAsync(
+            c => c.Name.ToLower() == trimmedName.ToLower() ||
+                 (c.LegalName != null && c.LegalName.ToLower() == trimmedLegalName.ToLower()),
+            cancellationToken);
+        if (existingNameOrLegal != null)
+        {
+            throw new InvalidOperationException($"El nombre comercial o razón social '{trimmedName}' ya se encuentra registrado por otra empresa.");
+        }
+
+        // 4. Validar Correo de Empresa único
+        var trimmedCompanyEmail = dto.Email.Trim().ToLowerInvariant();
+        if (await _context.Companies.AnyAsync(c => c.Email.ToLower() == trimmedCompanyEmail, cancellationToken))
+        {
+            throw new InvalidOperationException($"El correo electrónico '{dto.Email.Trim()}' ya está registrado para otra empresa.");
+        }
+
+        // 5. Validar Username del Administrador inicial único
+        var trimmedAdminUsername = dto.AdminUsername.Trim().ToLowerInvariant();
+        if (await _context.User.AnyAsync(u => u.Username.ToLower() == trimmedAdminUsername, cancellationToken))
+        {
+            throw new InvalidOperationException($"El nombre de usuario '{dto.AdminUsername.Trim()}' ya está en uso. Por favor elija otro.");
+        }
+
+        // 6. Validar Correo del Administrador inicial único
+        var trimmedAdminEmail = (string.IsNullOrWhiteSpace(dto.AdminEmail) ? dto.Email : dto.AdminEmail).Trim().ToLowerInvariant();
+        if (await _context.User.AnyAsync(u => u.Email.ToLower() == trimmedAdminEmail, cancellationToken))
+        {
+            throw new InvalidOperationException($"El correo electrónico del administrador '{trimmedAdminEmail}' ya está registrado por otro usuario.");
+        }
+
+        // 7. Validar Cédula / Documento del Administrador inicial único
+        var adminDoc = (string.IsNullOrWhiteSpace(dto.AdminIdentificationNumber) ? dto.Nit : dto.AdminIdentificationNumber).Trim();
+        if (await _context.User.AnyAsync(u => u.IdentificationNumber == adminDoc, cancellationToken))
+        {
+            throw new InvalidOperationException($"El número de documento '{adminDoc}' ya está registrado por otro usuario.");
         }
 
         var strategy = _context.Database.CreateExecutionStrategy();

@@ -117,6 +117,7 @@ public class VehicleRateService : IVehicleRateService
             rate.FullDayEndTime = input.FullDayEndTime;
             rate.FullDayThresholdMinutes = input.FullDayThresholdMinutes;
             rate.FullDayCoverageMinutes = input.FullDayCoverageMinutes;
+            rate.FullDayRatesJson = input.FullDayRatesJson;
             rate.NightRate = input.NightRate;
             rate.NightStartTime = input.NightStartTime;
             rate.NightEndTime = input.NightEndTime;
