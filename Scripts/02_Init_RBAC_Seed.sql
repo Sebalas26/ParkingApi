@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS `Branches` (
     `FullDayApplicableDays` VARCHAR(50) NULL DEFAULT NULL,
     `FullDayStartTime` TIME NULL DEFAULT NULL,
     `FullDayEndTime` TIME NULL DEFAULT NULL,
+    `FullDayRulesJson` LONGTEXT NULL,
     `NightApplicableDays` VARCHAR(50) NULL DEFAULT NULL,
     `NightStartTime` TIME NULL DEFAULT NULL,
     `NightEndTime` TIME NULL DEFAULT NULL,
@@ -329,6 +330,13 @@ SET @sqlCmd = (SELECT IF(
   "ALTER TABLE `Branches` ADD COLUMN `FullDayEndTime` TIME NULL DEFAULT NULL;"
 ));
 PREPARE stmt13f FROM @sqlCmd; EXECUTE stmt13f; DEALLOCATE PREPARE stmt13f;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayRulesJson') > 0,
+  "SELECT 1",
+  "ALTER TABLE `Branches` ADD COLUMN `FullDayRulesJson` LONGTEXT NULL AFTER `FullDayEndTime`;"
+));
+PREPARE stmt13fa FROM @sqlCmd; EXECUTE stmt13fa; DEALLOCATE PREPARE stmt13fa;
 
 SET @sqlCmd = (SELECT IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightStartTime') > 0,
@@ -812,6 +820,7 @@ CREATE TABLE IF NOT EXISTS `VehicleRates` (
     `FullDayStartTime` TIME NULL DEFAULT NULL,
     `FullDayEndTime` TIME NULL DEFAULT NULL,
     `FullDayThresholdMinutes` INT NULL DEFAULT NULL,
+    `FullDayCoverageMinutes` INT NULL DEFAULT NULL,
     `NightRate` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `NightStartTime` TIME NULL DEFAULT NULL,
     `NightEndTime` TIME NULL DEFAULT NULL,
@@ -858,6 +867,13 @@ SET @sqlCmd = (SELECT IF(
   "ALTER TABLE `VehicleRates` ADD COLUMN `FullDayThresholdMinutes` INT NULL DEFAULT NULL AFTER `FullDayEndTime`;"
 ));
 PREPARE stmtVr4 FROM @sqlCmd; EXECUTE stmtVr4; DEALLOCATE PREPARE stmtVr4;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'FullDayCoverageMinutes') > 0,
+  "SELECT 1",
+  "ALTER TABLE `VehicleRates` ADD COLUMN `FullDayCoverageMinutes` INT NULL DEFAULT NULL AFTER `FullDayThresholdMinutes`;"
+));
+PREPARE stmtVr4b FROM @sqlCmd; EXECUTE stmtVr4b; DEALLOCATE PREPARE stmtVr4b;
 
 SET @sqlCmd = (SELECT IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'NightStartTime') > 0,

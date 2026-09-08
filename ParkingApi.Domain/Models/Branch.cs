@@ -29,6 +29,7 @@ public class Branch : GeneralEntity
     public string? FullDayApplicableDays { get; set; } = "1,2,3,4,5,6,0";
     public System.TimeSpan? FullDayStartTime { get; set; }
     public System.TimeSpan? FullDayEndTime { get; set; }
+    public string? FullDayRulesJson { get; set; }
     public string? NightApplicableDays { get; set; } = "1,2,3,4,5,6,0";
     public System.TimeSpan? NightStartTime { get; set; } = new System.TimeSpan(18, 0, 0);
     public System.TimeSpan? NightEndTime { get; set; } = new System.TimeSpan(6, 0, 0);

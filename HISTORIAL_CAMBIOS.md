@@ -2,6 +2,49 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-07 21:55:00] - [FEATURE / PRICING / ENGINE / RULES / RECURRENT / TESTS] Motor Dinámico de Liquidación Tarifaria por Ciclos Recurrentes, Transición Nocturna, Reglas Segmentadas en Sede y Suite Masiva de Pruebas
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"esta bien pero falta un ejemplo grandisimo por que dices que la plena es apartir de 8 horas ejemplo pero hasta que horas es la plena ? si me explico y como funcionaria el caso siguiente, ingresa el vehiculo a las 8 am y la plena es despues de 3 horas hasta 8 horas entonces a las 8 horas ya logico vale la plena y sigue entonces el sistema le cobra la plena y vuelve a empezar a cobrar en minuto hasta volver alcanar las 3 horas para que se sume otra plena?? otro caso ingresa a las 8 am pero la plena es de 12 horas y es depues e 3 horas entonces saldria con la plena a las 8 pm pero si sigue derecho y esa sede tambien tiene noctura y si es de 6 pm a 6 am como funcionaria hay... y otra cosa eso deberia tener pruebas se que tu puedes simular miles de casos en pruebas base mockup para que saber el sistema como responderia y que podriá fallar eso es verdad ?"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Distinción entre Umbral de Activación y Cobertura Máxima del Ciclo**:
+     - Se incorporó la propiedad `FullDayCoverageMinutes` en `VehicleRate` para modelar la duración máxima que ampara la Tarifa Plena (ej: 480 min = 8 horas, 720 min = 12 horas).
+     - `FullDayThresholdMinutes` define el disparador / umbral a partir del cual se cobra la plena (ej: a partir de la 3ª hora / 180 min).
+  2. **Ciclo Recurrente de Tarifa Plena (`ParkingTicketService.cs`)**:
+     - Se implementó la fórmula: `completeCycles = effectiveMinutes / coverageMinutes`, `remMins = effectiveMinutes % coverageMinutes`.
+     - Si `remMins >= triggerMinutes`, el excedente cobra una nueva Tarifa Plena completa; de lo contrario, liquida por horas/minutos normales.
+     - Permite ciclos recurrentes transparentes (1ª Plena -> Excedente -> 2ª Plena -> Excedente, etc.).
+  3. **Transición Diurna a Nocturna y Solapamiento**:
+     - Para vehículos que ingresan con Plena Diurna, su cobertura permanece intacta hasta su expiración.
+     - Si el vehículo permanece en la noche y el excedente cumple el mínimo nocturno (`remMins >= NightStayMinMinutes`), se liquida la Tarifa Nocturna completa.
+  4. **Reglas Segmentadas de Sede (`FullDayRulesJson`)**:
+     - Incorporada columna `FullDayRulesJson` en `Branch` y sus DTOs para soportar reglas diferenciadas por bloques de días (ej. L-V umbral 3h/cobertura 8h vs S-D umbral 4h/cobertura 12h) con resolución automática por `DayOfWeek`.
+  5. **Mantenimiento de Scripts SQL Canónicos**:
+     - `02_Init_RBAC_Seed.sql`: Actualizado `Branches` con `FullDayRulesJson` (CREATE y ALTER TABLE condicional) y `VehicleRates` con `FullDayCoverageMinutes`.
+     - Creado script satélite `11_Add_FullDayRules_And_Coverage.sql`.
+  6. **Suite Masiva de Pruebas Unitarias Data-Driven (`PricingEngineComprehensiveTests.cs`)**:
+     - Creados tests con teorías (`[Theory]`, `[InlineData]`) probando estancias minuto a minuto: dentro de gracia, horas normales, activación de plena, cobertura, excedente fraccionado, disparo de 2ª plena, pernocta con permanencia mayor/menor al mínimo, y resolución segmentada por día.
+     - Certificación del 100% de pruebas superadas (`dotnet test ParkingApi.slnx` -> **364 de 364 PASADAS, 0 fallos**).
+
+- **`📦 Componentes Modificados y Creados`**:
+  - `Scripts/02_Init_RBAC_Seed.sql`
+  - `Scripts/11_Add_FullDayRules_And_Coverage.sql` (NUEVO)
+  - `ParkingApi.Domain/Models/Branch.cs`
+  - `ParkingApi.Domain/Models/VehicleRate.cs`
+  - `ParkingApi.Domain/Dtos/Branches/BranchDtos.cs`
+  - `ParkingApi.Core/Services/Branches/BranchService.cs`
+  - `ParkingApi.Core/Services/VehicleRates/VehicleRateService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi.UnitTests/Pricing/PricingEngineComprehensiveTests.cs` (NUEVO)
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **364 de 364 PASADAS (0 fallos, 100% éxito)**.
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 19 Advertencias (paquetes)**.
+
+---
+
 ## 📌 Entrada: [2026-09-07 17:28:00] - [FIX / SYNC / BOOTSTRAP / DEDUPLICATION] Exclusión Mutua y Deduplicación Estricta entre ActiveTickets y RecentTickets en Bootstrap Sync
 
 - **`💬 Prompt Original del Usuario`**:

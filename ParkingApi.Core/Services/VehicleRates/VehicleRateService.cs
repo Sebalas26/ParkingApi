@@ -108,6 +108,7 @@ public class VehicleRateService : IVehicleRateService
 
             rate.BranchId = input.BranchId;
             rate.VehicleType = input.VehicleType;
+            rate.DayOfWeek = input.DayOfWeek;
             rate.DisplayName = input.DisplayName;
             rate.HourRate = input.HourRate;
             rate.MinuteRate = input.MinuteRate;
@@ -115,6 +116,7 @@ public class VehicleRateService : IVehicleRateService
             rate.FullDayStartTime = input.FullDayStartTime;
             rate.FullDayEndTime = input.FullDayEndTime;
             rate.FullDayThresholdMinutes = input.FullDayThresholdMinutes;
+            rate.FullDayCoverageMinutes = input.FullDayCoverageMinutes;
             rate.NightRate = input.NightRate;
             rate.NightStartTime = input.NightStartTime;
             rate.NightEndTime = input.NightEndTime;

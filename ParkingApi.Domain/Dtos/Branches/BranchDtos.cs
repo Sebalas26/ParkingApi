@@ -27,6 +27,7 @@ public class BranchDto
     public string? FullDayApplicableDays { get; set; }
     public string? FullDayStartTime { get; set; }
     public string? FullDayEndTime { get; set; }
+    public string? FullDayRulesJson { get; set; }
     public string? NightApplicableDays { get; set; } = "1,2,3,4,5,6,0";
     public string? NightStartTime { get; set; } = "18:00";
     public string? NightEndTime { get; set; } = "06:00";
@@ -59,6 +60,7 @@ public class CreateBranchDto
     public string? FullDayApplicableDays { get; set; }
     public string? FullDayStartTime { get; set; }
     public string? FullDayEndTime { get; set; }
+    public string? FullDayRulesJson { get; set; }
     public string? NightApplicableDays { get; set; } = "1,2,3,4,5,6,0";
     public string? NightStartTime { get; set; } = "18:00";
     public string? NightEndTime { get; set; } = "06:00";
@@ -86,6 +88,7 @@ public class UpdateBranchDto
     public string? FullDayApplicableDays { get; set; }
     public string? FullDayStartTime { get; set; }
     public string? FullDayEndTime { get; set; }
+    public string? FullDayRulesJson { get; set; }
     public string? NightApplicableDays { get; set; } = "1,2,3,4,5,6,0";
     public string? NightStartTime { get; set; } = "18:00";
     public string? NightEndTime { get; set; } = "06:00";

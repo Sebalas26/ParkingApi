@@ -138,6 +138,7 @@ public class BranchService : IBranchService
             FullDayApplicableDays = dto.FullDayApplicableDays?.Trim(),
             FullDayStartTime = TimeSpan.TryParse(dto.FullDayStartTime, out var fds) ? fds : null,
             FullDayEndTime = TimeSpan.TryParse(dto.FullDayEndTime, out var fde) ? fde : null,
+            FullDayRulesJson = dto.FullDayRulesJson?.Trim(),
             NightApplicableDays = dto.NightApplicableDays?.Trim() ?? "1,2,3,4,5,6,0",
             NightStartTime = TimeSpan.TryParse(dto.NightStartTime, out var ns) ? ns : new TimeSpan(18, 0, 0),
             NightEndTime = TimeSpan.TryParse(dto.NightEndTime, out var ne) ? ne : new TimeSpan(6, 0, 0),
@@ -191,6 +192,7 @@ public class BranchService : IBranchService
             branch.FullDayStartTime = TimeSpan.TryParse(dto.FullDayStartTime, out var ufds) ? ufds : branch.FullDayStartTime;
         if (!string.IsNullOrWhiteSpace(dto.FullDayEndTime))
             branch.FullDayEndTime = TimeSpan.TryParse(dto.FullDayEndTime, out var ufde) ? ufde : branch.FullDayEndTime;
+        branch.FullDayRulesJson = dto.FullDayRulesJson?.Trim();
         if (!string.IsNullOrWhiteSpace(dto.NightStartTime))
             branch.NightStartTime = TimeSpan.TryParse(dto.NightStartTime, out var uns) ? uns : branch.NightStartTime;
         if (!string.IsNullOrWhiteSpace(dto.NightEndTime))
@@ -405,6 +407,7 @@ public class BranchService : IBranchService
         FullDayApplicableDays = b.FullDayApplicableDays,
         FullDayStartTime = b.FullDayStartTime?.ToString(@"hh\:mm"),
         FullDayEndTime = b.FullDayEndTime?.ToString(@"hh\:mm"),
+        FullDayRulesJson = b.FullDayRulesJson,
         NightApplicableDays = b.NightApplicableDays ?? "1,2,3,4,5,6,0",
         NightStartTime = b.NightStartTime?.ToString(@"hh\:mm") ?? "18:00",
         NightEndTime = b.NightEndTime?.ToString(@"hh\:mm") ?? "06:00",
