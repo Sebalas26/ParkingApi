@@ -13,6 +13,7 @@ using ParkingApi.Domain.Common.Enums;
 using ParkingApi.Domain.Dtos.Shifts;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services;
+using ParkingApi.Domain.Interfaces.Services.Realtime;
 using ParkingApi.Domain.Interfaces.Services.Shifts;
 using ParkingApi.Domain.Models;
 using Xunit;
@@ -24,6 +25,7 @@ public class ShiftsControllerTests
     private readonly Mock<IShiftService> _shiftServiceMock;
     private readonly Mock<ICurrentUserService> _currentUserMock;
     private readonly Mock<IUserRepository> _userRepositoryMock;
+    private readonly Mock<IRealtimeNotificationService> _realtimeNotifierMock;
     private readonly Mock<ILogger<ShiftsController>> _loggerMock;
     private readonly ShiftsController _controller;
 
@@ -32,12 +34,14 @@ public class ShiftsControllerTests
         _shiftServiceMock = new Mock<IShiftService>();
         _currentUserMock = new Mock<ICurrentUserService>();
         _userRepositoryMock = new Mock<IUserRepository>();
+        _realtimeNotifierMock = new Mock<IRealtimeNotificationService>();
         _loggerMock = new Mock<ILogger<ShiftsController>>();
 
         _controller = new ShiftsController(
             _shiftServiceMock.Object,
             _currentUserMock.Object,
             _userRepositoryMock.Object,
+            _realtimeNotifierMock.Object,
             _loggerMock.Object);
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]

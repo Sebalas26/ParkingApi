@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Shifts;
 using ParkingApi.Domain.Interfaces.Repositories.Users;
 using ParkingApi.Domain.Interfaces.Services;
+using ParkingApi.Domain.Interfaces.Services.Realtime;
 using ParkingApi.Domain.Interfaces.Services.Shifts;
 
 namespace ParkingApi.Controllers;
@@ -19,17 +20,20 @@ public class ShiftsController : ControllerBase
     private readonly IShiftService _shiftService;
     private readonly ICurrentUserService _currentUser;
     private readonly IUserRepository _userRepository;
+    private readonly IRealtimeNotificationService _realtimeNotifier;
     private readonly ILogger<ShiftsController> _logger;
 
     public ShiftsController(
         IShiftService shiftService,
         ICurrentUserService currentUser,
         IUserRepository userRepository,
+        IRealtimeNotificationService realtimeNotifier,
         ILogger<ShiftsController> logger)
     {
         _shiftService = shiftService;
         _currentUser = currentUser;
         _userRepository = userRepository;
+        _realtimeNotifier = realtimeNotifier;
         _logger = logger;
     }
 
@@ -59,6 +63,16 @@ public class ShiftsController : ControllerBase
             if (result == null)
             {
                 return BadRequest(new { message = "No se pudo abrir el turno o ya existe un turno activo para este operador." });
+            }
+
+            if (result.BranchId.HasValue && result.BranchId.Value > 0)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
+                    result.BranchId.Value,
+                    "Turno Abierto",
+                    $"Se abrió un nuevo turno de caja para la sede '{result.BranchId.Value}'.",
+                    "ShiftOpened",
+                    cancellationToken);
             }
 
             return Ok(result);
@@ -158,6 +172,16 @@ public class ShiftsController : ControllerBase
             if (closedShift == null)
             {
                 return BadRequest(new { message = "No se pudo cerrar el turno. Verifique que el turno exista y esté abierto." });
+            }
+
+            if (closedShift.BranchId.HasValue && closedShift.BranchId.Value > 0)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
+                    closedShift.BranchId.Value,
+                    "Turno Cerrado",
+                    $"El turno de caja para la sede '{closedShift.BranchId.Value}' fue cerrado desde el panel central.",
+                    "ShiftClosed",
+                    cancellationToken);
             }
 
             return Ok(closedShift);

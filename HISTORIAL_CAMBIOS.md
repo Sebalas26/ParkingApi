@@ -2,6 +2,27 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 13:30:00] - [FEATURE / SIGNALR / SHIFTS / REALTIME] Emisión de Eventos SignalR para Apertura y Cierre de Turnos (ShiftOpened, ShiftClosed)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"y la ultima prueba que se hizo fue que cerre el turno en la pwa fui al wpf y el turno seguia abierto en el wpf no se habia cerrado y al hacer sincronización manual en el wpf no se cerro tampoco seguia abierto y se realizo cobro y genero cobro normal."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Emisión de Eventos en Tiempo Real (`ShiftsController.cs`)**:
+     - Se inyectó `IRealtimeNotificationService _realtimeNotifier` en `ShiftsController`.
+     - Al procesar con éxito `POST /api/shifts/open` (`OpenShiftAsync`), invoca `_realtimeNotifier.NotifyShiftOpenedAsync(shift.BranchId, shift.ShiftId, shift.OperatorName, shift.CashRegisterName, shift.OpenedAtUtc)` para alertar a los terminales conectados a la sede.
+     - Al procesar con éxito `POST /api/shifts/close` (`CloseShiftAsync`), invoca `_realtimeNotifier.NotifyShiftClosedAsync(shift.BranchId, shift.ShiftId, shift.OperatorName, shift.CashRegisterName, shift.ClosedAtUtc, shift.TotalActualCash)` para forzar la reconciliación instantánea de los terminales garita en tierra.
+  2. **Actualización de Suite de Pruebas Unitarias (`ShiftsControllerTests.cs`)**:
+     - Creado e inyectado el mock `Mock<IRealtimeNotificationService>` en la inicialización de pruebas de `ShiftsController`.
+  3. **Verificación y Calidad**:
+     - `dotnet test ParkingApi.slnx`: **475 de 475 Pruebas Unitarias Superadas (0 Fallos)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/ParkingApi/Controllers/ShiftsController.cs`
+  - `ParkingApi/ParkingApi.UnitTests/Controllers/ShiftsControllerTests.cs`
+
+---
+
 ## 📌 Entrada: [2026-09-08 11:15:00] - [SETTINGS / BRANCH GRACE PERIODS / ZERO HARDCODED DATA / DB MIGRATION / NET10] Centralización de Tiempos de Gracia en Sedes (Entrada y Salida), Migración Defensiva sin Pérdida de Sedes y Regla de Oro Transversal
 
 - **`💬 Prompt Original del Usuario`**:
