@@ -89,6 +89,11 @@ public class UserService : IUserService
                     }
                 }
 
+                var newNameParts = new[] { userDto.FirstName, userDto.MiddleName, userDto.FirstSurname, userDto.SecondLastName }
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Select(s => s!.Trim());
+                var newDerivedFullName = string.Join(" ", newNameParts);
+
                 var newUser = new User
                 {
                     CompanyId = userDto.CompanyId,
@@ -99,9 +104,9 @@ public class UserService : IUserService
                     MiddleName = userDto.MiddleName?.Trim() ?? string.Empty,
                     FirstSurname = userDto.FirstSurname.Trim(),
                     SecondLastName = userDto.SecondLastName?.Trim() ?? string.Empty,
-                    FullName = string.IsNullOrWhiteSpace(userDto.FullName)
-                        ? $"{userDto.FirstName} {userDto.FirstSurname}".Trim()
-                        : userDto.FullName.Trim(),
+                    FullName = !string.IsNullOrWhiteSpace(newDerivedFullName)
+                        ? newDerivedFullName
+                        : (userDto.FullName?.Trim() ?? string.Empty),
                     Username = userDto.Username.Trim().ToLower(),
                     Password = PasswordHasher.HashPassword(userDto.Password),
                     Email = userDto.Email.Trim(),
@@ -128,9 +133,16 @@ public class UserService : IUserService
                 existingUser.MiddleName = userDto.MiddleName?.Trim() ?? string.Empty;
                 existingUser.FirstSurname = userDto.FirstSurname.Trim();
                 existingUser.SecondLastName = userDto.SecondLastName?.Trim() ?? string.Empty;
-                existingUser.FullName = string.IsNullOrWhiteSpace(userDto.FullName)
-                    ? $"{userDto.FirstName} {userDto.FirstSurname}".Trim()
-                    : userDto.FullName.Trim();
+
+                var existingNameParts = new[] { userDto.FirstName, userDto.MiddleName, userDto.FirstSurname, userDto.SecondLastName }
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Select(s => s!.Trim());
+                var existingDerivedFullName = string.Join(" ", existingNameParts);
+
+                existingUser.FullName = !string.IsNullOrWhiteSpace(existingDerivedFullName)
+                    ? existingDerivedFullName
+                    : (userDto.FullName?.Trim() ?? string.Empty);
+
                 existingUser.Username = userDto.Username.Trim().ToLower();
                 if (!string.IsNullOrWhiteSpace(userDto.Password))
                 {

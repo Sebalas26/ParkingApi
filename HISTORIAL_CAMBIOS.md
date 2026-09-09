@@ -5,7 +5,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-09 15:00:00] - [FEATURE / SHIFTS / ANALYTICS / RBAC / ARQUEO] Nombre Reactivo de Operador en Turnos y Métricas de Arqueo (Sobrantes / Faltantes) en Resumen Financiero
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"En el modulo de activos de la pwa en la tabla el tipo de vehiuclo tiene quemado automovil/sedan eso esta mal no debe haber nada quemado todo debe ser de acuerdo a los tipos de vehiculos creados en el maestro.ñ En el modulo de caja de la pwa cuando cambio de sede me sigue mostrando la información de la otra sede ese filtro no funciona por que cada sede tiene su historico. ese boton de cerrar caja principal deberia quitarse ya en la tabla aparece cerrar caja. al momento de editar el nombre de un usuario no se ve el cambio reflejado en todo lado se supone que en la BD guarda cuando se abre caja es el id del usuario entonces eso deberia hacer cambiar la data automaticamente o estas guardando quemado nombres que no es una buena practica. en las graficas de recaudo pr metodo de pago y facturacion por 4resolucion tambien incluir la cantidad de cada una de las categorias que vayan a existir por el dinamismo manteniendo el porcentaje. cuando se cierra una caja y aparece mas dineor que el que deberia estar es sobrante no deberia mostrarse en el dashboard ? y si falta dinero faltante no deberia haber un kpi en el dashboard que muestre esa informacion o en la misma tabla de historico de caja una columna que diga arqueo / diferencia ? en el modulo de sedes en la tabla ocultar el codigo por que eso es interno tecnico y el de medios de pago en la tabla ocultar el id por que eso es tecnico interno. en el modulo de reportes deberiamos categorizar tambien por estado una pestaña que diga todos otra en patio y otra finalizados y asi se ve mas ordenado por que ahi estan todos combinados y saber la cantidad en patio y finalizados."*
+
+  > _"En el modulo de activos de la pwa en la tabla el tipo de vehiuclo tiene quemado automovil/sedan eso esta mal no debe haber nada quemado todo debe ser de acuerdo a los tipos de vehiculos creados en el maestro.ñ En el modulo de caja de la pwa cuando cambio de sede me sigue mostrando la información de la otra sede ese filtro no funciona por que cada sede tiene su historico. ese boton de cerrar caja principal deberia quitarse ya en la tabla aparece cerrar caja. al momento de editar el nombre de un usuario no se ve el cambio reflejado en todo lado se supone que en la BD guarda cuando se abre caja es el id del usuario entonces eso deberia hacer cambiar la data automaticamente o estas guardando quemado nombres que no es una buena practica. en las graficas de recaudo pr metodo de pago y facturacion por 4resolucion tambien incluir la cantidad de cada una de las categorias que vayan a existir por el dinamismo manteniendo el porcentaje. cuando se cierra una caja y aparece mas dineor que el que deberia estar es sobrante no deberia mostrarse en el dashboard ? y si falta dinero faltante no deberia haber un kpi en el dashboard que muestre esa informacion o en la misma tabla de historico de caja una columna que diga arqueo / diferencia ? en el modulo de sedes en la tabla ocultar el codigo por que eso es interno tecnico y el de medios de pago en la tabla ocultar el id por que eso es tecnico interno. en el modulo de reportes deberiamos categorizar tambien por estado una pestaña que diga todos otra en patio y otra finalizados y asi se ve mas ordenado por que ahi estan todos combinados y saber la cantidad en patio y finalizados."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Vinculación Reactiva de Nombre de Usuario en Turnos (`ShiftRepository.cs` & `ShiftService.cs`)**:
@@ -36,7 +37,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-09 13:00:00] - [FEATURE / CONCURRENCY / REALTIME / SIGNALR / IDEMPOTENCY / CANONICAL-DATA] Idempotencia en CheckOut, Retorno de Verdad Canónica del Servidor y Prevención de Tormenta de Eventos en Sincronización Offline
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"No paila ya estaba en modo activo bien pero saque un vehiculo desde la pwa y en el wpf que si estaba online no se quito el vehjiculo entonces daria doble salida eso no deberia permitirlo si me explico ... y segundo como sería el caso que el wpf este offline y pues el administrador le de saliida desde la pwa y por error el colaborador vuelva y le de salida al vehiculo como no ha sincronizado se lo va a dejar entonces cuando sincronice que pasaria el sitema esta adaptado para decir no esto no se sincroniza por que en la nube ya esta la data real entonces antes la data se baja desde la nube a tierra diciendole no ese vehjiculo ya tuvo slida esta es la data real. si me explico ? pero bueno analiza y dame el plan ."*
+
+  > _"No paila ya estaba en modo activo bien pero saque un vehiculo desde la pwa y en el wpf que si estaba online no se quito el vehjiculo entonces daria doble salida eso no deberia permitirlo si me explico ... y segundo como sería el caso que el wpf este offline y pues el administrador le de saliida desde la pwa y por error el colaborador vuelva y le de salida al vehiculo como no ha sincronizado se lo va a dejar entonces cuando sincronice que pasaria el sitema esta adaptado para decir no esto no se sincroniza por que en la nube ya esta la data real entonces antes la data se baja desde la nube a tierra diciendole no ese vehjiculo ya tuvo slida esta es la data real. si me explico ? pero bueno analiza y dame el plan ."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **CheckOut Idempotente en Capa de Negocio (`ParkingTicketService.cs`)**:
@@ -58,12 +60,35 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet test ParkingApi.slnx` -> **495 Superadas, 0 Fallos** (100% exitoso).
   - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
 
+## 📌 Entrada: [2026-09-09 14:15:00] - [BUGFIX / USERS / FULLNAME-CONSISTENCY / MULTI-MODULE] Garantía de Persistencia Consistente de FullName a Partir de Componentes de Nombre
+
+- **`💬 Prompt Original del Usuario`**:
+
+  > _"Valida porque en el pwa cuando hago una modificacion de un usuario desde la configuracion de usuario /editar usuario, se hace el cambio del nombre y en los demas modulos del pwa no se ve el ajuste"_
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Consistencia de FullName en `UserService.CreateOrEditUser`**:
+     - Se corrigió la asignación de `FullName` tanto en la creación (`newUser`) como en la actualización (`existingUser`) para derivar e integrar de forma canónica `FirstName`, `MiddleName`, `FirstSurname` y `SecondLastName`.
+     - Anteriormente, `existingUser.FullName` priorizaba el valor recibido en `userDto.FullName` sin validar si correspondía a un valor desactualizado o incompleto, y en caso de nulidad solo unía `FirstName` y `FirstSurname` descartando los segundos nombres y apellidos.
+     - Con el nuevo cálculo, `existingDerivedFullName` concatena de manera limpia los 4 componentes y actualiza la columna `FullName` en base de datos.
+  2. **Ejecución y Cobertura de Pruebas Unitarias**:
+     - `dotnet test ParkingApi.slnx` ejecutado con éxito: **492 de 492 pruebas aprobadas (100% superadas, 0 errores, 0 advertencias CS8602)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Users/UserService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: 0 Errores.
+  - `dotnet test`: 492 Superadas / 0 Fallos.
+
 ---
 
 ## 📌 Entrada: [2026-09-09 07:23:00] - [FEATURE / BILLING / RESOLUTIONS / INVOICING / VALIDATION] Sincronización, Validación Estricta de Rango en Consecutivo Actual y Asignación de Factura Electrónica
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"en el modulo en la modal de crear la resolución el rango actual y el consecutivo actul deberia ser el mismo practicamente, si me explico pues el rango algo es que tiene desde Ejemplo 921 y el consecutivo actual es 921 no puede arrancar desde la 2000 el consecutivo o si ? por que ese consecutivo es el que va a ir cambiando de acuerdo a cuando se realice cada factura si me epxlico,. ? por que me imagino que tienes claro que cada que se imprima un ticket de salida osea la factura que tenga esta resolucion hay ya se tiene el consecutivo entonces toca seguir eso si me explico como funciona la facturación creo que todo esta claro y la logica funciona bien eso deberia ser una de las pruebas que te dije que tuvieramos que crearamos mas de 1000 pruebas de simulaciones de mcuhas cosas."*
+
+  > _"en el modulo en la modal de crear la resolución el rango actual y el consecutivo actul deberia ser el mismo practicamente, si me explico pues el rango algo es que tiene desde Ejemplo 921 y el consecutivo actual es 921 no puede arrancar desde la 2000 el consecutivo o si ? por que ese consecutivo es el que va a ir cambiando de acuerdo a cuando se realice cada factura si me epxlico,. ? por que me imagino que tienes claro que cada que se imprima un ticket de salida osea la factura que tenga esta resolucion hay ya se tiene el consecutivo entonces toca seguir eso si me explico como funciona la facturación creo que todo esta claro y la logica funciona bien eso deberia ser una de las pruebas que te dije que tuvieramos que crearamos mas de 1000 pruebas de simulaciones de mcuhas cosas."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Validación Estricta de Consecutivo en API (`ResolutionsController.cs` y `BillingResolutionService.cs`)**:
@@ -92,7 +117,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-09 07:01:00] - [FEATURE / BILLING / RESOLUTIONS / REST / INTEGRITY] Doble Funcionalidad en Resoluciones DIAN: Eliminación Definitiva con Validación de Tiquetes y Toggle de Estado
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"el modulo maestro de resolucion de la dian no permite eliminar, si no ese boton desactiva entonces deberia tener las dos funcionalidades."*
+
+  > _"el modulo maestro de resolucion de la dian no permite eliminar, si no ese boton desactiva entonces deberia tener las dos funcionalidades."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Separación de Responsabilidades y Endpoints REST (`ResolutionsController.cs`)**:
@@ -124,7 +150,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-09 06:35:00] - [FEATURE / BILLING / PAYMENT-METHODS / RBAC / DB] Soporte de Exigibilidad de Facturación con Resolución DIAN en Medios de Pago (`RequiresResolution` y `DefaultResolutionId`)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"en esta modal se debería tener un check o no se algo mejor por que me explico de acuerdo a las resoluciones que se creen deberia tener un check para obligar que ese tipo de medio de pago solo funcione si se factura con esa resolución si me explico ? o no se si tengas alguna duda ante eso revisalo para poder tener una mejor vision y dame el plan"*
+
+  > _"en esta modal se debería tener un check o no se algo mejor por que me explico de acuerdo a las resoluciones que se creen deberia tener un check para obligar que ese tipo de medio de pago solo funcione si se factura con esa resolución si me explico ? o no se si tengas alguna duda ante eso revisalo para poder tener una mejor vision y dame el plan"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Ampliación de Modelo y Esquema (`PaymentMethod.cs` y `02_Init_RBAC_Seed.sql`)**:
@@ -151,7 +178,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 22:30:00] - [TOOL / SEED / SIMULATION / PERFORMANCE / MULTI-TENANT] Generador Automatizado y Script Canónico de Simulación Realista de Producción (> 35 Días, 10 Empresas, 44 Sedes, 3.124 Turnos y 67.240 Tiquetes)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Si yo te pidiera que me hicieras un script con data, con muchísima data, cargada para yo cargarla y para poder probar como si ya si tuviera más de un mes de funcionamiento, ¿es posible que lo crees? Ejemplo, que me crearas unas 10 empresas, cada una con 4, otras con 5, otras con 7, otras con 2 sedes, cada una con sus usuarios, con sus configuraciones de roles, con varios ingresos de vehículos, con tarifas cobradas, todo, como para simular si ya una data vieja de más de un mes de operaciones de varias empresas para uno entrar y ver cómo funcionará el sistema... si dale de una generalo completo."*
+
+  > _"Si yo te pidiera que me hicieras un script con data, con muchísima data, cargada para yo cargarla y para poder probar como si ya si tuviera más de un mes de funcionamiento, ¿es posible que lo crees? Ejemplo, que me crearas unas 10 empresas, cada una con 4, otras con 5, otras con 7, otras con 2 sedes, cada una con sus usuarios, con sus configuraciones de roles, con varios ingresos de vehículos, con tarifas cobradas, todo, como para simular si ya una data vieja de más de un mes de operaciones de varias empresas para uno entrar y ver cómo funcionará el sistema... si dale de una generalo completo."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Herramienta Generadora Automatizada (`generate_realistic_seed.js`)**:
@@ -159,16 +187,16 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
      - Escribe directamente en disco mediante flujos continuos (`fs.createWriteStream`) para optimizar consumo de memoria.
   2. **Estructura de Datos Simulada en `13_Seed_Realistic_Production_Simulation.sql`**:
      - **10 Empresas SaaS con Identidad Realista Colombiana**:
-       1. *Gran Plaza Centro Comercial S.A.S.* (5 sedes, Plan Enterprise)
-       2. *Cadena Park & Go Colombia S.A.S.* (7 sedes, Plan Enterprise)
-       3. *Inversiones Metropolitan Parking Ltda.* (4 sedes, Plan Pro)
-       4. *Clínica & Parking San Rafael S.A.S.* (4 sedes, Plan Pro)
-       5. *Terminal & Aeropark Service S.A.S.* (7 sedes, Plan Enterprise)
-       6. *Hoteles & Estacionamientos del Valle S.A.* (5 sedes, Plan Pro)
-       7. *Smart Parking Solutions S.A.S.* (4 sedes, Plan Pro)
-       8. *Parqueaderos El Centro 24 Horas* (2 sedes, Plan Básico)
-       9. *Logística & Bahías del Norte S.A.S.* (2 sedes, Plan Básico)
-       10. *EcoParking Urbano S.A.S.* (4 sedes, Plan Pro)
+       1. _Gran Plaza Centro Comercial S.A.S._ (5 sedes, Plan Enterprise)
+       2. _Cadena Park & Go Colombia S.A.S._ (7 sedes, Plan Enterprise)
+       3. _Inversiones Metropolitan Parking Ltda._ (4 sedes, Plan Pro)
+       4. _Clínica & Parking San Rafael S.A.S._ (4 sedes, Plan Pro)
+       5. _Terminal & Aeropark Service S.A.S._ (7 sedes, Plan Enterprise)
+       6. _Hoteles & Estacionamientos del Valle S.A._ (5 sedes, Plan Pro)
+       7. _Smart Parking Solutions S.A.S._ (4 sedes, Plan Pro)
+       8. _Parqueaderos El Centro 24 Horas_ (2 sedes, Plan Básico)
+       9. _Logística & Bahías del Norte S.A.S._ (2 sedes, Plan Básico)
+       10. _EcoParking Urbano S.A.S._ (4 sedes, Plan Pro)
        - **Total: 44 Sedes Operativas** con capacidades realistas (40 a 350 celdas), tiempos de gracia y bases de caja.
      - **Catálogos por Sede**:
        - 176 Tarifas vehiculares (`VehicleRates`) para Autos, Motos, Camionetas y Pesados con esquemas de minuto, hora, día completo y nocturno.
@@ -176,7 +204,7 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
        - 132 Medios de pago activos por sede (`BranchPaymentMethods`) para Efectivo, Tarjetas y Transferencias QR.
        - 308 Registros de horarios de atención (`BranchOperatingHours`) de lunes a domingo.
      - **Usuarios y Seguridad RBAC**:
-       - Creados roles de *Administrador Empresa*, *Supervisor de Patio* y *Operador de Garita / Caja* por cada empresa con permisos asignados en `UserRoleModule` y `RoleAction`.
+       - Creados roles de _Administrador Empresa_, _Supervisor de Patio_ y _Operador de Garita / Caja_ por cada empresa con permisos asignados en `UserRoleModule` y `RoleAction`.
        - Creados usuarios administradores (`admin.<empresa>`) y operadores (`cajero.<sede>`) con claves predeterminadas (`admin123` / `operador123`), asignados en `UserBranches`.
      - **Data Operativa (> 35 Días Históricos y Ocupación en Vivo)**:
        - **3.124 Turnos de Caja (`WorkShifts`)**: Turnos matutinos y vespertinos cerrados históricamente con arqueos y recaudos cuadrados, más **1 turno abierto activo hoy por sede** para operar de inmediato.
@@ -202,7 +230,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 22:00:00] - [FEATURE / DIAN / BILLING / CATALOG / RESILIENCE / NET10] Catálogo Maestro de Tipos de Documentos y Resoluciones DIAN (Entidad, DTOs, Repositorio, Servicio, Controlador, Tests y Sincronización Canónica 01 y 02) y Blindaje de Deserialización en Empresas
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Fase 2: Por qué en el superadmin sale 0 empresas creadas? Diagnostica y corrige... Fase 3: Crear módulo independiente para tipos de resoluciones DIAN (Factura electrónica, POS, tiquete, notas crédito, etc.) con sus campos en BD y API, y en la PWA bajo planes SaaS. En el modal de resoluciones de sede, que el tipo de documento sea dinámico desde la BD con su prefijo en vez de estar quemado."*
+
+  > _"Fase 2: Por qué en el superadmin sale 0 empresas creadas? Diagnostica y corrige... Fase 3: Crear módulo independiente para tipos de resoluciones DIAN (Factura electrónica, POS, tiquete, notas crédito, etc.) con sus campos en BD y API, y en la PWA bajo planes SaaS. En el modal de resoluciones de sede, que el tipo de documento sea dinámico desde la BD con su prefijo en vez de estar quemado."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Diagnóstico y Blindaje en Empresas SaaS (`CompanyService.cs`)**:
@@ -265,7 +294,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 20:50:00] - [FIX / RBAC / SHIFTS / OPERATING-HOURS / REALTIME / NET10] Eliminación de Validación Quemada de Roles en Apertura de Turno y Emisión Dual de SignalR en Configuración de Horarios
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"debes analiza completamente para saber que paso son a seguir... Yo entro al WPF y listo, me sale abrir turno. Él dice que abrió turno, pero NO está guardando en la base de datos. No lo está haciendo. Por ende, en el PWA no registra... Yo puedo abrir una caja a un usuario específico desde la PWA... cuando ingrese en WPF debe saber que ya tiene caja abierta... al cerrar caja en PWA debe devolverlo al módulo de abrir caja... al abrir caja en WPF debe aparecer en tiempo real en PWA... y en PWA en módulo de activos dice que la sede se encuentra configurada como cerrada..."*
+
+  > _"debes analiza completamente para saber que paso son a seguir... Yo entro al WPF y listo, me sale abrir turno. Él dice que abrió turno, pero NO está guardando en la base de datos. No lo está haciendo. Por ende, en el PWA no registra... Yo puedo abrir una caja a un usuario específico desde la PWA... cuando ingrese en WPF debe saber que ya tiene caja abierta... al cerrar caja en PWA debe devolverlo al módulo de abrir caja... al abrir caja en WPF debe aparecer en tiempo real en PWA... y en PWA en módulo de activos dice que la sede se encuentra configurada como cerrada..."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Eliminación de Roles Hardcoded en Apertura de Turnos (`ShiftService.cs`)**:
@@ -290,11 +320,12 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 17:50:00] - [FEATURE / SIGNALR / REALTIME / MULTI-GROUP / NET10] Emisión Dual de Eventos de Turno a Grupo de Sede y Grupo de Empresa (ShiftOpened, ShiftClosed)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Listo el wpf ya sincroniza cuando desde la pwa cierra caja en el wpf sale el aviso pero lo deja en el modulo que esta deberia devolverlo a obligarlo a abrir turno nuevamente si me explico eso no lo esta haciendo otra cosa no esta siendo reactivo con la pwa cuando se abre el turno en el wpf por que en la pwa no se avisa estoy en el modulo caja y no aparece que se abrio caja y me toca darle actualizar para que se refresque si me explico."*
+
+  > _"Listo el wpf ya sincroniza cuando desde la pwa cierra caja en el wpf sale el aviso pero lo deja en el modulo que esta deberia devolverlo a obligarlo a abrir turno nuevamente si me explico eso no lo esta haciendo otra cosa no esta siendo reactivo con la pwa cuando se abre el turno en el wpf por que en la pwa no se avisa estoy en el modulo caja y no aparece que se abrio caja y me toca darle actualizar para que se refresque si me explico."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Propagación Dual de Eventos SignalR (`RealtimeNotificationService.cs`)**:
-     - En `NotifyCustomAsync`, anteriormente si la notificación tenía `BranchId` únicamente se emitía a `Branch_{branchId}`. Si un administrador se encontraba en la PWA con *"Todos los Parqueaderos"* seleccionado (`activeBranchId == null`), pertenecía exclusivamente al grupo `Company_{companyId}` y no recibía las notificaciones de los terminales.
+     - En `NotifyCustomAsync`, anteriormente si la notificación tenía `BranchId` únicamente se emitía a `Branch_{branchId}`. Si un administrador se encontraba en la PWA con _"Todos los Parqueaderos"_ seleccionado (`activeBranchId == null`), pertenecía exclusivamente al grupo `Company_{companyId}` y no recibía las notificaciones de los terminales.
      - Se actualizó `NotifyCustomAsync` para que emita de forma concurrente tanto al grupo de sede (`Branch_{branchId}`) como al grupo de empresa (`Company_{companyId}`) si ambos IDs están presentes en el payload.
   2. **Enriquecimiento de Payload en Turnos (`ShiftsController.cs`)**:
      - Al procesar `OpenShift` (`POST /api/shifts/open`) y `CloseShift` (`POST /api/shifts/close`), se construye `ConfigNotificationDto` incluyendo explícitamente `BranchId`, `CompanyId`, el nombre del operador y el nombre de la caja (`CashRegisterName`).
@@ -312,7 +343,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 17:15:00] - [FEATURE / SAAS-PLANS / FORMULA / RATIO / NET10] Flexibilización de Planes SaaS con Fórmula Comercial (UsersPerBranch), Mapeo en DTOs y Migración Defensiva SQL
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Necesito ahora crear de terminar el modulo de planes, que sucede necesito que eso sea super dinamico y flexible, que yo pueda colocar la formula ejemplo de la formula principal es que yo pueda decir 1 sede + 5 usuarios si me explico esa es la formula principal y eso tiene un precio que yo pueda colocar si me explico, entonces cuadno yo arme planes yo diga 2 sedes el sistema ya sabes cuantos usuarios se habilitaran entonces esos campos en la creación de la empresa de auto llenan las sedes y usuarios, si me epxlico ya el precio sigue en el plan pero entonces se necesita que se pueda colocar el valor , creo que con eso ya me entendiste , por que hay falta colocar si requiere wpa pos que modulos si me explico ya con esa idea revisa lo que te estoy diciendo y dame tu idea completa has el plan"*
+
+  > _"Necesito ahora crear de terminar el modulo de planes, que sucede necesito que eso sea super dinamico y flexible, que yo pueda colocar la formula ejemplo de la formula principal es que yo pueda decir 1 sede + 5 usuarios si me explico esa es la formula principal y eso tiene un precio que yo pueda colocar si me explico, entonces cuadno yo arme planes yo diga 2 sedes el sistema ya sabes cuantos usuarios se habilitaran entonces esos campos en la creación de la empresa de auto llenan las sedes y usuarios, si me epxlico ya el precio sigue en el plan pero entonces se necesita que se pueda colocar el valor , creo que con eso ya me entendiste , por que hay falta colocar si requiere wpa pos que modulos si me explico ya con esa idea revisa lo que te estoy diciendo y dame tu idea completa has el plan"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Modelo de Dominio y Contratos de Datos (`SaaSPlan.cs`, `PlanDtos.cs`)**:
@@ -338,7 +370,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 13:30:00] - [FEATURE / SIGNALR / SHIFTS / REALTIME] Emisión de Eventos SignalR para Apertura y Cierre de Turnos (ShiftOpened, ShiftClosed)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"y la ultima prueba que se hizo fue que cerre el turno en la pwa fui al wpf y el turno seguia abierto en el wpf no se habia cerrado y al hacer sincronización manual en el wpf no se cerro tampoco seguia abierto y se realizo cobro y genero cobro normal."*
+
+  > _"y la ultima prueba que se hizo fue que cerre el turno en la pwa fui al wpf y el turno seguia abierto en el wpf no se habia cerrado y al hacer sincronización manual en el wpf no se cerro tampoco seguia abierto y se realizo cobro y genero cobro normal."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Emisión de Eventos en Tiempo Real (`ShiftsController.cs`)**:
@@ -359,11 +392,12 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 11:15:00] - [SETTINGS / BRANCH GRACE PERIODS / ZERO HARDCODED DATA / DB MIGRATION / NET10] Centralización de Tiempos de Gracia en Sedes (Entrada y Salida), Migración Defensiva sin Pérdida de Sedes y Regla de Oro Transversal
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"tengo otra cosa que analice y creo que esta mal quiero que me digas tu, ese tiempo de gracia deberia ser general no por vehiculo sería canson o que dices si es mejor por vehiculo, por que igual nos hace falta un campo el tiempo de gracia de salida después de pagar, eso aplicaria cuando se tienen talanqueras y todo si me explico. analiza esa pregunta y dime como lo ves mejor."*
-  > *"siii dale realiza eso que quede en la creación de la sede. haz el plan"*
-  > *"sin data definida como te hago saber que no se puede quemar data enserio no es no se puede quemar data agrega eso como regla de oro en todos los 3 proyectos no se puede quemar data."*
-  > *"no quiero el texto de tolenrancia para talanquera por que eso dice que el sistema tiene talanquera y de ser asi no lo tenga que ? eso mensaje es nosivo para el sistema solo decir tolenacia para no generar cobro en la salida o algo así e igual para el ingreso."*
-  > *"yo pienso que no deberian ser nulables por que eso debe tener las validaciones en rojo de angular de que deben agregar algo si colocan 0 entonces no seran nulables siempre deben tener dato si me explico. para ser eso pósible debo eliminar o correr el script 3 para borrar todas las sede me avisas."*
+
+  > _"tengo otra cosa que analice y creo que esta mal quiero que me digas tu, ese tiempo de gracia deberia ser general no por vehiculo sería canson o que dices si es mejor por vehiculo, por que igual nos hace falta un campo el tiempo de gracia de salida después de pagar, eso aplicaria cuando se tienen talanqueras y todo si me explico. analiza esa pregunta y dime como lo ves mejor."_
+  > _"siii dale realiza eso que quede en la creación de la sede. haz el plan"_
+  > _"sin data definida como te hago saber que no se puede quemar data enserio no es no se puede quemar data agrega eso como regla de oro en todos los 3 proyectos no se puede quemar data."_
+  > _"no quiero el texto de tolenrancia para talanquera por que eso dice que el sistema tiene talanquera y de ser asi no lo tenga que ? eso mensaje es nosivo para el sistema solo decir tolenacia para no generar cobro en la salida o algo así e igual para el ingreso."_
+  > _"yo pienso que no deberian ser nulables por que eso debe tener las validaciones en rojo de angular de que deben agregar algo si colocan 0 entonces no seran nulables siempre deben tener dato si me explico. para ser eso pósible debo eliminar o correr el script 3 para borrar todas las sede me avisas."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Columnas en Entidad `Branch.cs` y DTOs (`BranchDtos.cs`)**:
@@ -389,7 +423,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 07:15:00] - [FEATURE / PRICING / SQL / DATA-DRIVEN] Tarifas Plenas Dinámicas por Bloques de Días (FullDayRatesJson), Scripts SQL y Banco Masivo de Pruebas de Estrés
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"entonces revisa analiza y dame el plan completo ."*
+
+  > _"entonces revisa analiza y dame el plan completo ."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Modelo y Persistencia de Tarifas Vehiculares (`VehicleRate.cs`, `VehicleRateService.cs`)**:
@@ -433,8 +468,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 06:35:00] - [FEATURE / VALIDATION / SECURITY] Validaciones Robustas de Unicidad y Formato en Creación de Empresas SaaS
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"revisa todo bien con buen detalle para poder tener claro esos ajustes."*
-  > *"has las dos me parecen perfectas enserio es lo ideal lo que mencionas ."*
+
+  > _"revisa todo bien con buen detalle para poder tener claro esos ajustes."_
+  > _"has las dos me parecen perfectas enserio es lo ideal lo que mencionas ."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Validación Exhaustiva de Unicidad en Creación de Empresas (`CompanyService.cs`)**:
@@ -471,8 +507,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-08 06:15:00] - [FEATURE / SECURITY / SQL / ARCHITECTURE] Script de Limpieza Rápida (03) y Protocolo de Alta Seguridad en Eliminación Permanente de Empresas SaaS
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Sabes que seria bueno, tenerlo es mira tenemos estos dos archivos que son los principales 01_Clean_All_Tables.sql 02_Init_RBAC_Seed.sql , pero eso es cuando tocamos varias campos o modificamos la BD mucho pero si yo quisiera arrancar con la data desde cero solo con lo del superadministrador dime que archivo me serviria para eliminar todas las compañias uy otra cosa si yo desde el superadministrador elimino una compañia eso hace eliminación en cadena elimina todos los registros de esa compañia de la BD ? o como sería el manejo con eso me explicas ? eso es un gran punto importante a tener encuenta. analiza esa responsabilidad que tal que uno se equivoque y elimine una compañia como queda uno y la data se pierda, eso debería tener algo de seguridad como la contraseña pasos de verificación me explico yo."*
-  > *"has las dos me parecen perfectas enserio es lo ideal lo que mencionas ."*
+
+  > _"Sabes que seria bueno, tenerlo es mira tenemos estos dos archivos que son los principales 01_Clean_All_Tables.sql 02_Init_RBAC_Seed.sql , pero eso es cuando tocamos varias campos o modificamos la BD mucho pero si yo quisiera arrancar con la data desde cero solo con lo del superadministrador dime que archivo me serviria para eliminar todas las compañias uy otra cosa si yo desde el superadministrador elimino una compañia eso hace eliminación en cadena elimina todos los registros de esa compañia de la BD ? o como sería el manejo con eso me explicas ? eso es un gran punto importante a tener encuenta. analiza esa responsabilidad que tal que uno se equivoque y elimine una compañia como queda uno y la data se pierda, eso debería tener algo de seguridad como la contraseña pasos de verificación me explico yo."_
+  > _"has las dos me parecen perfectas enserio es lo ideal lo que mencionas ."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Script SQL de Mantenimiento y Arranque Limpio (`03_Reset_Operational_Data_Keep_SuperAdmin.sql`)**:
@@ -510,7 +547,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-07 22:25:00] - [CLEANUP / ARCHITECTURE / REFACTOR] Erradicación Total de Números Quemados (100% Data-Driven) y Resolución Definitiva de 19 Advertencias (NU1903, CS8629, CS8601)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"pero por que tienes numeros quemados no entiendo como si tuvieras horas ya quemadas eso no deberia estar quemado en el codigo."*
+
+  > _"pero por que tienes numeros quemados no entiendo como si tuvieras horas ya quemadas eso no deberia estar quemado en el codigo."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Arquitectura 100% Data-Driven (Cero Números u Horas Quemadas)**:
@@ -546,7 +584,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-07 21:55:00] - [FEATURE / PRICING / ENGINE / RULES / RECURRENT / TESTS] Motor Dinámico de Liquidación Tarifaria por Ciclos Recurrentes, Transición Nocturna, Reglas Segmentadas en Sede y Suite Masiva de Pruebas
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"esta bien pero falta un ejemplo grandisimo por que dices que la plena es apartir de 8 horas ejemplo pero hasta que horas es la plena ? si me explico y como funcionaria el caso siguiente, ingresa el vehiculo a las 8 am y la plena es despues de 3 horas hasta 8 horas entonces a las 8 horas ya logico vale la plena y sigue entonces el sistema le cobra la plena y vuelve a empezar a cobrar en minuto hasta volver alcanar las 3 horas para que se sume otra plena?? otro caso ingresa a las 8 am pero la plena es de 12 horas y es depues e 3 horas entonces saldria con la plena a las 8 pm pero si sigue derecho y esa sede tambien tiene noctura y si es de 6 pm a 6 am como funcionaria hay... y otra cosa eso deberia tener pruebas se que tu puedes simular miles de casos en pruebas base mockup para que saber el sistema como responderia y que podriá fallar eso es verdad ?"*
+
+  > _"esta bien pero falta un ejemplo grandisimo por que dices que la plena es apartir de 8 horas ejemplo pero hasta que horas es la plena ? si me explico y como funcionaria el caso siguiente, ingresa el vehiculo a las 8 am y la plena es despues de 3 horas hasta 8 horas entonces a las 8 horas ya logico vale la plena y sigue entonces el sistema le cobra la plena y vuelve a empezar a cobrar en minuto hasta volver alcanar las 3 horas para que se sume otra plena?? otro caso ingresa a las 8 am pero la plena es de 12 horas y es depues e 3 horas entonces saldria con la plena a las 8 pm pero si sigue derecho y esa sede tambien tiene noctura y si es de 6 pm a 6 am como funcionaria hay... y otra cosa eso deberia tener pruebas se que tu puedes simular miles de casos en pruebas base mockup para que saber el sistema como responderia y que podriá fallar eso es verdad ?"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Distinción entre Umbral de Activación y Cobertura Máxima del Ciclo**:
@@ -589,7 +628,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-07 17:28:00] - [FIX / SYNC / BOOTSTRAP / DEDUPLICATION] Exclusión Mutua y Deduplicación Estricta entre ActiveTickets y RecentTickets en Bootstrap Sync
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Cuando se sincroniza el wpf automaticamente por algun cambio que hago dede el pwa , se sincroniza y pasa esto en el wpf"* (Error de SQLite UNIQUE constraint en `TicketNumber`)
+
+  > _"Cuando se sincroniza el wpf automaticamente por algun cambio que hago dede el pwa , se sincroniza y pasa esto en el wpf"_ (Error de SQLite UNIQUE constraint en `TicketNumber`)
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Exclusión Mutua en Generación de Bootstrap (`SyncService.cs`)**:
@@ -609,10 +649,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
-
-
 - **`💬 Prompt Original del Usuario`**:
-  > *"Requiero que en la pantalla de centro de reportes y en la exportacion de excel me muestre adicionalmente una filas que sea con que forma de pago de pago y que resolucion fue, valida si es necesario modificar el wpf para enviar esos datos"*
+
+  > _"Requiero que en la pantalla de centro de reportes y en la exportacion de excel me muestre adicionalmente una filas que sea con que forma de pago de pago y que resolucion fue, valida si es necesario modificar el wpf para enviar esos datos"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Validación de Integración con Parking WPF**:
@@ -637,10 +676,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
-
-
 - **`💬 Prompt Original del Usuario`**:
-  > *"solo me gusta la primera pero estas enfocado solo en iphone y ipad necesitamos ver que tambien funciona en android es claro no ? esto es dimanico claro no algo quemado por la versión. si me explico"*
+
+  > _"solo me gusta la primera pero estas enfocado solo en iphone y ipad necesitamos ver que tambien funciona en android es claro no ? esto es dimanico claro no algo quemado por la versión. si me explico"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Compatibilidad Multiplataforma Universal (Android + iOS/iPadOS + PC)**:
@@ -671,7 +709,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-07 10:05:00] - [CONFIG / WEBPUSH / SECURITY] Claves Criptográficas VAPID P-256 Fijas en appsettings.json y Sincronización Multiplataforma
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Listo tenemos el primero error ya instale la app nuevamente y todo la pwa estoy en un ipad pero no funciona las notificaciones como dices que deberian funcionar veo que no tiene los permisos osea no podemos hacer a las personas que la tengan ya instalada les aparezca el permiso una vez para que digan quiere activar notificaciones y si funcione el push por que el push no esta funcionando como dices que debería funcionar. analiza ese pedazo completamente o dime hasta que punto de verdad si es posible hacer esos push por que dijiste que si era posible."*
+
+  > _"Listo tenemos el primero error ya instale la app nuevamente y todo la pwa estoy en un ipad pero no funciona las notificaciones como dices que deberian funcionar veo que no tiene los permisos osea no podemos hacer a las personas que la tengan ya instalada les aparezca el permiso una vez para que digan quiere activar notificaciones y si funcione el push por que el push no esta funcionando como dices que debería funcionar. analiza ese pedazo completamente o dime hasta que punto de verdad si es posible hacer esos push por que dijiste que si era posible."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Persistencia Criptográfica VAPID en Servidor**:
@@ -691,7 +730,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-07 09:22:00] - [DATABASE / GOVERNANCE / RBAC] Sincronización Canónica de Scripts Maestros 01 y 02, y Nueva Regla de Oro 6 en AGENTS.md
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"recuerda que esto son nuestros 2 archivos principales yo veo que creas y creas script pero no modificas estos que son los principales que deberian tener todo para el arranque inicial entonces analiza eso, por que faltan mas ajustes acá hicimos algo pero no tenemos aun todo lo que se quiere hacer seguimos trabajando. pero para ir probando cosas por cosas neceesito que siempre como regla quede que estos archivos siempre se deben actualizar."*
+
+  > _"recuerda que esto son nuestros 2 archivos principales yo veo que creas y creas script pero no modificas estos que son los principales que deberian tener todo para el arranque inicial entonces analiza eso, por que faltan mas ajustes acá hicimos algo pero no tenemos aun todo lo que se quiere hacer seguimos trabajando. pero para ir probando cosas por cosas neceesito que siempre como regla quede que estos archivos siempre se deben actualizar."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Consagración de Scripts Canónicos de Arranque Inicial (`01_Clean_All_Tables.sql` y `02_Init_RBAC_Seed.sql`)**:
@@ -726,7 +766,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-07 09:10:00] - [FEAT / CORE / RATES / MULTI-TENANCY] Notificaciones Push Parametrizadas por Empresa (14 Eventos), Días Aplicables de Nocturna y Umbrales Jerárquicos por Vehículo
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"todo desmarcado y que se deban marcar por que las pruebas necesitamos ahcerlas minusiosamente 1 por 1 donde activamos 1 miramos que funcione y asi vamos a la siguiente. pero desde que sea entendible para el wpf y el angular y que sea correcto y sea la mejor practica excelente. las parametrizaciones de cobro de plena y noche por dias ya sea marcar toda la semana pero con un boton y tambien que se puedan desmarcar dia por dia con un tac tac tac tac si me explico y las tarifas de los vehiculos cuando se cobran por plena deben tener su hora inicio su hora fin y cuantas horas son y el umbral de horas para el cobro si me explico"*
+
+  > _"todo desmarcado y que se deban marcar por que las pruebas necesitamos ahcerlas minusiosamente 1 por 1 donde activamos 1 miramos que funcione y asi vamos a la siguiente. pero desde que sea entendible para el wpf y el angular y que sea correcto y sea la mejor practica excelente. las parametrizaciones de cobro de plena y noche por dias ya sea marcar toda la semana pero con un boton y tambien que se puedan desmarcar dia por dia con un tac tac tac tac si me explico y las tarifas de los vehiculos cuando se cobran por plena deben tener su hora inicio su hora fin y cuantas horas son y el umbral de horas para el cobro si me explico"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Notificaciones Push Parametrizadas por Empresa (Catálogo de 14 Eventos)**:
@@ -763,7 +804,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-06 20:20:00] - [TEST / QUALITY / GOVERNANCE] Incorporación de Regla de Oro en AGENTS.md (100% Pruebas Obligatorias) y Certificación de Suite de Tests (345 Tests)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"crear pruebas unitarias completas para este repositorio de parkingwpf. y como regla de oro en agents.md que siempre que se haga un cambio en el codigo del repo, por mas simple que sea, es OBLIGATORIO correr las pruebas del repo al 100% y no dar por terminada la tarea si alguna falla. En agents.md de ambos repositorios (ParkingApi y ParkingWpf) debe quedar esa regla de oro obligatoria."*
+
+  > _"crear pruebas unitarias completas para este repositorio de parkingwpf. y como regla de oro en agents.md que siempre que se haga un cambio en el codigo del repo, por mas simple que sea, es OBLIGATORIO correr las pruebas del repo al 100% y no dar por terminada la tarea si alguna falla. En agents.md de ambos repositorios (ParkingApi y ParkingWpf) debe quedar esa regla de oro obligatoria."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Incorporación de la Regla de Oro en `ParkingApi/AGENTS.md` (Regla 5)**:
@@ -785,7 +827,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-06 18:50:00] - [FEAT / CORE / TARIFAS / HORARIOS / WEBPUSH] Implementación Integral de Horarios de Sede, Tarifas Cíclicas, Tiquete Perdido, Convenios por Tiempo y Notificaciones WebPush VAPID
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"01_Clean_All_Tables.sql 02_Init_RBAC_Seed.sql por eso estos dos archivos se deben actualziar en ese nuevo plan y segundo has todo que quiero que cuando termines fase me avises pero vaya continuando no te detengas pero si saber en que fase vas si me explico. arranca con toda."*
+
+  > _"01_Clean_All_Tables.sql 02_Init_RBAC_Seed.sql por eso estos dos archivos se deben actualziar en ese nuevo plan y segundo has todo que quiero que cuando termines fase me avises pero vaya continuando no te detengas pero si saber en que fase vas si me explico. arranca con toda."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Creación Limpia de Empresas (Cero Sedes por Defecto)**:
@@ -798,7 +841,7 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
      - En `ParkingTicketService.CheckInAsync`: Si el ingreso ocurre fuera del horario de atención y sus tolerancias en hora legal de Colombia (COT, UTC-5), se registra de forma transparente y silenciosa una novedad de auditoría `VehicleIncident` con código `INGRESO_EXTEMPORANEO` (`IsBlocked = false`) sin bloquear jamás el paso del usuario.
      - Endpoints expuestos: `GET /api/branches/{id}/operating-hours` y `POST /api/branches/{id}/operating-hours`.
   4. **Motor de Tarifas Unificado y Avanzado (`ParkingTicketService.CheckOutAsync`)**:
-     - **Deducción Previa de Tiempo Libre**: Los minutos de cortesía de convenios comerciales se descuentan del tiempo de permanencia *antes* de evaluar si califica para tarifa plena.
+     - **Deducción Previa de Tiempo Libre**: Los minutos de cortesía de convenios comerciales se descuentan del tiempo de permanencia _antes_ de evaluar si califica para tarifa plena.
      - **Tarifa Plena Cíclica**: Se evalúa `FullDayThresholdMinutes` y los días aplicables `FullDayApplicableDays`. Si la estancia supera el umbral, se liquida la tarifa plena de forma cíclica (`fullDaysCount * FullDayRate + remainder`).
      - **Tarifa Nocturna (Pernocta)**: Evaluación de ventana de pernocta (`NightStartTime` a `NightEndTime`) y requisito de estancia mínima (`NightStayMinMinutes`).
      - **Tiquete Perdido**: Soporte para flag `IsLostTicket` y recargo `LostTicketFee` configurado por sede, sumándose de forma aditiva al monto de permanencia.
@@ -851,12 +894,13 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"tengo el mismo problema para que recalcule y muestre los rpecios ayer ya habia quedado el problema era algo de la fecha que me decias revisa ese ultimo cambio y veras pero entonces necesitamos una solución real por que las demas graficas si muestran esas no necesitamos ver eso producción por que arriba estan los filtros que tienen hoy ayer este mes pero aun ni asi muestra si selecciono el mes si me explico. analiza y dame plan para solución difinitiva."*
+
+  > _"tengo el mismo problema para que recalcule y muestre los rpecios ayer ya habia quedado el problema era algo de la fecha que me decias revisa ese ultimo cambio y veras pero entonces necesitamos una solución real por que las demas graficas si muestran esas no necesitamos ver eso producción por que arriba estan los filtros que tienen hoy ayer este mes pero aun ni asi muestra si selecciono el mes si me explico. analiza y dame plan para solución difinitiva."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Soporte de Períodos Dinámicos en Métricas Financieras (`AnalyticsController.cs`, `AnalyticsService.cs`)**:
      - El endpoint `GET /api/Analytics/daily-summary` ahora recibe `[FromQuery] string? period = "today"`.
-     - Se implementó la función unificada `GetPeriodUtcRange(string? period, int offsetMinutes)` que normaliza las fechas en UTC para cualquier período (*"today"*, *"yesterday"*, *"month"*) considerando el huso horario del cliente (`offsetMinutes`).
+     - Se implementó la función unificada `GetPeriodUtcRange(string? period, int offsetMinutes)` que normaliza las fechas en UTC para cualquier período (_"today"_, _"yesterday"_, _"month"_) considerando el huso horario del cliente (`offsetMinutes`).
      - `GetDailySummaryAsync` ahora consulta tiquetes liquidados mediante el nuevo método `_ticketRepository.GetCompletedTicketsByRangeAsync(fromUtc, toUtc, branchId, effectiveCompanyId, cancellationToken)`.
      - Se calculan de forma matemáticamente exacta: `TotalRevenue`, `CompletedTransactions`, `RevenueByPaymentMethod`, `CountByPaymentMethod`, `RevenueByResolution`, `CountByResolution` y `RevenueByVehicleType` para el período seleccionado.
      - `GetPeakTrafficAsync` fue homogeneizado para reutilizar `GetPeriodUtcRange`, garantizando consistencia matemática y de fechas al 100%.
@@ -885,7 +929,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 20:40:00] - Corrección de Zona Horaria (UTC-5) en Dashboard Analytics y Enriquecimiento de Sincronización Bootstrap Multi-PC
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"pero mira ese metodo del api algo esta mal por que trae solo como lo ultimo que se haga pero si ese metodo recibe esos parametros ya existe datos mas viejos y no estan sincronizando"*
+
+  > _"pero mira ese metodo del api algo esta mal por que trae solo como lo ultimo que se haga pero si ese metodo recibe esos parametros ya existe datos mas viejos y no estan sincronizando"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Diagnóstico del Desfase Horario (Timezone Mismatch UTC vs UTC-5)**:
@@ -924,9 +969,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 18:20:00] - Validación de Capacidad de Sede en CheckIn, Aislamiento de Maestros y Endpoint de Resoluciones por Sede
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"tenemos un error se modifico el cupo de la sede para el parqueadero y dejo superar el limite se coloco 3 y dejo meter 4 entonces eso es algo de validacion grave,
-  > se tiene un error grave que es que las resoluciones queda de una vez activas en la pwa en la modal de parametrizacion así no funciona eso deberia estas como los demas modulos de la parametrización ejemplo el de convenios medios de pago si me hago entender e igual acá en el wpf por que sucede que cuando en el amestro de la empresa se crea una reesolucion o un medio de pago esta de uan sincronizando no deberia el wpf deberia sincronizar información maestra solo cuando se le asocie en la paramertrización si me explico. 
-  > y esta algo quemado que todo dice automovil / sedan recuerda que nada quemado nada es nada nada nada ... m,ira acá eso no deberia estar así y valor acomulado esta mal no esta calculando el valor real por los minutos entonces necesito que hagas mejor las cosas y sean mas precisas"*
+
+  > _"tenemos un error se modifico el cupo de la sede para el parqueadero y dejo superar el limite se coloco 3 y dejo meter 4 entonces eso es algo de validacion grave,
+  > se tiene un error grave que es que las resoluciones queda de una vez activas en la pwa en la modal de parametrizacion así no funciona eso deberia estas como los demas modulos de la parametrización ejemplo el de convenios medios de pago si me hago entender e igual acá en el wpf por que sucede que cuando en el amestro de la empresa se crea una reesolucion o un medio de pago esta de uan sincronizando no deberia el wpf deberia sincronizar información maestra solo cuando se le asocie en la paramertrización si me explico.
+  > y esta algo quemado que todo dice automovil / sedan recuerda que nada quemado nada es nada nada nada ... m,ira acá eso no deberia estar así y valor acomulado esta mal no esta calculando el valor real por los minutos entonces necesito que hagas mejor las cosas y sean mas precisas"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Validación de Cupo Máximo en `ParkingTicketService.CheckInAsync`**:
@@ -962,9 +1008,11 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 17:20:00] - Aislamiento por Sede de Notificaciones SignalR y Sincronización de Tarifas
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"tenemos un error grave por que en la empresa se esta creando los tipos de vehiculos pero no se les asocio a la sede el tipo de vehiculo el sistema de una vez detecto los cambios creo que por lo del signal pero eso deberia ir asociado es por sede si me explico no cuando se cree el tipo de vehjciulo esta mal el hub cuando se dispara por que se deberia disparar cuando se le asocie a la sede si me explico, por que es por sede las parametrizaciones analiza eso"*
+
+  > _"tenemos un error grave por que en la empresa se esta creando los tipos de vehiculos pero no se les asocio a la sede el tipo de vehiculo el sistema de una vez detecto los cambios creo que por lo del signal pero eso deberia ir asociado es por sede si me explico no cuando se cree el tipo de vehjciulo esta mal el hub cuando se dispara por que se deberia disparar cuando se le asocie a la sede si me explico, por que es por sede las parametrizaciones analiza eso"_
 
 - **`🤖 Resumen Técnico para la IA`**:
+
   > 1. **Aislamiento de Notificaciones SignalR en `VehicleRatesController.cs`**:
   >    - Se erradicó la invocación a `NotifyGlobalConfigChangedAsync` (`Clients.All`) en `Create`, `Update` y `Delete`.
   >    - Si la tarifa cuenta con `BranchId.HasValue && BranchId.Value > 0` (tarifa parametrizada para una sede específica), se emite `NotifyBranchConfigChangedAsync` exclusivamente al grupo SignalR de esa sede (`Branch_{branchId}`).
@@ -984,12 +1032,14 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet build ParkingApi.slnx` → **0 Errores, 8 Advertencias (previas NU1903/CS8601)**
   - `dotnet test ParkingApi.slnx` → **345 Pruebas Superadas, 0 Fallos**
 
-## 📌 Entrada: [2026-09-04 16:50:00] - Desacople RBAC Total PWA/WPF, Sembrado de Acciones wpf.* y Directivas Corporativas en Bootstrap
+## 📌 Entrada: [2026-09-04 16:50:00] - Desacople RBAC Total PWA/WPF, Sembrado de Acciones wpf.\* y Directivas Corporativas en Bootstrap
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"El WPF dejo pasar del login con el usuario que me logueey eso que el usuario no tiene permisos asignados pero si los tiene completamente ya revise desde el administrador desde la pwa y tiene los permisos correspondientes... otra cosa es que me di cuenta que al editar el rol le estaba asignando permisos de solo wpf pero asignaba uno y automaticamente se asignaba a pwa ? por que si son independiente no que se le asigne a uno se le asigna al otro si me explico eso es un bug terrible... aparte medio vi que el wpf no esta parametrizado con todo lo que ya se ha hecho de parametriaación de que si no se requiere abrir caja por que así se creo la empresa no debe por que exigirlo..."*
+
+  > _"El WPF dejo pasar del login con el usuario que me logueey eso que el usuario no tiene permisos asignados pero si los tiene completamente ya revise desde el administrador desde la pwa y tiene los permisos correspondientes... otra cosa es que me di cuenta que al editar el rol le estaba asignando permisos de solo wpf pero asignaba uno y automaticamente se asignaba a pwa ? por que si son independiente no que se le asigne a uno se le asigna al otro si me explico eso es un bug terrible... aparte medio vi que el wpf no esta parametrizado con todo lo que ya se ha hecho de parametriaación de que si no se requiere abrir caja por que así se creo la empresa no debe por que exigirlo..."_
 
 - **`🤖 Resumen Técnico para la IA`**:
+
   > 1. **Acciones Dedicadas de Terminal WPF (`wpf.*`)**: Se crearon y registraron 25 acciones dedicadas en base de datos (`wpf.checkin.*`, `wpf.checkout.*`, `wpf.monitoring.*`, `wpf.shifts.*`, `wpf.subscriptions.*`) mediante los scripts `Scripts/08_Add_WPF_Dedicated_Actions.sql`, `Scripts/02_Init_RBAC_Seed.sql` y `DatabaseSeeder.SeedWpfActionsAsync`. Esto desacopla al 100% las selecciones de permisos en el gestor de roles entre la plataforma Web (PWA) y el terminal POS de garita (WPF).
   > 2. **Sincronización de Directivas Corporativas en Bootstrap**: Se extendió `BootstrapSyncDto` con las propiedades de control de turnos y sesiones de la empresa (`RequireOpenShiftToOperate`, `RequireInitialCashAmount`, `AllowMultipleSessions`, `MaxActiveSessionsPerUser`, `AllowMultipleOpenShifts`, `MaxOpenShiftsPerUser`).
   > 3. En `SyncService.cs`, se mapearon estas propiedades desde `targetCompany` (obtenido a través de `branch.Company` en `BranchRepository.GetByIdAsync`) para enviarlas al cliente WPF en cada sincronización de arranque y cambio de sede.
@@ -1009,10 +1059,13 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 15:45:00] - Cálculo Progresivo Puro de Tarifas, Sincronización y Validaciones Multi-Sede
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"# Plan de Arquitectura e Implementación: Validaciones Multi-Sede, Convenios en Salida, Tarifas Progresivas, Resoluciones y Sincronización WPF..."*
+
+  > _"# Plan de Arquitectura e Implementación: Validaciones Multi-Sede, Convenios en Salida, Tarifas Progresivas, Resoluciones y Sincronización WPF..."_
 
 - **`🤖 Resumen Técnico para la IA`**:
+
   > Se estandarizó la liquidación progresiva y escalonada de cobro en `ParkingTicketService.CheckOutAsync` cuando el ticket no viene preliquidado:
+  >
   > 1. Periodo de gracia: si `totalMinutes <= rate.GracePeriodMinutes`, la tarifa es $0.
   > 2. Franja nocturna: si `rate.NightRate > 0` y la estancia ocurre en horario nocturno (>= 6 horas de 18:00 a 06:00), aplica la tarifa nocturna.
   > 3. Estancias multidía (>= 1440 min con `fullDayRate > 0`): liquidación de días completos más el remanente fraccionario con tope de día por cada ciclo de 24h.
@@ -1030,12 +1083,15 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 14:35:00] - Recaudación por Medios de Pago 100% Dinámica y Aislamiento Multi-Sede (Zero Hardcoding)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"mira tenemos este problema la grafica si esta pintando, bien dinamica de acuerdo a los medios de pago de la sede excelenmte, pero se necesita que vaya sumando ya hicimos salidas de vehiculos pero no esta mostrando que medio de pago ha tenido mas recaudo si me explico entonces se requiere revisar eso. Pero no quiero nada quemado todo debe ser dinamica si desde la pwa si no se guardaba el valor cobrado de salida listo pero eso ya estaba entonces no que comot e mande eso como ejemplo tomes que así va y quemes el codigo eso es por que cree esos tipos de medios de pago pero eso debería funcionar con todo si me explico entonces analisa eso y dame nuevamente el plan... ten presente que eso es diferente por cada sede de la compañia si me explico eso claro ? lo tenes presente en el plan es que no veo que lo hables ..."*
+
+  > _"mira tenemos este problema la grafica si esta pintando, bien dinamica de acuerdo a los medios de pago de la sede excelenmte, pero se necesita que vaya sumando ya hicimos salidas de vehiculos pero no esta mostrando que medio de pago ha tenido mas recaudo si me explico entonces se requiere revisar eso. Pero no quiero nada quemado todo debe ser dinamica si desde la pwa si no se guardaba el valor cobrado de salida listo pero eso ya estaba entonces no que comot e mande eso como ejemplo tomes que así va y quemes el codigo eso es por que cree esos tipos de medios de pago pero eso debería funcionar con todo si me explico entonces analisa eso y dame nuevamente el plan... ten presente que eso es diferente por cada sede de la compañia si me explico eso claro ? lo tenes presente en el plan es que no veo que lo hables ..."_
 
 - **`🤖 Resumen Técnico para la IA`**:
+
   > **Causa Raíz:** Al liquidar salidas en patio, el backend recalculaba el monto bruto multiplicando horas por `ticket.HourlyRate`. Si la tarifa del ticket era 0 (o no estaba configurada para la sede), el backend asignaba `GrossAmount = 0.00` y `NetAmount = 0.00`, asumiendo todo el dinero pagado por el cliente como "cambio entregado" (`ChangeGiven`). El valor neto cobrado quedaba en $0, por lo que `AnalyticsService` sumaba $0 a todos los métodos de pago. Además, existían heurísticas de texto quemadas (`"Cash"`, `"Efectivo"`).
   >
   > **Solución 100% Dinámica y Multi-Sede:**
+  >
   > 1. `CheckOutRequestDto`: Se agregaron `GrossAmount` y `NetAmount`. En `ParkingTicketService.CheckOutAsync`, si el cliente envía el monto liquidado, se respeta prioritariamente; si no y la tarifa es 0 pero hubo un cobro (`AmountPaid > 0`), se asigna `gross = dto.AmountPaid` y `net = dto.AmountPaid`, impidiendo que el ingreso se pierda. `ticket.NetAmount = net` y `ticket.ChangeGiven = Math.Max(0, ticket.AmountPaid - net)`.
   > 2. `CheckInRequestDto` / `IVehicleRateRepository`: Se añadió soporte para `HourlyRate` y se sobrecargó `GetByTypeAsync(VehicleType, branchId, companyId)` para resolver prioritariamente la tarifa de la sede activa (`BranchId`).
   > 3. `AnalyticsService.cs`: Se eliminaron todas las cadenas y heurísticas fijas. Si se consulta por sede (`branchId`), se obtienen los métodos asignados a esa sede vía `_branchRepository.GetPaymentMethodsByBranchIdAsync(branchId.Value)` y se indexa dinámicamente por `PaymentMethodId` numérico y Nombre de base de datos.
@@ -1056,9 +1112,11 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 11:54:00] - Fix Definitivo Gráficas Dashboard: Campo PaymentMethodId en ParkingTicket
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Sigue igual sin mostrarse los vehiculos en las graficas, valida si al liquidar salida en el modulo de control de vehiculos en patio el guarda en BD los datos que se requieren para mostrar en las graficas de la dashboard"*
+
+  > _"Sigue igual sin mostrarse los vehiculos en las graficas, valida si al liquidar salida en el modulo de control de vehiculos en patio el guarda en BD los datos que se requieren para mostrar en las graficas de la dashboard"_
 
 - **`🤖 Resumen Técnico para la IA`**:
+
   > **Causa Raíz Definitiva:** El campo `PaymentMethod` en `ParkingTicket` es un enum estático (`Cash=0, CreditCard=1, DebitCard=2, Transfer=3`). El frontend enviaba el **ID real del catálogo maestro** (ej: `1` = "Efectivo" en tabla `PaymentMethods` de BD), pero el backend lo casteaba al enum (`(PaymentMethod)(int)1` = `CreditCard`). El `AnalyticsService` leía `(int)ticket.PaymentMethod.Value` (valor del enum = 1) y buscaba `methodMap[1]` → encontraba "Tarjeta". El Dashboard buscaba `byMethod["1"]` (ID maestro de Efectivo) → coincidía con "Tarjeta" en lugar de "Efectivo". Gráficas siempre erróneas.
   >
   > **Solución:** Agregar `PaymentMethodId (int?)` al modelo `ParkingTicket` y al `CheckOutRequestDto`. En `ParkingTicketService.CheckOutAsync`, guardar `ticket.PaymentMethodId = dto.PaymentMethodId ?? (int)dto.PaymentMethod`. En `AnalyticsService`, priorizar `ticket.PaymentMethodId` sobre el valor del enum para la indexación del diccionario `RevenueByPaymentMethod`. Se mantiene el enum `PaymentMethod` por compatibilidad con clientes WPF.
@@ -1077,10 +1135,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet test ParkingApi.slnx` → **344 Passed, 0 Failed**
   - `dotnet ef database update` → Migración aplicada exitosamente
 
-
-
 - **`💬 Prompt Original del Usuario`**:
-  > *"En la dashboard - recaudacion por medio de pago , se muestran los medios de pagos correctos , sin embargo no se esta poblando la informacion correctamente en la grafica, requiero es que se muestre por % en esa grafica torta, asi mismo debe comportarse el de facturacion por resolucion"*
+
+  > _"En la dashboard - recaudacion por medio de pago , se muestran los medios de pagos correctos , sin embargo no se esta poblando la informacion correctamente en la grafica, requiero es que se muestre por % en esa grafica torta, asi mismo debe comportarse el de facturacion por resolucion"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Tipado Desacoplado en DTO (`FinancialSummaryDto.cs`)**:
@@ -1112,7 +1169,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 10:35:00] - Implementación de Endpoint DELETE Físico para Medios de Pago y Cascada en Asignaciones de Sede
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"el boton de elimianr que se tiene en la tab del maestros de medios de pago sigue inactivando no eliminando ese icono rojo es de eliminar dcreo que el enrutamiento esta mal revisa eso."*
+
+  > _"el boton de elimianr que se tiene en la tab del maestros de medios de pago sigue inactivando no eliminando ese icono rojo es de eliminar dcreo que el enrutamiento esta mal revisa eso."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Capa de Repositorio (`IPaymentMethodRepository.cs` y `PaymentMethodRepository.cs`)**:
@@ -1145,7 +1203,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 10:05:00] - Sincronización Integral de Scripts SQL (01_Clean_All_Tables.sql y 02_Init_RBAC_Seed.sql) con EF Core 9.0.0 para Despliegue Limpio desde Cero
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"revisa como cambian estos archivos para poder correr todo desde cero: 01_Clean_All_Tables.sql, 02_Init_RBAC_Seed.sql"*
+
+  > _"revisa como cambian estos archivos para poder correr todo desde cero: 01_Clean_All_Tables.sql, 02_Init_RBAC_Seed.sql"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Limpieza Completa de Tablas (`Scripts/01_Clean_All_Tables.sql`)**:
@@ -1182,14 +1241,15 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 09:20:00] - Soporte de Minutos en Convenios Comerciales, Parametrización Relacional de Convenios por Sede (BranchCommercialAgreements), Exposición de Configuración de Caja en ValidateSession y Reactivación de Medios de Pago en Catálogo Maestro
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Cuando se le habilita la parametrización a la empresa de que si tenga caja si se ve como que hace el laoder pero no se actualzia me toca cerrar y volver a ingresar para que aparezca el modulo.*
-  > *cuando se intenta abrir caja no esta tomando el valor de caja inicial que se configuro en la creación de la sede esta trayendo información como quemada si me explico eso aplica tanto para el pwa como para el wpf.*
-  > *la alerta de cuando se quiere registrar el ingreso de un vehiculo y no se tiene medios de pago bien ya muestra la modal super pero lo manda a configuración deberia ser mas explicito y mandarlo a medios de pago si me explico*
-  > *Se tiene un error los medios de pago estan quedando inactivos desde creación y la lista no muestra inactivos deberia mostrar inactivos e activos.*
-  > *yo como administrador tenia 3 sedes elimine 2 bien las dejo eliminar pero en el select de arriba siguen apareciendo las 3 sedes no deberia eso debe ser reactivo si me explico.*
-  > *el input del porcentaje de descuento en la creación del convenio no esta dejando ingresar bien el porcentaje ademas no deberia dejar mas de 3 digitos e maximo 100%*
-  > *en la tab de convenios en la creación no se si se deberia colocar minutos por que las horas son enteras si se puede colocar minutos opcional si me explico.*
-  > *en la tab de sedes en parametrización falto la tab de convenios, parametrizar convenios que se vea que convenios tiene esa sede y que si se quiere inhabilitar o habilitar uno para esa sede se pueda hacer"*
+
+  > _"Cuando se le habilita la parametrización a la empresa de que si tenga caja si se ve como que hace el laoder pero no se actualzia me toca cerrar y volver a ingresar para que aparezca el modulo._
+  > _cuando se intenta abrir caja no esta tomando el valor de caja inicial que se configuro en la creación de la sede esta trayendo información como quemada si me explico eso aplica tanto para el pwa como para el wpf._
+  > _la alerta de cuando se quiere registrar el ingreso de un vehiculo y no se tiene medios de pago bien ya muestra la modal super pero lo manda a configuración deberia ser mas explicito y mandarlo a medios de pago si me explico_
+  > _Se tiene un error los medios de pago estan quedando inactivos desde creación y la lista no muestra inactivos deberia mostrar inactivos e activos._
+  > _yo como administrador tenia 3 sedes elimine 2 bien las dejo eliminar pero en el select de arriba siguen apareciendo las 3 sedes no deberia eso debe ser reactivo si me explico._
+  > _el input del porcentaje de descuento en la creación del convenio no esta dejando ingresar bien el porcentaje ademas no deberia dejar mas de 3 digitos e maximo 100%_
+  > _en la tab de convenios en la creación no se si se deberia colocar minutos por que las horas son enteras si se puede colocar minutos opcional si me explico._
+  > _en la tab de sedes en parametrización falto la tab de convenios, parametrizar convenios que se vea que convenios tiene esa sede y que si se quiere inhabilitar o habilitar uno para esa sede se pueda hacer"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   1. **Migración SQL y Modelo Relacional (`Scripts/07_Add_Agreement_Minutes_And_Branch_Agreements.sql`)**:
@@ -1243,8 +1303,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 08:12:00] - Eliminación Real de Sedes, Proyección de Roles de Operador y Auto-Habilitación Dinámica de Módulo de Caja en Actualización de Empresa
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Cuando una empresa tiene activa la parametrizacion de que requiere abrir caja suceden dos cosas que no estan pasando primera, es que si se activa esa condicion deberia ser reactivo y al administrador se le deberia habilitar el permiso de cajas de una vez en la pantalla nos toca cerrar sesión y volver a loguearnos para que se muestre el modulo, segundo el modulo de abrir caja exactamente la modal esta generando un error que dice que no se puede abrir caja por que no se tiene una sede activa y si tengo sedes tengo 3 y no funciona y tampoco esta trayendo a los usuarios que tengan el permisos de abrir caja si me explico por que solo sale un select con el nombre del usaurio administrador pero con un rol que no es el de el.*
-  > *en la tabla de sedes el boton de eliminar no deberia desactivar la sede si no eliminarla definitivamente."*
+
+  > _"Cuando una empresa tiene activa la parametrizacion de que requiere abrir caja suceden dos cosas que no estan pasando primera, es que si se activa esa condicion deberia ser reactivo y al administrador se le deberia habilitar el permiso de cajas de una vez en la pantalla nos toca cerrar sesión y volver a loguearnos para que se muestre el modulo, segundo el modulo de abrir caja exactamente la modal esta generando un error que dice que no se puede abrir caja por que no se tiene una sede activa y si tengo sedes tengo 3 y no funciona y tampoco esta trayendo a los usuarios que tengan el permisos de abrir caja si me explico por que solo sale un select con el nombre del usaurio administrador pero con un rol que no es el de el._
+  > _en la tabla de sedes el boton de eliminar no deberia desactivar la sede si no eliminarla definitivamente."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Eliminación Real de Sede (`DELETE /api/branches/{id}`)**:
@@ -1278,7 +1339,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-04 06:40:00] - Diseño y Documentación de Arquitectura: Notificaciones Push PWA Multi-Empresa, RBAC y Parametrizables (100% Gratis)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Guarda este plan en el api en un doc para tenerlo para analisarlo ahora mas tarde por que debemos solucioanr otras coas primero."*
+
+  > _"Guarda este plan en el api en un doc para tenerlo para analisarlo ahora mas tarde por que debemos solucioanr otras coas primero."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Documento Maestro Creado**: Se generó el archivo de especificación técnica y de negocio en [`Docs/PLAN_NOTIFICACIONES_PUSH_PWA.md`](file:///c:/Users/miguelagutierrezg/source/repos/ParkingApi/Docs/PLAN_NOTIFICACIONES_PUSH_PWA.md).
@@ -1300,9 +1362,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 
 ---
 
-
 - **`💬 Prompt Original del Usuario`**:
-  > *"actualiza estos dos archivos por favor para tenerlos claro para el arranque inicial, ya sabes que se va arranar solo el usuario superadmin pero nada nada creado nada es nada deber revisar de una vez que el bakckend no cree nada solo automatico si me explico. ??"*
+
+  > _"actualiza estos dos archivos por favor para tenerlos claro para el arranque inicial, ya sabes que se va arranar solo el usuario superadmin pero nada nada creado nada es nada deber revisar de una vez que el bakckend no cree nada solo automatico si me explico. ??"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Auditoría del Backend (`Program.cs`, `DatabaseSeeder.cs`, Context)**:
@@ -1343,7 +1405,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 21:35:00] - Arquitectura de Suscripciones SaaS COP, Dinámica de Planes/Personalizado, Control de Cupo de Usuarios y Restricción Bilateral de Plataformas
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Pero si se va a crear los planes y en los planes se va a definir las cosas que se van a tener entonces si selecciono en la creación de empresa un plan ya se tendriá claro cuantas sedes, si va con el wpf y que modulos lleva el plan, otra cosa es que cuando este creando la empresa y le de plan personalizado hay si se desbloquea las opciones y deja modificar las sedes, y seleccionar los modulos que lleva, otra cosa es que no me hablaste de la cantidad de usuarios que puede tener una empresa eso tambien va en el plan, otra cosa es que las plataformas pueden ser (solo web, solo wpf, web y wpf) eso tambien deberia ser configurable en el plan y en el plan personalizado. y en base a eso se deberia restringir el acceso a la plataforma si no lo tiene. Moneda COP, catalogo de planes desde cero."*
+
+  > _"Pero si se va a crear los planes y en los planes se va a definir las cosas que se van a tener entonces si selecciono en la creación de empresa un plan ya se tendriá claro cuantas sedes, si va con el wpf y que modulos lleva el plan, otra cosa es que cuando este creando la empresa y le de plan personalizado hay si se desbloquea las opciones y deja modificar las sedes, y seleccionar los modulos que lleva, otra cosa es que no me hablaste de la cantidad de usuarios que puede tener una empresa eso tambien va en el plan, otra cosa es que las plataformas pueden ser (solo web, solo wpf, web y wpf) eso tambien deberia ser configurable en el plan y en el plan personalizado. y en base a eso se deberia restringir el acceso a la plataforma si no lo tiene. Moneda COP, catalogo de planes desde cero."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Entidad y Repositorio de Planes (`SaaSPlan.cs`, `IPlanRepository.cs`, `PlanRepository.cs`)**:
@@ -1393,7 +1456,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-06 23:48:00] - Creación de NotificationsController para Notificaciones WebPush (VAPID)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"trato de activar desde mobile y sale [Error al activar notificaciones push: Http failure response for https://api.parking-flow.com/api/notifications/vapid-public-key: 404 OK] - no, solucionalo"*
+
+  > _"trato de activar desde mobile y sale [Error al activar notificaciones push: Http failure response for https://api.parking-flow.com/api/notifications/vapid-public-key: 404 OK] - no, solucionalo"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Diagnóstico**:
@@ -1420,7 +1484,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-06 23:18:00] - Mapeo de DefaultInitialCash en DTO de Sucursal durante Login de Operador
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Ayudame a que al abrir caja en el wpf , la base inciial sea lo mismo que se parametrizo al crearla sede desde el pwa (editar sede- base incial cjaja)"*
+
+  > _"Ayudame a que al abrir caja en el wpf , la base inciial sea lo mismo que se parametrizo al crearla sede desde el pwa (editar sede- base incial cjaja)"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Diagnóstico**:
@@ -1443,7 +1508,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 20:10:00] - Sincronización Reactiva en Tiempo Real (SignalR) para Límites de Sedes y Configuración de Empresa
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"ya cambie si era como cerrar y volver a ingresar pero eso no deberia ser así eso deberia ser reactivo si cambio eso de limite de sedes deberia sincronizarse directo en la visual del administrador si me explico eso se trata del sistema claro si me explico. analiza y dame plan"*
+
+  > _"ya cambie si era como cerrar y volver a ingresar pero eso no deberia ser así eso deberia ser reactivo si cambio eso de limite de sedes deberia sincronizarse directo en la visual del administrador si me explico eso se trata del sistema claro si me explico. analiza y dame plan"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Diagnóstico y Arquitectura**:
@@ -1471,21 +1537,29 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 19:35:00] - Cobertura Exhaustiva 100% de Pruebas Unitarias en Controladores de ParkingApi (Fase 1, 2 y 3)
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Actúa como Senior QA Automation / Backend Engineer. Se requiere una cobertura exhaustiva y estricta del 100% de los controladores y endpoints de la solución. Ningún controlador ni endpoint puede quedar sin pruebas unitarias.
+
+  > \*"Actúa como Senior QA Automation / Backend Engineer. Se requiere una cobertura exhaustiva y estricta del 100% de los controladores y endpoints de la solución. Ningún controlador ni endpoint puede quedar sin pruebas unitarias.
   > Ejecuta esta tarea siguiendo estas fases obligatorias:
+  >
   > ### Fase 1: Auditoría e Inventario (Checklist Inicial)
+  >
   > 1. Escanea todo el proyecto e identifica absolutamente todos los archivos de controladores (`*Controller*`).
   > 2. Mapea la totalidad de los endpoints expuestos en cada uno (métodos HTTP, rutas y firmas de acción).
   > 3. Cruza este inventario contra el proyecto de pruebas actual y genera una lista de pendientes (Gap Analysis) que muestre qué controladores o métodos carecen de pruebas o tienen cobertura parcial.
+  >
   > ### Fase 2: Implementación de Pruebas Unitarias (1 a 1)
+  >
   > Implementa los archivos de pruebas faltantes o complementa los existentes asegurando:
+  >
   > - Estructura AAA: Patrón Arrange-Act-Assert claro en cada test.
   > - Aislamiento total: Simular (Mock) todas las dependencias inyectadas (servicios, repositorios, mediadores, loggers, validadores). No tocar bases de datos reales ni APIs externas.
   > - Escenarios mínimos obligatorios por cada endpoint: Happy Path (200/201/204), Validaciones y Bad Request (400), No Encontrado (404), Control de Errores / Excepciones (500), Conflictos / Reglas de Negocio (409/422).
+  >
   > ### Fase 3: Ejecución y Certificación
+  >
   > 1. Ejecuta la suite de pruebas del proyecto (dotnet test o el runner configurado en la solución).
   > 2. Asegura que el 100% de los tests pasen exitosamente (cero fallos, cero omitidos).
-  > 3. Presenta una tabla resumen final con: Nombre del Controlador, Endpoint / Método probado, Casos cubiertos, Estado de ejecución (PASS)"*
+  > 3. Presenta una tabla resumen final con: Nombre del Controlador, Endpoint / Método probado, Casos cubiertos, Estado de ejecución (PASS)"\*
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Fase 1: Auditoría e Inventario Completo & Gap Analysis**:
@@ -1561,7 +1635,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 17:05:00] - Revocación Instantánea de Sesiones y Eliminación de Siembra Residual en Creación de Empresas
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Tenemos un error, estamos probando las nuevas parametrizaciones, sucede y acontese que creamos una empresa con la opción de que multiple sesiones le colocamos 2 bien accedimos a una tercera y bien super bien cerraba como la ultima que iniciaba bien y así en secuencia pero entramos a editar la empresa y le quitamos la opción de multisesion me acuerdo que te habia dicho que deberia cerrar todas las sesiones de los dispositivos que de la empresa que estuvieran iniciados si me explico pues con el fin de la nueva parametrización si me epxlico ? eso no sucedio. analiza eso . esto en version web sale así en movil si sale como deberia pues como no hay anda cargado no deberia mockup nada eso es plenamente dinamico y de acuerod a lo que se cree sucede lo mismo con la siguiente imagen eso tambien esta en movil y en web y eso ya se habia solucionado no entiendo en que parte del codigo esta eso qumado eso no deberia ser quemado ni nada si me explico."*
+
+  > _"Tenemos un error, estamos probando las nuevas parametrizaciones, sucede y acontese que creamos una empresa con la opción de que multiple sesiones le colocamos 2 bien accedimos a una tercera y bien super bien cerraba como la ultima que iniciaba bien y así en secuencia pero entramos a editar la empresa y le quitamos la opción de multisesion me acuerdo que te habia dicho que deberia cerrar todas las sesiones de los dispositivos que de la empresa que estuvieran iniciados si me explico pues con el fin de la nueva parametrización si me epxlico ? eso no sucedio. analiza eso . esto en version web sale así en movil si sale como deberia pues como no hay anda cargado no deberia mockup nada eso es plenamente dinamico y de acuerod a lo que se cree sucede lo mismo con la siguiente imagen eso tambien esta en movil y en web y eso ya se habia solucionado no entiendo en que parte del codigo esta eso qumado eso no deberia ser quemado ni nada si me explico."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Eliminación de Datos Quemados/Siembras en Creación de Empresa**:
@@ -1591,7 +1666,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 16:25:00] - Multi-Tenant Limpio: Eliminación de Siembra de Empresa Inicial y Consolidación de Esquemas en 02_Init_RBAC_Seed.sql
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"@[02_Init_RBAC_Seed.sql] necesito que revises esto por que necesito que quites que crres la primera empresa lo necesitamos sin empresas nuevas la idea es iniciar de cero entrar a crear empresas nuevas y probar las nuevas configuraciones si me explico para tenerlo presente. creo que con eso tenemos claro dime si es claro lo que te digo o no para revisarlo los dos ? ... dale haz el ajuste necesario completo."*
+
+  > _"@[02_Init_RBAC_Seed.sql] necesito que revises esto por que necesito que quites que crres la primera empresa lo necesitamos sin empresas nuevas la idea es iniciar de cero entrar a crear empresas nuevas y probar las nuevas configuraciones si me explico para tenerlo presente. creo que con eso tenemos claro dime si es claro lo que te digo o no para revisarlo los dos ? ... dale haz el ajuste necesario completo."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Eliminación de Siembra de Empresa Preestablecida**:
@@ -1618,7 +1694,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 16:20:00] - Soporte Integral de Esquemas de Cobro por Sede, Tarifas Nocturnas y Directiva de Base Inicial Obligatoria en Backend
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"el orden es el siguiente: le muestra la primera configuracion que es si es multisesion si dice si le pregunta cuantas, despues le aparece la opcion requiere abrir caja entonces si dice [si] le aparece la 3 opcion que es un usuario puede abrir multiples cajas si dice que si pues le pregunta en un input cuantas si me explico despues aparece la 4 opcion la 3 y 4 son dependientes de la 2 si me explico entonces la 4 opcion es requiere un monto inicial en cada caja si o no eso obligaria si marca si en que cuando se creen sedes se le pida el parametro de monto base inicial si dicen no entonces esa compañia no manejaria eso... otra cosa que se debe tener encuenta es que al momento de crear la sede las cosas van a cambiar por que tambien se quiere parametrizar lo siguiente que es que le pregunte como una lista de check bien bakanos bien pro de que le diga que tipos de cobros va a tener en la sede, que son Por Minuto, Por Hora, Plena, nocturna, con eso cuando se cree en el maestro el tipo de vehiculo despues se vaya parametrizar la sede pues el sistema con ese dinamismo sabe que le debe paremetrizar a ese vehiculo de acuerdo a lo que selecciono en la sede si me explico ?... y hay algo supremamente importante que no hemos analziado y toca revisar por que el tema de roles y permisos cambiaria desde que se cree la compañia si una compañia se crea en que no necsita abrir cajas entonces para que le vamos a mostrar al administrador los modulos de cajas o que pueda asignar esos permisos de cajas si me explico debe ser todo muy coherente con lo que se esta parametrizando..."*
+
+  > _"el orden es el siguiente: le muestra la primera configuracion que es si es multisesion si dice si le pregunta cuantas, despues le aparece la opcion requiere abrir caja entonces si dice [si] le aparece la 3 opcion que es un usuario puede abrir multiples cajas si dice que si pues le pregunta en un input cuantas si me explico despues aparece la 4 opcion la 3 y 4 son dependientes de la 2 si me explico entonces la 4 opcion es requiere un monto inicial en cada caja si o no eso obligaria si marca si en que cuando se creen sedes se le pida el parametro de monto base inicial si dicen no entonces esa compañia no manejaria eso... otra cosa que se debe tener encuenta es que al momento de crear la sede las cosas van a cambiar por que tambien se quiere parametrizar lo siguiente que es que le pregunte como una lista de check bien bakanos bien pro de que le diga que tipos de cobros va a tener en la sede, que son Por Minuto, Por Hora, Plena, nocturna, con eso cuando se cree en el maestro el tipo de vehiculo despues se vaya parametrizar la sede pues el sistema con ese dinamismo sabe que le debe paremetrizar a ese vehiculo de acuerdo a lo que selecciono en la sede si me explico ?... y hay algo supremamente importante que no hemos analziado y toca revisar por que el tema de roles y permisos cambiaria desde que se cree la compañia si una compañia se crea en que no necsita abrir cajas entonces para que le vamos a mostrar al administrador los modulos de cajas o que pueda asignar esos permisos de cajas si me explico debe ser todo muy coherente con lo que se esta parametrizando..."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Directivas de Cobro por Sede en Entidades y DTOs (`Branch.cs`, `BranchDtos.cs`, `BranchService.cs`)**:
@@ -1655,7 +1732,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 15:30:00] - Parametrizaciones Operativas de Empresa, Tabla Relacional UserSessions, Concurrencia de Cajas y Suite de Pruebas Unitarias xUnit
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"Necesitamos configurar algunas nuevas configuraciónes que no tuvimos encuenta cuando se crear una empresa se requiere lo siguiente, como un cajon de parametrizaciones la primera es permite multiples sesiones de los ususuarios si dice si entonces se la habilita un campo que diga cuantas osea es un int... si lo llegara a desactivar cierra las multiples sesiones de todos los usuarios instantaneo. La otra parametrización es que el tenga otro check donde le diga un usuarios puede tener varias cajas abiertas al mismo tiempo cuantas cajas... otra parametrización es que no obligue a abrir caja que no sea requjerido si no que el usuario que ingrese a la sede que tenga acceso automaticamente desde que tenga los permisos logicos de una vez operar y sacar vehiculos y ya no tener nada mas... si inicia 20 sesiones el campo de la columna en la BD se va a reventar no, eso no es mejor hacer una tabla relacional o algo diferente ?... sabes que debemos integrar en el api que no tenemos lo de pruebas unitarias por que eso nos serviria mucho para poder saber si todos los eventos o casos locos que estamos haciendo funcionen entonces sería bueno que se creara esa capa de pruebas unitarias para cada cosa que se haga en el backend se vaya realizando."*
+
+  > _"Necesitamos configurar algunas nuevas configuraciónes que no tuvimos encuenta cuando se crear una empresa se requiere lo siguiente, como un cajon de parametrizaciones la primera es permite multiples sesiones de los ususuarios si dice si entonces se la habilita un campo que diga cuantas osea es un int... si lo llegara a desactivar cierra las multiples sesiones de todos los usuarios instantaneo. La otra parametrización es que el tenga otro check donde le diga un usuarios puede tener varias cajas abiertas al mismo tiempo cuantas cajas... otra parametrización es que no obligue a abrir caja que no sea requjerido si no que el usuario que ingrese a la sede que tenga acceso automaticamente desde que tenga los permisos logicos de una vez operar y sacar vehiculos y ya no tener nada mas... si inicia 20 sesiones el campo de la columna en la BD se va a reventar no, eso no es mejor hacer una tabla relacional o algo diferente ?... sabes que debemos integrar en el api que no tenemos lo de pruebas unitarias por que eso nos serviria mucho para poder saber si todos los eventos o casos locos que estamos haciendo funcionen entonces sería bueno que se creara esa capa de pruebas unitarias para cada cosa que se haga en el backend se vaya realizando."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Tabla Relacional de Sesiones (`UserSessions` / `IUserSessionRepository`)**:
@@ -1713,7 +1791,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 12:25:00] - Asignación de Operador en Apertura de Turno y Validación de Operadores Asignados por Sede
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"en la pwa al abrir caja de alguna sede abre una modal pero no muestra a que usuariod esea abrirle el turno si me explico y si esa sede no tiene operadores asignados pues deberia salir una modal de alerta que no es posible abrir caja para esa sede ya que no cuenta con operadores asignados. analiza y dame plan"*
+
+  > _"en la pwa al abrir caja de alguna sede abre una modal pero no muestra a que usuariod esea abrirle el turno si me explico y si esa sede no tiene operadores asignados pues deberia salir una modal de alerta que no es posible abrir caja para esa sede ya que no cuenta con operadores asignados. analiza y dame plan"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Recepción de UserId en Apertura de Turno (`ShiftDtos.cs`, `ShiftsController.cs`)**:
@@ -1737,7 +1816,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ## 📌 Entrada: [2026-09-03 12:10:00] - Unicidad de Nombre Comercial de Sedes y Protección de Roles de Sistema
 
 - **`💬 Prompt Original del Usuario`**:
-  > *"...otra cosa esta dejando crear sede en la compañia con el mismos nombre no deberia si ya existe la sede con ese nombre distinguiendo de mayusculas y minusculas no deja pasar por que ya existe en la compañia me explico... pero tambien el administador el entra en roles y le da por modificar su propio rol entonces pues dañaria esa validación debemos dejar que ese rol de administrador no se pueda modificar el nombre por el mismo administrador de la compañia si me explico ?"*
+
+  > _"...otra cosa esta dejando crear sede en la compañia con el mismos nombre no deberia si ya existe la sede con ese nombre distinguiendo de mayusculas y minusculas no deja pasar por que ya existe en la compañia me explico... pero tambien el administador el entra en roles y le da por modificar su propio rol entonces pues dañaria esa validación debemos dejar que ese rol de administrador no se pueda modificar el nombre por el mismo administrador de la compañia si me explico ?"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Unicidad de Nombre Comercial de Sede por Empresa (`BranchService.cs`)**:
@@ -1756,8 +1836,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: [2026-09-03 10:50:00] - Dimensiones de Impresión, Base Inicial de Caja, Sedes Inactivas y Aislamiento de Consecutivos
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"🗄️ 3. Backend, Base de Datos y API (Nuevos Requerimientos): Dimensiones de Impresión en Branch (56mm/80mm), Resoluciones por Sede en DIAN, Histórico de Novedades y Soluciones, Valor Inicial de Caja en Sede. ⚙️ 2.4 Consecutivo de Tickets aislado por empresa..."*
+
+  > _"🗄️ 3. Backend, Base de Datos y API (Nuevos Requerimientos): Dimensiones de Impresión en Branch (56mm/80mm), Resoluciones por Sede en DIAN, Histórico de Novedades y Soluciones, Valor Inicial de Caja en Sede. ⚙️ 2.4 Consecutivo de Tickets aislado por empresa..."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Dimensiones de Impresión y Base Inicial Predeterminada (`Branch.cs`, `BranchDtos.cs`, `EntityConfigurations.cs`, `BranchService.cs`)**:
@@ -1787,8 +1869,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: [2026-09-02 17:20:00] - Conexión Integral de Analítica y Métricas de Dashboard (Filtrado por Sede y Empresa)
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Puedes revisar si el dashboard todo los datos estan bien conectados revisa por que no trae nada pues aun no hemos realizado nuevos ingresos con los ajustes nuevos pero quisiera que hicieras una revisada completa y dime si todo esta bien ingresa vehiculos con los nuevos ajsutes"*
+
+  > _"Puedes revisar si el dashboard todo los datos estan bien conectados revisa por que no trae nada pues aun no hemos realizado nuevos ingresos con los ajustes nuevos pero quisiera que hicieras una revisada completa y dime si todo esta bien ingresa vehiculos con los nuevos ajsutes"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Alineación de Contratos DTO de Analytics (`FinancialSummaryDto.cs` & `OccupancyStatsDto.cs`)**:
@@ -1820,8 +1904,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: [2026-09-02 17:02:00] - Endpoint y Servicio Analítico de Horas Pico de Tráfico Vehicular (`/api/Analytics/peak-traffic`)
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"en la dashboard debajo de las graficas de recaudo por medio de pago y facturacion por resolucion, me gustaria que me agregaras otro el cual yo pueda las horas picos de mas ingresos de vehiculos en el dia o dependiendo del periodo que se tenga seleccionado, dejame esa estadistica por grafica lineal"*
+
+  > _"en la dashboard debajo de las graficas de recaudo por medio de pago y facturacion por resolucion, me gustaria que me agregaras otro el cual yo pueda las horas picos de mas ingresos de vehiculos en el dia o dependiendo del periodo que se tenga seleccionado, dejame esa estadistica por grafica lineal"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Nuevos DTOs Analíticos**:
@@ -1848,8 +1934,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: [2026-09-02 16:22:00] - Corrección Integral y Alineación de Script Seed RBAC Multi-Tenant (`02_Init_RBAC_Seed.sql`)
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Revisame@[02_Init_RBAC_Seed.sql] si esta completo o le falta algo de todo lo que se ha realizado analizalo por favor ... si dale"*
+
+  > _"Revisame@[02_Init_RBAC_Seed.sql] si esta completo o le falta algo de todo lo que se ha realizado analizalo por favor ... si dale"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Alineación de Tipos de Datos DDL**:
@@ -1874,8 +1962,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: [2026-09-02 15:35:00] - Persistencia e Integridad Obligatoria de CompanyId y BranchId en Operaciones Transaccionales
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Se necesita que cuando se haga el ingreso de un vehiculo en el wpf siempre se guarde el id de la compañia mas bien necesito una revisión completa exaustiva que revise todas esas inserciones en la tablas transacionales que tienen la columna Company Id y la BranchId por que eso datos son vitales para todo el funcionamiento... si esa info no llega no deberia insertar... tanto en la pwa como en el wpf... haz el plan"*
+
+  > _"Se necesita que cuando se haga el ingreso de un vehiculo en el wpf siempre se guarde el id de la compañia mas bien necesito una revisión completa exaustiva que revise todas esas inserciones en la tablas transacionales que tienen la columna Company Id y la BranchId por que eso datos son vitales para todo el funcionamiento... si esa info no llega no deberia insertar... tanto en la pwa como en el wpf... haz el plan"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Revisión y Blindaje de DTOs (`CheckInRequestDto.cs`, `CheckOutRequestDto.cs`, `ShiftDtos.cs`, `SaveVehicleIncidentDto.cs`, `VehicleIncidentDto.cs`)**:
@@ -1907,8 +1997,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Bloqueo Preventivo Obligatorio para Toda Placa con Novedad Activa en `VehicleIncidents`
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Noto que me esta permitiendo ingresar la placa apesar de que la placa se encuentra en la tabla de vehicleincidents"*
+
+  > _"Noto que me esta permitiendo ingresar la placa apesar de que la placa se encuentra en la tabla de vehicleincidents"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Flexibilización de Detección de Novedades Activas (`VehicleIncidentRepository.cs` & `VehicleIncidentService.cs`)**:
@@ -1929,8 +2021,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Compatibilidad de Transacciones con MySqlRetryingExecutionStrategy
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"genero este error no dejo crearlo arrojo este conflicto pero esta vez ni lo creo en la bd"*
+
+  > _"genero este error no dejo crearlo arrojo este conflicto pero esta vez ni lo creo en la bd"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Soporte de Estrategia de Reintentos (`CreateExecutionStrategy`) en `CompanyService.cs`**:
@@ -1949,8 +2043,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Transaccionalidad Atómica y Código Unívoco en Aprovisionamiento de Nuevas Empresas
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Mira que intento desde el super admin crear una compañia y arroja este error pero al parecer si la crea por que si guarda en la bd ya revise pero generar error entonces algo esta mal por que si la crea pero genera el error eso no esta bien valida y genera el plan para la solución ."*
+
+  > _"Mira que intento desde el super admin crear una compañia y arroja este error pero al parecer si la crea por que si guarda en la bd ya revise pero generar error entonces algo esta mal por que si la crea pero genera el error eso no esta bien valida y genera el plan para la solución ."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Transacción Atómica Integral (`CompanyService.cs`)**:
@@ -1975,8 +2071,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Herencia Automática de Sedes en Login para Usuarios de Empresa
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Listo perfecto, pero tengo otro error sucede que le listo cree el usuario en la otra compañia super bien le di permisos super bien le di todos los permisos super bien pero me loguee y de una me mando a crear sede pero si ya existe una sede en esa compañia por que me saco esa ventana eso no deberia ser así deberia existir algo antes. analiza eso y dame el plan"*
+
+  > _"Listo perfecto, pero tengo otro error sucede que le listo cree el usuario en la otra compañia super bien le di permisos super bien le di todos los permisos super bien pero me loguee y de una me mando a crear sede pero si ya existe una sede en esa compañia por que me saco esa ventana eso no deberia ser así deberia existir algo antes. analiza eso y dame el plan"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Herencia Automática de Sedes (`AuthService.cs`)**:
@@ -1996,8 +2094,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Corrección de Índice Único Multi-Tenant en Sedes y Visibilidad de Usuarios por Empresa
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Intente crear una sede y se revento, segundo estoy como superadministrador controlando una sede pero no me carga los usuarios de esa sede y reviso en la bd y si esta creado los usuarios yo los cree pero no los esta mostrando ni filtrando, revisa eso que esta pasando llega null algo esat m al por que filtra por sede los usuartios si soy super administrador o igual soy administrador como va a filtrar por sede el usuario no entiendo ese filtro entiendo lo de la compañia nada mas es lo correcto. si me explico. analiza ese proceso y dame el plan"*
+
+  > _"Intente crear una sede y se revento, segundo estoy como superadministrador controlando una sede pero no me carga los usuarios de esa sede y reviso en la bd y si esta creado los usuarios yo los cree pero no los esta mostrando ni filtrando, revisa eso que esta pasando llega null algo esat m al por que filtra por sede los usuartios si soy super administrador o igual soy administrador como va a filtrar por sede el usuario no entiendo ese filtro entiendo lo de la compañia nada mas es lo correcto. si me explico. analiza ese proceso y dame el plan"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Índice Multi-Tenant de Sedes (`EntityConfigurations.cs`)**:
@@ -2024,8 +2124,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Blindaje y Soporte de Contexto Multi-Organización vía Header X-Company-Id para SuperAdmin
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"AUDITORÍA Y BLINDAJE: GESTIÓN DE ROLES/PERMISOS MULTI-ORGANIZACIÓN PARA SUPERADMIN (PWA & API). Verificar y validar exhaustivamente que la experiencia de administración multi-tenant en la ParkingPwa y el backend ParkingApi mantenga aislamiento estricto por organización cuando opera un usuario con rol SuperAdmin."*
+
+  > _"AUDITORÍA Y BLINDAJE: GESTIÓN DE ROLES/PERMISOS MULTI-ORGANIZACIÓN PARA SUPERADMIN (PWA & API). Verificar y validar exhaustivamente que la experiencia de administración multi-tenant en la ParkingPwa y el backend ParkingApi mantenga aislamiento estricto por organización cuando opera un usuario con rol SuperAdmin."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Soporte de Contexto Header `X-Company-Id` (`CurrentUserService.cs`)**:
@@ -2045,8 +2147,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet build` (**0 Errores**).
 
 ---
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"AUDITORÍA TÉCNICA EXHAUSTIVA: SISTEMA DE PERMISOS (PWA/API/WPF) Y MULTI-TENANCY SaaS. Diagnóstico del flujo de permisos (PWA -> API -> WPF), blindaje de aislamiento multi-tenant SaaS (Organizaciones y Sedes), cero errores de compilación y registro estricto en HISTORIAL_CAMBIOS.md."*
+
+  > _"AUDITORÍA TÉCNICA EXHAUSTIVA: SISTEMA DE PERMISOS (PWA/API/WPF) Y MULTI-TENANCY SaaS. Diagnóstico del flujo de permisos (PWA -> API -> WPF), blindaje de aislamiento multi-tenant SaaS (Organizaciones y Sedes), cero errores de compilación y registro estricto en HISTORIAL_CAMBIOS.md."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Servicio de Contexto de Usuario (`ICurrentUserService` / `CurrentUserService`)**:
@@ -2099,8 +2203,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet build` ejecutado en `c:\Users\migue\source\repos\ParkingApi` con resultado exitoso (**0 Errores**).
 
 ---
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"no, esta mal, cuando como super administrador ingreso administrar un parqueadero me deben salir toda la infomacion de ese parqueadero, dashboard, caja, activos, reportes, novedades y confguraciones (sedes, usuarios, roles) ... valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"*
+
+  > _"no, esta mal, cuando como super administrador ingreso administrar un parqueadero me deben salir toda la infomacion de ese parqueadero, dashboard, caja, activos, reportes, novedades y confguraciones (sedes, usuarios, roles) ... valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Aislamiento por `BranchId` en `UserRole` y API**:
@@ -2130,7 +2236,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Aislamiento Estricto de Roles y Usuarios por Parqueadero / Empresa (Multi-Tenant SaaS)
-  > *"tengo un problema cuando ingreso con el super administrador y administro un parqueadero veo todos sus roles, sin embargo, no me esta filtrando los roles que se encuentran creados para cada parqueadero, porque cuando ingreso a otro parqueadero veo los mismos, requiero es que si yo ingreso a la administracion de un parqueadero, desde el superadministrador me muestre sus roles y usuario, si ingreso a otro igual, caso contrario que pasaria ya cuando ingreso con el usuario administrador de ese parqueadero, a el solo le deberia de mostrar los roles y usuarios asociados a ese parqueadero , valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"*
+
+> _"tengo un problema cuando ingreso con el super administrador y administro un parqueadero veo todos sus roles, sin embargo, no me esta filtrando los roles que se encuentran creados para cada parqueadero, porque cuando ingreso a otro parqueadero veo los mismos, requiero es que si yo ingreso a la administracion de un parqueadero, desde el superadministrador me muestre sus roles y usuario, si ingreso a otro igual, caso contrario que pasaria ya cuando ingreso con el usuario administrador de ese parqueadero, a el solo le deberia de mostrar los roles y usuarios asociados a ese parqueadero , valida porque en BD y las apis deben retornar los usuarios y roles de cada parqueadero cuando ingreso a dichos modulos"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Eliminación de auto-aprovisionamiento forzado en `UserRoleRepository.GetUserRoles`**:
@@ -2155,8 +2262,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet build` ejecutado en `ParkingApi.slnx` con resultado exitoso (**0 Errores**).
 
 ## 📌 Entrada: Corrección de Consulta LINQ en Aprovisionamiento de Empresas (EF Core / MySQL)
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"cuando intento registrar un nuevo parqueadero me sale como en la segunda imagen"*
+
+  > _"cuando intento registrar un nuevo parqueadero me sale como en la segunda imagen"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Corrección de incompatibilidad SQL en `CompanyService.cs`**:
@@ -2170,8 +2279,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet build` ejecutado en `ParkingApi` con resultado exitoso (**0 Errores**).
 
 ## 📌 Entrada: Aprovisionamiento Automático de Organización Tenant y Persistencia Integral de CompanyId (SaaS Multi-Tenant)
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Verificar que cuando se cree la compañia se guarde en la base de datos el companyid por que no se esta guardando entonces eso no va a generara el desacoplamiento que se necesita para cuadno creemos varias organizaciones por que es la idea del saas multitenat"*
+
+  > _"Verificar que cuando se cree la compañia se guarde en la base de datos el companyid por que no se esta guardando entonces eso no va a generara el desacoplamiento que se necesita para cuadno creemos varias organizaciones por que es la idea del saas multitenat"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Aprovisionamiento Integral en `CompanyService.CreateCompanyAsync`**:
@@ -2207,8 +2318,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet build` ejecutado en `ParkingApi` con resultado exitoso (**0 Errores**).
 
 ## 📌 Entrada: Aislamiento Estricto de SuperAdmin vs Administrador Tenant y Erradicación Total de Roles Quemados (RBAC 100% Basado en Datos)
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"Listo sucede que el superadmin accede y super bien accede al perfil de eso pero cree un administrador y tambien accede al portal del superadmin y eso no deberia ser así creo que esta algo quemado en codigo que sea administrador aparte necesito que revises todo el codigo de todos los 3 proyectos que no tenga cosas quemadas que no deberian estar . analiza completamente todo el desarrollo"*
+
+  > _"Listo sucede que el superadmin accede y super bien accede al perfil de eso pero cree un administrador y tambien accede al portal del superadmin y eso no deberia ser así creo que esta algo quemado en codigo que sea administrador aparte necesito que revises todo el codigo de todos los 3 proyectos que no tenga cosas quemadas que no deberian estar . analiza completamente todo el desarrollo"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Aislamiento de Multi-Tenant SuperAdmin vs Administrador Tenant (`AuthService.cs`, `CompanyService.cs`, `UserService.cs`)**:
@@ -2236,8 +2349,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
   - `dotnet build ParkingApi.slnx`: **0 Errores**.
 
 ---
+
 - **`💬 Prompt Original del Usuario`**:
-  > *"y creo que deberiamos modificar el rol, el rol de creación deberia ser el superadmin no administrador el administrador es para el que le creamos el parqueadero si me explico"*
+
+  > _"y creo que deberiamos modificar el rol, el rol de creación deberia ser el superadmin no administrador el administrador es para el que le creamos el parqueadero si me explico"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Diferenciación Canónica de Roles (`02_Init_RBAC_Seed.sql` & `CompanyService.cs`)**:
@@ -2259,7 +2374,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 - **`✅ Verificación y Compilación`**:
   - `dotnet build ParkingApi.slnx`: **0 Errores**.
 - **`💬 Prompt Original del Usuario`**:
-  > *"Tengo una consulta, se penso que el sistema es para venderlo pero es un saas completo entonces necesitamos un super admin que nosotros creemos entremos creemos un administrador y le demos ese usuario al man y que le ingrese cree su parqueadero y sus sedes y si le vendemos el producto a otras personas e igual se les cree su usuario administrador y que ingrese registre su parqueadero y sus sedes si me explico como se quiere manejar antes eso si lo entiendes encesito que revises toda la BD si la logica que tenemos si nos da para eso o que tanto se deberia cambiar ? necesito que revises eso y has un analisis completo y el plan completo que se deberia tomar."*
+
+  > _"Tengo una consulta, se penso que el sistema es para venderlo pero es un saas completo entonces necesitamos un super admin que nosotros creemos entremos creemos un administrador y le demos ese usuario al man y que le ingrese cree su parqueadero y sus sedes y si le vendemos el producto a otras personas e igual se les cree su usuario administrador y que ingrese registre su parqueadero y sus sedes si me explico como se quiere manejar antes eso si lo entiendes encesito que revises toda la BD si la logica que tenemos si nos da para eso o que tanto se deberia cambiar ? necesito que revises eso y has un analisis completo y el plan completo que se deberia tomar."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Entidad `Company` (Tenant Maestro)**:
@@ -2320,7 +2436,8 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 - **`✅ Verificación y Compilación`**:
   - `dotnet build ParkingApi.slnx`: **0 Errores**.
 - **`💬 Prompt Original del Usuario`**:
-  > *"fui a crear la migración pues como cambiaron cosas y mira lo que me arrojo que paso hay ? (The entity type 'VehicleIncidentBranch' requires a primary key to be defined)"*
+
+  > _"fui a crear la migración pues como cambiaron cosas y mira lo que me arrojo que paso hay ? (The entity type 'VehicleIncidentBranch' requires a primary key to be defined)"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Mapeo Fluent API de Clave Primaria Compuesta (`EntityConfigurations.cs`)**:
@@ -2344,8 +2461,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Validación de Bloqueo Activo por Novedad en Ingreso de Vehículos (`CheckInAsync`) y Multi-Sede DTO
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"Ahora ayudame en poner en ejecucion el modulo de novedades, ayudame a conectarla creacion de la novedad, la cual debe de ir por api hacia a BD, para que luego el wpf pueda identificar que existe una placa con novedad y no permita registarle entrada (no toques el wpf), adicional quiero que el menu desplegable de a izquierda en la web permita ocultarse asi como se hace en la version mobile"*
+  - _"Ahora ayudame en poner en ejecucion el modulo de novedades, ayudame a conectarla creacion de la novedad, la cual debe de ir por api hacia a BD, para que luego el wpf pueda identificar que existe una placa con novedad y no permita registarle entrada (no toques el wpf), adicional quiero que el menu desplegable de a izquierda en la web permita ocultarse asi como se hace en la version mobile"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Bloqueo Centralizado de Placas en API (`ParkingTicketService.cs`)**:
@@ -2369,8 +2487,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Control de Sesión Única Concurrente (Single Active Session per User - JWT + SignalR)
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"Listo tengo otro ajuste que esta mas complejo pero necesario para cerrar el tema de seguridad completo se necesita que solo 1 usuario se pueda loguear si ya inicio sesión no puede iniciar sesión nuevamente o si lo hace cierra la sesión donde estaba logueado si me hago explicar lo que se requiere en ese tema de seguridad claro se debe validar por el token por el jwt algo que obligue a que se cierre la otra sesion y se abra la nueva me explico ? eso aplica para el wpf y la pwa para los dos."*
+  - _"Listo tengo otro ajuste que esta mas complejo pero necesario para cerrar el tema de seguridad completo se necesita que solo 1 usuario se pueda loguear si ya inicio sesión no puede iniciar sesión nuevamente o si lo hace cierra la sesión donde estaba logueado si me hago explicar lo que se requiere en ese tema de seguridad claro se debe validar por el token por el jwt algo que obligue a que se cierre la otra sesion y se abra la nueva me explico ? eso aplica para el wpf y la pwa para los dos."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Arquitectura de Sesión Única Concurrente Multi-Plataforma**:
@@ -2381,7 +2500,7 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
       - **Endpoint de Comprobación**: Se añadió `[Authorize] GET /api/Auth/validate-session` en `AuthController.cs`.
     - **Cliente Escritorio (`ParkingWpf`)**:
       - **Suscripción SignalR y 401**: `MainShellViewModel` escucha `UserSessionTerminated` (filtrado por `ServerUserId`) y el evento `SessionTerminated` de `ParkingApiClient`.
-      - **Cierre y Alerta Automática**: Si la sesión es revocada en otra terminal, muestra el modal explicativo: *"⚠️ Tu sesión ha sido cerrada porque se inició sesión desde otro dispositivo o estación de trabajo"*, limpia credenciales en `ISessionService` y `IApiClientService`, y transiciona limpiamente a la ventana de `Login`.
+      - **Cierre y Alerta Automática**: Si la sesión es revocada en otra terminal, muestra el modal explicativo: _"⚠️ Tu sesión ha sido cerrada porque se inició sesión desde otro dispositivo o estación de trabajo"_, limpia credenciales en `ISessionService` y `IApiClientService`, y transiciona limpiamente a la ventana de `Login`.
     - **Aplicación Web Progresiva (`ParkingPwa`)**:
       - **Interceptor HTTP (`apiClient.ts`)**: Ante cualquier respuesta `401`, almacena el motivo en `sessionStorage` y redirige a `/?expired=concurrent`.
       - **Banner de Alerta en Login (`Login.tsx`)**: Muestra un banner amarillo ámbar (`ShieldAlert`) indicando que la sesión previa fue finalizada debido a un inicio concurrente.
@@ -2408,9 +2527,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Erradicación de Medios de Pago Mockup y Control RBAC en Retiros de Efectivo (`shift.cash_withdrawal`)
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"si no existe medios de pago por que el sistema trae efectivo si ya habiamos dicho que todo debe ser de la BD nada debe ser quemado ni que se inserte automaticamente si ves no existe nada de eso entonces no debe estar nada mockup debria sair la alerta de que no se puede dar cierre o salida pues no existen medios de pago en la sede si me explico analiza eso que te digo claramente."*
-  - *"existe otra cosa veo que si existe el permiso de registrar retiros o sangrias pero se inactivo pero creo que no esta asociado en el wpf por que sigue mostrando el boton mira hay te lo anexe. analiza esos datos"*
+  - _"si no existe medios de pago por que el sistema trae efectivo si ya habiamos dicho que todo debe ser de la BD nada debe ser quemado ni que se inserte automaticamente si ves no existe nada de eso entonces no debe estar nada mockup debria sair la alerta de que no se puede dar cierre o salida pues no existen medios de pago en la sede si me explico analiza eso que te digo claramente."_
+  - _"existe otra cosa veo que si existe el permiso de registrar retiros o sangrias pero se inactivo pero creo que no esta asociado en el wpf por que sigue mostrando el boton mira hay te lo anexe. analiza esos datos"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Erradicación de Medios de Pago Mockup / Auto-Insert**:
@@ -2418,7 +2538,7 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
     - **Corrección**: Se eliminó totalmente la inserción de fallback. Si la base de datos no tiene medios de pago para la sede, `AvailablePaymentMethods` permanece vacía y `HasPaymentMethods = false`.
     - **UI y Bloqueo de Seguridad**: En `CheckOutView.xaml` se agregó un banner de advertencia si `HasPaymentMethods == false`. En `CheckOutViewModel.ProcessCheckOutAsync` se bloquea la operación si `!IsMonthlyTicket && (!HasPaymentMethods || SelectedPaymentMethodEntity == null)` mostrando la alerta explicativa de que la sede no tiene medios de pago habilitados.
   - **Control RBAC Estricto en Retiro de Efectivo / Sangrías de Turno**:
-    - **Diagnóstico**: En `ShiftClosureView.xaml`, el botón *"Registrar Retiro de Efectivo (Recogida)"* condicionaba su visibilidad a `IsShiftOwner` en vez de consultar el permiso relacional `shift.cash_withdrawal`.
+    - **Diagnóstico**: En `ShiftClosureView.xaml`, el botón _"Registrar Retiro de Efectivo (Recogida)"_ condicionaba su visibilidad a `IsShiftOwner` en vez de consultar el permiso relacional `shift.cash_withdrawal`.
     - **Corrección**: Se inyectó `IPermissionService` en `ShiftClosureViewModel.cs`, se crearon propiedades observables (`CanWithdrawCash`, `CanCloseShift`, `CanHandoverShift`, `CanExportShift`, `CanViewShiftHistory`, `CanOpenShift`) y se enlazó el botón a `CanWithdrawCash`.
     - **Validación en Comando**: En `OpenCashWithdrawalDialogAsync()`, `OpenShiftAsync()`, `CloseShiftDirectAsync()` y `HandoverShiftAsync()` se agregaron validaciones con alertas de acceso denegado si no se cuenta con el permiso correspondiente.
     - **Sincronización Reactiva**: Al modificarse permisos en tiempo real vía SignalR (`PermissionsChanged`), `UpdatePermissions()` actualiza al instante la visibilidad y habilitación de los botones en WPF sin necesidad de cerrar sesión.
@@ -2436,8 +2556,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Cobro Minuto 1, Periodo de Gracia de Liquidación y Sincronización RBAC Realtime
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"tengo dos temas que tratar, primero excelente lo del signal R cuando se asignan tarifas medios de pago todo eso pero en la modal no deberia decir signal r eso no le interesa al cliente, otra cosa es los permisos eso cuando la pwa agregue o modifique permisos algun usuario el sistema deberia tener el signal r para que obligue a actualizar el wpf para que los permisos este sincronizados si me explico por que como se le quita permisos a los roles entonces pues debe actualizar si me explico, ese es una. la otra es que no se donde el sistema tiene configurado no se donde o de donde esta tomando que no se le cobre desde el ingreso si ingreso un vehiculo se le cobra desde el primer minuto creo que el esta tomando el periodo de gracia que se le crea a la tarifa como para que inicie el cobro ese periodo de gracia es cuando se quiere liquidar se congele el valor por ese tiempo mientras pues la persona esta reuniendo el dinero si me explico analiza lo que te digo y dime que se debe hacer has el plan analiza bien todo."*
+  - _"tengo dos temas que tratar, primero excelente lo del signal R cuando se asignan tarifas medios de pago todo eso pero en la modal no deberia decir signal r eso no le interesa al cliente, otra cosa es los permisos eso cuando la pwa agregue o modifique permisos algun usuario el sistema deberia tener el signal r para que obligue a actualizar el wpf para que los permisos este sincronizados si me explico por que como se le quita permisos a los roles entonces pues debe actualizar si me explico, ese es una. la otra es que no se donde el sistema tiene configurado no se donde o de donde esta tomando que no se le cobre desde el ingreso si ingreso un vehiculo se le cobra desde el primer minuto creo que el esta tomando el periodo de gracia que se le crea a la tarifa como para que inicie el cobro ese periodo de gracia es cuando se quiere liquidar se congele el valor por ese tiempo mientras pues la persona esta reuniendo el dinero si me explico analiza lo que te digo y dime que se debe hacer has el plan analiza bien todo."_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Cobro desde el Minuto 1**:
@@ -2473,9 +2594,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Corrección Error 404 en F5 / Rutas Limpias en IIS y React PWA (Rama `dev`)
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"mira esta todo normal cuando me logueo perfecto bien funciona bien, pero tengo el siguiente problema si le doy f5 me sale el 404, creo que el tema de las rutas esta super mal algo sucede enserio no entiendo como funciona ya solucionamos el del login creo que en historial de cambios puedes revisar eso, pero creo que todas las rutas deberian estar definidas como rutas no como si fuera alguna carpeta si me explico ? analiza eso que sucede. para darnos el plan de reparacion para que eso no vuelva a suceder."*
-  - *"Estabamos en la rama que no era ahora necesito que vuelvas a realizar el analisis en esta rama que es la actualizada necesito que verifiques si es que el plan que acabaste de hacer toca aplicarlo a esta rama o no realiza la revision completa"*
+  - _"mira esta todo normal cuando me logueo perfecto bien funciona bien, pero tengo el siguiente problema si le doy f5 me sale el 404, creo que el tema de las rutas esta super mal algo sucede enserio no entiendo como funciona ya solucionamos el del login creo que en historial de cambios puedes revisar eso, pero creo que todas las rutas deberian estar definidas como rutas no como si fuera alguna carpeta si me explico ? analiza eso que sucede. para darnos el plan de reparacion para que eso no vuelva a suceder."_
+  - _"Estabamos en la rama que no era ahora necesito que vuelvas a realizar el analisis en esta rama que es la actualizada necesito que verifiques si es que el plan que acabaste de hacer toca aplicarlo a esta rama o no realiza la revision completa"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Diagnóstico en Rama `dev`**: En `dev`, el frontend React (`src/App.tsx`) ya contaba con `RootAuthHandler`, `ProtectedRoute` y rutas anidadas limpias, y `public/web.config` ya tenía la regla `<action type="Rewrite" url="/" />`. Sin embargo, en `.github/workflows/main.yml`, el paso 5 del pipeline ejecutaba `cat << 'EOF' > dist/web.config` y **sobreescribía** el `web.config` compilado por Vite con el texto viejo que contenía `<action type="Rewrite" url="/Parking/index.html" />`. Esto provocaba que en cada despliegue por FTP a producción, IIS recibiera una regla apuntando a una subcarpeta `/Parking/` inexistente en la URL web, arrojando el error `404 - File or directory not found` al recargar (F5).
@@ -2496,9 +2618,10 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Erradicación de Roles Quemados y Entrega Dinámica de Permisos RBAC en Login
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"bueno tengo este problema con los permisos mira que si se asignaron permisos al usuario que tiene el rol 2 pero ingreso en el wpf y me dice que no cuento con los permisos me imagino por que solo ha tomado los datos de la sql lite nada mas pero no ya elimine la db la volvi a mandar a crear y no no sirvio entonces que sucede por que no esta tomando los permisos correctamente ? que sucede hay revisa eso por que administrador si funciona ."*
-  - *"eso esta gravisimo en el sistema no debe a ver nada quemado todo lo que traiga la base de datos si el quisiera crearlo como cajero o cajera o hasta colocar el rol que quisiera desde que tenga los permisos que es lo importante se deberia validar como se te ocurre eso . revisa eso que me acabas de decir esta supremamente mal y eso deberia ir en reglas del agent como colocar eso así eso no es una buena practica"*
+  - _"bueno tengo este problema con los permisos mira que si se asignaron permisos al usuario que tiene el rol 2 pero ingreso en el wpf y me dice que no cuento con los permisos me imagino por que solo ha tomado los datos de la sql lite nada mas pero no ya elimine la db la volvi a mandar a crear y no no sirvio entonces que sucede por que no esta tomando los permisos correctamente ? que sucede hay revisa eso por que administrador si funciona ."_
+  - _"eso esta gravisimo en el sistema no debe a ver nada quemado todo lo que traiga la base de datos si el quisiera crearlo como cajero o cajera o hasta colocar el rol que quisiera desde que tenga los permisos que es lo importante se deberia validar como se te ocurre eso . revisa eso que me acabas de decir esta supremamente mal y eso deberia ir en reglas del agent como colocar eso así eso no es una buena practica"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Backend (ParkingApi)**:
@@ -2521,8 +2644,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Asignación Explícita de Tipo de Vehículo y Eliminación de Tarifas Vehiculares
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"Quiero que en esta pantalla me permita asignar el tipo de vehiculo en la parametrizacion del parqueadero, no que me lo asigne automaticamente, adicional agregale la opcion de eliminar al tipo de vehiculo"*
+  - _"Quiero que en esta pantalla me permita asignar el tipo de vehiculo en la parametrizacion del parqueadero, no que me lo asigne automaticamente, adicional agregale la opcion de eliminar al tipo de vehiculo"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Backend (ParkingApi)**:
@@ -2552,8 +2676,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Conexión 100% Dinámica de Medios de Pago y Resoluciones en Dashboard
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"Veo , que en dashboard de nuevo esta cargando de nuevo esto que te señale, pero el debe esta conectado a los medios de pago que se encuentren creados en la Bd y api"*
+  - _"Veo , que en dashboard de nuevo esta cargando de nuevo esto que te señale, pero el debe esta conectado a los medios de pago que se encuentren creados en la Bd y api"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Diagnóstico**: En `Dashboard.tsx`, las gráficas de dona de "Distribución por Métodos de Pago" y "Resoluciones de Facturación" tenían arrays con valores hardcodeados por defecto (`Efectivo, Tarjeta, Transferencia / Factura POS`) cuando la lista de la BD no estaba cargada o como fallback, violando el principio Zero-Data y no reflejando los métodos creados por el usuario (ej: `Nequi`).
@@ -2572,8 +2697,9 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Corrección Error 500 en GET /api/branches y Resoluciones
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"http://localhost:5135/api/branches erorr 500"*
+  - _"http://localhost:5135/api/branches erorr 500"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Diagnóstico**: La entidad `Branch` incluía la propiedad `LogoBase64` que no existe como columna física en la tabla `Branches` de MySQL, provocando que EF Core generara `SELECT b.LogoBase64 ...` fallando con excepción `MySqlException: Unknown column 'b.LogoBase64' in 'field list'` en consultas directas a `/api/branches` y en consultas con JOIN como `/api/BillingResolutions`.
@@ -2593,15 +2719,16 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 ---
 
 ## 📌 Entrada: Eliminación Definitiva de Usuarios, Loaders y Mejoras en PWA
+
 - **`💬 Prompt Original del Usuario`**:
-  - *"Noto que tambien al eliminar usuario, me lo deja es inactivo, pero quiero es eliminarlo, adicional eliminarlo desde la BD"*
-  - *"en esta pantalla, las esquinas no se ven curveadas por el scrollbar, ajustalos , adicioal la lista de los parqueaderos muestramelo en una lista donde pueda escribir y me salga en busqueda"*
-  - *"Cuando elimine el usuario, quiero que sea reactivo porque no me limpio la lista cuando elimine , tuve que refrescar la pantallla"*
-  - *"Arreglame porque permite dar click como si fuera a escribir en esta pantalla"*
-  - *"Perfecto, ahora agregale un loader cuando se cree el usuario, adicional que me muesre un dialog al estilo del pwa para confirmar la eliiminacion del usuario y lo mismo, agregale loader"*
-  - *"Faltan que los botones que digan cancelar en los dialog ajustalos en cuanto a diseño"*
-  - *"ejecuta el api y pwa"*
-  - *"trata de que las opciones se vean se vean proporcionales lo que te señale en rojo"*
+  - _"Noto que tambien al eliminar usuario, me lo deja es inactivo, pero quiero es eliminarlo, adicional eliminarlo desde la BD"_
+  - _"en esta pantalla, las esquinas no se ven curveadas por el scrollbar, ajustalos , adicioal la lista de los parqueaderos muestramelo en una lista donde pueda escribir y me salga en busqueda"_
+  - _"Cuando elimine el usuario, quiero que sea reactivo porque no me limpio la lista cuando elimine , tuve que refrescar la pantallla"_
+  - _"Arreglame porque permite dar click como si fuera a escribir en esta pantalla"_
+  - _"Perfecto, ahora agregale un loader cuando se cree el usuario, adicional que me muesre un dialog al estilo del pwa para confirmar la eliiminacion del usuario y lo mismo, agregale loader"_
+  - _"Faltan que los botones que digan cancelar en los dialog ajustalos en cuanto a diseño"_
+  - _"ejecuta el api y pwa"_
+  - _"trata de que las opciones se vean se vean proporcionales lo que te señale en rojo"_
 
 - **`🤖 Resumen Técnico para la IA`**:
   - **Backend (ParkingApi)**:
