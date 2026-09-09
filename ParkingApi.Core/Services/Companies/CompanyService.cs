@@ -727,12 +727,23 @@ public class CompanyService : ICompanyService
             RequireInitialCashAmount = c.RequireInitialCashAmount,
             HasPushNotificationsEnabled = c.HasPushNotificationsEnabled,
             AllowedPushTypesJson = c.AllowedPushTypesJson,
-            AllowedPushTypes = !string.IsNullOrWhiteSpace(c.AllowedPushTypesJson)
-                ? (System.Text.Json.JsonSerializer.Deserialize<List<string>>(c.AllowedPushTypesJson) ?? new List<string>())
-                : new List<string>(),
+            AllowedPushTypes = SafeDeserializeStringList(c.AllowedPushTypesJson),
             BranchesCount = c.Branches?.Count ?? 0,
             UsersCount = c.Users?.Count ?? 0,
             CreatedAt = c.CreatedAt
         };
+    }
+
+    private static List<string> SafeDeserializeStringList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new List<string>();
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
     }
 }

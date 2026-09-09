@@ -70,6 +70,7 @@ public static class RepositoryExtensions
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Branches.IBranchRepository, ParkingApi.Infrastructure.Data.Repositories.Branches.BranchRepository>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Companies.ICompanyRepository, ParkingApi.Infrastructure.Data.Repositories.Companies.CompanyRepository>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Billing.IBillingResolutionRepository, ParkingApi.Infrastructure.Data.Repositories.Billing.BillingResolutionRepository>();
+        services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Billing.IDianDocumentTypeRepository, ParkingApi.Infrastructure.Data.Repositories.Billing.DianDocumentTypeRepository>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Incidents.IVehicleIncidentRepository, ParkingApi.Infrastructure.Data.Repositories.Incidents.VehicleIncidentRepository>();
         services.AddScoped<ParkingApi.Domain.Interfaces.Repositories.Plans.IPlanRepository, ParkingApi.Infrastructure.Data.Repositories.Plans.PlanRepository>();
 

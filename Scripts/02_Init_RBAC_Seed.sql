@@ -691,6 +691,36 @@ CREATE TABLE IF NOT EXISTS `BillingResolutions` (
     CONSTRAINT `FK_BillingResolutions_Companies_CompanyId` FOREIGN KEY (`CompanyId`) REFERENCES `Companies` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 1.17b Tipos de Resoluciones y Documentos DIAN (Catálogo Maestro SuperAdmin)
+CREATE TABLE IF NOT EXISTS `DianDocumentTypes` (
+    `Id` INT NOT NULL AUTO_INCREMENT,
+    `Name` VARCHAR(100) NOT NULL,
+    `Code` VARCHAR(20) NOT NULL,
+    `DefaultPrefix` VARCHAR(10) NOT NULL,
+    `Description` VARCHAR(250) NULL,
+    `RequiresTechnicalKey` BOOLEAN NOT NULL DEFAULT 0,
+    `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `UpdatedAt` DATETIME(6) NULL,
+    `ResponsibleUserId` INT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UX_DianDocumentTypes_Code` (`Code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `DianDocumentTypes` (`Id`, `Name`, `Code`, `DefaultPrefix`, `Description`, `RequiresTechnicalKey`, `IsActive`, `CreatedAt`)
+VALUES
+    (1, 'Factura Electrónica de Venta', '01',  'FM',  'Factura electrónica estándar validada previamente ante la DIAN', 1, 1, UTC_TIMESTAMP()),
+    (2, 'Documento Equivalente POS',    'POS', 'POS', 'Documento equivalente electrónico para punto de venta garita', 0, 1, UTC_TIMESTAMP()),
+    (3, 'Tiquete de Parqueadero',        'TIQ', 'TIQ', 'Tiquete de estacionamiento de control interno operativo', 0, 1, UTC_TIMESTAMP()),
+    (4, 'Nota Crédito',                 '91',  'NC',  'Nota crédito electrónica para anulación o devolución', 1, 1, UTC_TIMESTAMP()),
+    (5, 'Nota Débito',                  '92',  'ND',  'Nota débito electrónica por mayor valor cobrado', 1, 1, UTC_TIMESTAMP())
+AS new_dian
+ON DUPLICATE KEY UPDATE
+    Name = new_dian.Name,
+    DefaultPrefix = new_dian.DefaultPrefix,
+    RequiresTechnicalKey = new_dian.RequiresTechnicalKey,
+    IsActive = new_dian.IsActive;
+
 -- 1.18 Tiquetes de Estacionamiento
 CREATE TABLE IF NOT EXISTS `ParkingTickets` (
     `TicketId` CHAR(36) NOT NULL,
@@ -1194,7 +1224,8 @@ VALUES
     (14, 'Resoluciones de Facturación',         1, UTC_TIMESTAMP(), NULL),
     (15, 'Novedades y Bloqueo de Placas',       1, UTC_TIMESTAMP(), NULL),
     (16, 'Gestión de Empresas SaaS',            1, UTC_TIMESTAMP(), NULL),
-    (17, 'Planes y Suscripciones SaaS',         1, UTC_TIMESTAMP(), NULL)
+    (17, 'Planes y Suscripciones SaaS',         1, UTC_TIMESTAMP(), NULL),
+    (18, 'Tipos Resoluciones DIAN',             1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     Name = new_row.Name, 
@@ -1408,7 +1439,15 @@ VALUES
     (104, 5, 5, 'Arqueo ciego / retiro de efectivo en terminal WPF', 'wpf.shifts.blind_count', 1, UTC_TIMESTAMP(), NULL),
     (105, 5, 5, 'Cerrar turno de caja y corte Z en terminal WPF', 'wpf.shifts.close', 1, UTC_TIMESTAMP(), NULL),
     (106, 5, 1, 'Ver historial de turnos en terminal WPF', 'wpf.shifts.view_history', 1, UTC_TIMESTAMP(), NULL),
-    (107, 5, 6, 'Reimprimir comprobante de cierre en terminal WPF', 'wpf.shifts.reprint_closure', 1, UTC_TIMESTAMP(), NULL)
+    (107, 5, 6, 'Reimprimir comprobante de cierre en terminal WPF', 'wpf.shifts.reprint_closure', 1, UTC_TIMESTAMP(), NULL),
+
+    -- ==============================================================================
+    -- MÓDULO 18: TIPOS DE RESOLUCIONES DIAN (SaaS Dian Types - SuperAdmin)
+    -- ==============================================================================
+    (108, 18, 1, 'Ver catálogo de tipos de resoluciones DIAN', 'dian_types.view', 1, UTC_TIMESTAMP(), NULL),
+    (109, 18, 2, 'Crear nuevo tipo de resolución DIAN', 'dian_types.create', 1, UTC_TIMESTAMP(), NULL),
+    (110, 18, 3, 'Editar tipo de resolución y prefijo', 'dian_types.edit', 1, UTC_TIMESTAMP(), NULL),
+    (111, 18, 4, 'Inactivar o eliminar tipo de resolución DIAN', 'dian_types.delete', 1, UTC_TIMESTAMP(), NULL)
 AS new_row
 ON DUPLICATE KEY UPDATE 
     ModuleId = new_row.ModuleId,

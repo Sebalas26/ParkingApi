@@ -29,6 +29,7 @@ DROP TABLE IF EXISTS `Stores`;
 DROP TABLE IF EXISTS `ParkingTickets`;
 DROP TABLE IF EXISTS `WorkShifts`;
 DROP TABLE IF EXISTS `BillingResolutions`;
+DROP TABLE IF EXISTS `DianDocumentTypes`;
 DROP TABLE IF EXISTS `VehicleIncidents`;
 DROP TABLE IF EXISTS `MonthlySubscriptions`;
 DROP TABLE IF EXISTS `VehicleRates`;

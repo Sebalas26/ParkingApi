@@ -46,6 +46,7 @@ public class DataContext : DbContext
     public DbSet<WorkShift> WorkShifts { get; set; }
     public DbSet<MonthlySubscription> MonthlySubscriptions { get; set; }
     public DbSet<BillingResolution> BillingResolutions { get; set; }
+    public DbSet<DianDocumentType> DianDocumentTypes { get; set; }
     public DbSet<VehicleIncident> VehicleIncidents { get; set; }
     public DbSet<VehicleIncidentBranch> VehicleIncidentBranches { get; set; }
     public DbSet<BranchOperatingHour> BranchOperatingHours { get; set; }

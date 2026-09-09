@@ -2,6 +2,69 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 22:00:00] - [FEATURE / DIAN / BILLING / CATALOG / RESILIENCE / NET10] Catálogo Maestro de Tipos de Documentos y Resoluciones DIAN (Entidad, DTOs, Repositorio, Servicio, Controlador, Tests y Sincronización Canónica 01 y 02) y Blindaje de Deserialización en Empresas
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Fase 2: Por qué en el superadmin sale 0 empresas creadas? Diagnostica y corrige... Fase 3: Crear módulo independiente para tipos de resoluciones DIAN (Factura electrónica, POS, tiquete, notas crédito, etc.) con sus campos en BD y API, y en la PWA bajo planes SaaS. En el modal de resoluciones de sede, que el tipo de documento sea dinámico desde la BD con su prefijo en vez de estar quemado."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Diagnóstico y Blindaje en Empresas SaaS (`CompanyService.cs`)**:
+     - Diagnóstico: Se constató que `02_Init_RBAC_Seed.sql` y `03_Reset_Operational_Data_Keep_SuperAdmin.sql` están diseñados para un arranque limpio desde cero (0 empresas, 0 sedes operativas). Al ejecutar dichos scripts de reseteo, la tabla `Companies` contiene 0 registros válidamente.
+     - Blindaje defensivo: En `MapToDto` de `CompanyService.cs`, se implementó el método `SafeDeserializeStringList` con manejo de errores `try-catch (JsonException)` al deserializar `AllowedPushTypesJson`. Si el JSON en base de datos estuviese malformado o corrupto, retorna una lista vacía `new List<string>()` en lugar de propagar un error 500 no controlado.
+  2. **Catálogo Maestro de Tipos de Documento DIAN (`DianDocumentType.cs`, `DianDocumentTypeDtos.cs`)**:
+     - Se creó la entidad `DianDocumentType` en `ParkingApi.Domain/Models/Billing/` con `Id`, `Name`, `Code`, `DefaultPrefix`, `Description`, `RequiresTechnicalKey`, `IsActive`, `CreatedAtUtc` y `UpdatedAtUtc`.
+     - Se diseñaron los contratos `DianDocumentTypeDto`, `CreateDianDocumentTypeDto` y `UpdateDianDocumentTypeDto`.
+  3. **Capa de Persistencia y Lógica de Negocio (`DianDocumentTypeRepository.cs`, `DianDocumentTypeService.cs`)**:
+     - Creadas las interfaces `IDianDocumentTypeRepository` e `IDianDocumentTypeService`.
+     - Implementado repositorio EF Core con métodos `GetAllAsync()`, `GetActiveAsync()`, `GetByIdAsync()`, `GetByCodeAsync()`, `AddAsync()`, `UpdateAsync()`, `DeleteAsync()`, `ExistsByCodeAsync()`.
+     - Implementado servicio de negocio con validaciones de unicidad de código, formateo en mayúsculas (`ToUpperInvariant()`), control de concurrencia y alternancia de estado activo (`ToggleStatusAsync`).
+  4. **Controlador REST Seguro (`DianDocumentTypesController.cs`)**:
+     - Endpoints:
+       - `GET /api/DianDocumentTypes`: Consulta total (SuperAdmin / Administradores).
+       - `GET /api/DianDocumentTypes/active`: Consulta pública/operativa para selectores dinámicos en configuración de sedes.
+       - `GET /api/DianDocumentTypes/{id}`: Consulta por ID.
+       - `POST /api/DianDocumentTypes`: Registro de nuevo tipo DIAN con auditoría.
+       - `PUT /api/DianDocumentTypes/{id}`: Actualización de metadatos.
+       - `PATCH /api/DianDocumentTypes/{id}/toggle-status`: Activación/desactivación rápida.
+       - `DELETE /api/DianDocumentTypes/{id}`: Eliminación controlada.
+     - Operación resiliente ante contextos de prueba/nulos con `User?.FindFirst(...)`.
+  5. **Inyección de Dependencias y Contexto EF Core (`DataContext.cs`, `RepositoryExtensions.cs`, `ServiceExtensions.cs`)**:
+     - Registrado `DbSet<DianDocumentType> DianDocumentTypes` en `DataContext.cs`.
+     - Registrados `IDianDocumentTypeRepository` e `IDianDocumentTypeService` como servicios `Scoped`.
+  6. **Sincronización Obligatoria de Scripts Canónicos (`01_Clean_All_Tables.sql` y `02_Init_RBAC_Seed.sql`)**:
+     - `01_Clean_All_Tables.sql`: Añadido `DROP TABLE IF EXISTS DianDocumentTypes;` en orden relacional seguro.
+     - `02_Init_RBAC_Seed.sql`:
+       - Definición canónica `CREATE TABLE IF NOT EXISTS DianDocumentTypes (...)`.
+       - Migración defensiva condicional con `INFORMATION_SCHEMA.TABLES`.
+       - Poblado inicial canónico con los 5 tipos DIAN oficiales: Factura Electrónica de Venta (FEV / FE), Factura Electrónica POS (POS / POS), Tiquete de Parqueadero / Tirilla (TIQ / TQ), Nota Crédito Electrónica (NCE / NC), Nota Débito Electrónica (NDE / ND).
+       - Registro de Módulo 18 (`dian_document_types`) y Acciones 108 a 111 (`dian_document_types.view`, `create`, `edit`, `delete`) con auto-asignación a Super Administrador.
+  7. **Suite de Pruebas Unitarias Automatizadas (`DianDocumentTypesControllerTests.cs`)**:
+     - Creadas 7 pruebas unitarias con Moq verificando: `GetAll`, `GetActive`, `GetById` (encontrado y 404), `Create` (éxito y validación 400), `ToggleStatus` y `Delete`.
+     - Certificación total: `dotnet test ParkingApi.slnx`: **483 de 483 pruebas superadas (0 fallos)**.
+
+- **`📦 Componentes Modificados y Creados`**:
+  - `ParkingApi.Domain/Models/Billing/DianDocumentType.cs` [NUEVO]
+  - `ParkingApi.Domain/Dtos/Billing/DianDocumentTypeDtos.cs` [NUEVO]
+  - `ParkingApi.Domain/Interfaces/Repositories/Billing/IDianDocumentTypeRepository.cs` [NUEVO]
+  - `ParkingApi.Domain/Interfaces/Services/Billing/IDianDocumentTypeService.cs` [NUEVO]
+  - `ParkingApi.Infrastructure/Data/Repositories/Billing/DianDocumentTypeRepository.cs` [NUEVO]
+  - `ParkingApi.Infrastructure/Data/DataContext.cs`
+  - `ParkingApi.Infrastructure/Extensions/RepositoryExtensions.cs`
+  - `ParkingApi.Core/Services/Billing/DianDocumentTypeService.cs` [NUEVO]
+  - `ParkingApi.Core/Services/Companies/CompanyService.cs`
+  - `ParkingApi.Core/Extensions/ServiceExtensions.cs`
+  - `ParkingApi/Controllers/DianDocumentTypesController.cs` [NUEVO]
+  - `ParkingApi.UnitTests/Controllers/DianDocumentTypesControllerTests.cs` [NUEVO]
+  - `Scripts/01_Clean_All_Tables.sql`
+  - `Scripts/02_Init_RBAC_Seed.sql`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+  - `dotnet test ParkingApi.slnx` -> **483 de 483 PASADAS (100% éxito, 0 fallos)**.
+
+---
+
 ## 📌 Entrada: [2026-09-08 20:50:00] - [FIX / RBAC / SHIFTS / OPERATING-HOURS / REALTIME / NET10] Eliminación de Validación Quemada de Roles en Apertura de Turno y Emisión Dual de SignalR en Configuración de Horarios
 
 - **`💬 Prompt Original del Usuario`**:
