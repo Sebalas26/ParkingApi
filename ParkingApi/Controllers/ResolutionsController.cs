@@ -110,6 +110,21 @@ public class ResolutionsController : ControllerBase
                 return BadRequest(new { message = "El rango inicial ('Desde') no puede ser mayor al rango final ('Hasta')." });
             }
 
+            if (dto.CurrentNumber <= 0)
+            {
+                dto.CurrentNumber = dto.FromNumber;
+            }
+
+            if (dto.CurrentNumber < dto.FromNumber)
+            {
+                return BadRequest(new { message = $"El consecutivo actual ({dto.CurrentNumber}) no puede ser menor al rango inicial autorizado ({dto.FromNumber})." });
+            }
+
+            if (dto.CurrentNumber > dto.ToNumber)
+            {
+                return BadRequest(new { message = $"El consecutivo actual ({dto.CurrentNumber}) no puede ser mayor al rango final autorizado ({dto.ToNumber})." });
+            }
+
             if (!_currentUser.IsSuperAdmin)
             {
                 dto.CompanyId = _currentUser.CompanyId;
@@ -150,6 +165,21 @@ public class ResolutionsController : ControllerBase
             if (dto.FromNumber > dto.ToNumber)
             {
                 return BadRequest(new { message = "El rango inicial ('Desde') no puede ser mayor al rango final ('Hasta')." });
+            }
+
+            if (dto.CurrentNumber <= 0)
+            {
+                dto.CurrentNumber = dto.FromNumber;
+            }
+
+            if (dto.CurrentNumber < dto.FromNumber)
+            {
+                return BadRequest(new { message = $"El consecutivo actual ({dto.CurrentNumber}) no puede ser menor al rango inicial autorizado ({dto.FromNumber})." });
+            }
+
+            if (dto.CurrentNumber > dto.ToNumber)
+            {
+                return BadRequest(new { message = $"El consecutivo actual ({dto.CurrentNumber}) no puede ser mayor al rango final autorizado ({dto.ToNumber})." });
             }
 
             var updated = await _resolutionService.UpdateAsync(id, dto, cancellationToken);

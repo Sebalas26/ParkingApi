@@ -2,6 +2,35 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-09 07:23:00] - [FEATURE / BILLING / RESOLUTIONS / INVOICING / VALIDATION] Sincronización, Validación Estricta de Rango en Consecutivo Actual y Asignación de Factura Electrónica
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"en el modulo en la modal de crear la resolución el rango actual y el consecutivo actul deberia ser el mismo practicamente, si me explico pues el rango algo es que tiene desde Ejemplo 921 y el consecutivo actual es 921 no puede arrancar desde la 2000 el consecutivo o si ? por que ese consecutivo es el que va a ir cambiando de acuerdo a cuando se realice cada factura si me epxlico,. ? por que me imagino que tienes claro que cada que se imprima un ticket de salida osea la factura que tenga esta resolucion hay ya se tiene el consecutivo entonces toca seguir eso si me explico como funciona la facturación creo que todo esta claro y la logica funciona bien eso deberia ser una de las pruebas que te dije que tuvieramos que crearamos mas de 1000 pruebas de simulaciones de mcuhas cosas."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Validación Estricta de Consecutivo en API (`ResolutionsController.cs` y `BillingResolutionService.cs`)**:
+     - En `Create` y `Update`, se valida estrictamente que `dto.CurrentNumber >= dto.FromNumber` y `dto.CurrentNumber <= dto.ToNumber`. De lo contrario se retorna `400 Bad Request` indicando que el consecutivo debe estar dentro del rango autorizado.
+     - Si `dto.CurrentNumber <= 0`, se asigna automáticamente `dto.FromNumber`.
+  2. **Garantía y Avance Atómico en Liquidación / Facturación (`ParkingTicketService.cs`)**:
+     - En `CheckOutAsync`, cuando el cliente liquida con una resolución DIAN (`dto.ResolutionId`), si no se recibe un número de factura previo en `dto.FiscalInvoiceNumber`, el sistema asigna de forma inmediata `ticket.InvoiceNumber = $"{resolution.Prefix}{resolution.CurrentNumber}"` y marca `ticket.IsElectronicInvoice = true`.
+     - Se incrementa atómicamente el consecutivo `resolution.CurrentNumber++`.
+     - Se incorporó la regla de agotamiento de rango: si `resolution.CurrentNumber > resolution.ToNumber`, el sistema marca automáticamente `resolution.IsActive = false` (resolución completada/agotada) tanto en liquidación estándar como en auto-asignada y directa.
+  3. **Pruebas Unitarias Automatizadas (`ResolutionsControllerTests.cs`)**:
+     - Agregadas pruebas: `Create_WhenCurrentNumberLessThanFromNumber_ShouldReturnBadRequest` y `Create_WhenCurrentNumberGreaterThanToNumber_ShouldReturnBadRequest`.
+     - 100% pruebas unitarias superadas: **492 pruebas pasadas (0 fallos)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi/Controllers/ResolutionsController.cs`
+  - `ParkingApi.Core/Services/Billing/BillingResolutionService.cs`
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi.UnitTests/Controllers/ResolutionsControllerTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **492 Superadas, 0 Fallos, 0 Errores** (100% exitoso).
+  - `dotnet build` -> **0 Errores, 0 Advertencias**.
+
+---
+
 ## 📌 Entrada: [2026-09-09 07:01:00] - [FEATURE / BILLING / RESOLUTIONS / REST / INTEGRITY] Doble Funcionalidad en Resoluciones DIAN: Eliminación Definitiva con Validación de Tiquetes y Toggle de Estado
 
 - **`💬 Prompt Original del Usuario`**:

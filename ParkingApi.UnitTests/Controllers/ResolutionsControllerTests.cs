@@ -227,6 +227,48 @@ public class ResolutionsControllerTests
     }
 
     [Fact]
+    public async Task Create_WhenCurrentNumberLessThanFromNumber_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var dto = new SaveBillingResolutionDto
+        {
+            Name = "Res 1",
+            Prefix = "A",
+            ResolutionNumber = "123",
+            FromNumber = 500,
+            ToNumber = 1000,
+            CurrentNumber = 400
+        };
+
+        // Act
+        var result = await _controller.Create(dto, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task Create_WhenCurrentNumberGreaterThanToNumber_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var dto = new SaveBillingResolutionDto
+        {
+            Name = "Res 1",
+            Prefix = "A",
+            ResolutionNumber = "123",
+            FromNumber = 500,
+            ToNumber = 1000,
+            CurrentNumber = 2000
+        };
+
+        // Act
+        var result = await _controller.Create(dto, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
     public async Task Create_WhenValid_ShouldReturnCreatedAtActionAndNotify()
     {
         // Arrange

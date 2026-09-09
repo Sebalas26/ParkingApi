@@ -568,7 +568,23 @@ public class ParkingTicketService : IParkingTicketService
                     var resolution = await _resolutionRepository.GetByIdAsync(dto.ResolutionId.Value, cancellationToken);
                     if (resolution != null)
                     {
+                        if (string.IsNullOrWhiteSpace(ticket.InvoiceNumber))
+                        {
+                            ticket.InvoiceNumber = $"{resolution.Prefix}{resolution.CurrentNumber}";
+                            ticket.IsElectronicInvoice = true;
+                        }
+                        if (string.IsNullOrWhiteSpace(ticket.ResolutionName))
+                        {
+                            ticket.ResolutionName = !string.IsNullOrWhiteSpace(resolution.Prefix) && !string.IsNullOrWhiteSpace(resolution.Name)
+                                ? $"{resolution.Prefix} - {resolution.Name}"
+                                : resolution.Name;
+                        }
+
                         resolution.CurrentNumber++;
+                        if (resolution.CurrentNumber > resolution.ToNumber)
+                        {
+                            resolution.IsActive = false;
+                        }
                         resolution.UpdatedAtUtc = DateTime.UtcNow;
                         await _resolutionRepository.UpdateAsync(resolution, cancellationToken);
                     }
@@ -595,6 +611,10 @@ public class ParkingTicketService : IParkingTicketService
                         ticket.IsElectronicInvoice = true;
 
                         activeRes.CurrentNumber++;
+                        if (activeRes.CurrentNumber > activeRes.ToNumber)
+                        {
+                            activeRes.IsActive = false;
+                        }
                         activeRes.UpdatedAtUtc = DateTime.UtcNow;
                         await _resolutionRepository.UpdateAsync(activeRes, cancellationToken);
                     }
@@ -743,6 +763,10 @@ public class ParkingTicketService : IParkingTicketService
             ticket.IsElectronicInvoice = true;
 
             activeRes.CurrentNumber++;
+            if (activeRes.CurrentNumber > activeRes.ToNumber)
+            {
+                activeRes.IsActive = false;
+            }
             activeRes.UpdatedAtUtc = DateTime.UtcNow;
 
             await _resolutionRepository.UpdateAsync(activeRes, cancellationToken);
