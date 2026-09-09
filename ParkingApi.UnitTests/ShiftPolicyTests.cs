@@ -152,4 +152,39 @@ public class ShiftPolicyTests
         result!.ShiftId.Should().Be(existingShift.ShiftId);
         _shiftRepoMock.Verify(r => r.AddAsync(It.IsAny<WorkShift>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task OpenShift_WhenAdminOrOperatorOpensShiftWithoutOtherBranchOperators_ShouldSucceedSuccessfully()
+    {
+        // Arrange
+        var service = CreateService();
+        var company = new Company { Id = 1, AllowMultipleOpenShifts = false };
+        _companyRepoMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(company);
+
+        _shiftRepoMock.Setup(r => r.GetActiveShiftsByUserIdAsync(5, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<WorkShift>());
+
+        _shiftRepoMock.Setup(r => r.AddAsync(It.IsAny<WorkShift>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((WorkShift s, CancellationToken _) => s);
+
+        var dto = new OpenShiftRequestDto
+        {
+            CompanyId = 1,
+            BranchId = 2,
+            UserId = 5,
+            BaseAmount = 30000
+        };
+
+        // Act
+        var result = await service.OpenShiftAsync(5, "Administrador Garita", dto);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.OperatorName.Should().Be("Administrador Garita");
+        result.BaseAmount.Should().Be(30000);
+        result.Status.Should().Be(ShiftStatus.Open);
+        _shiftRepoMock.Verify(r => r.AddAsync(It.IsAny<WorkShift>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
+

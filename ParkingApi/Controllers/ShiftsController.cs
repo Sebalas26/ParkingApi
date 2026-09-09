@@ -54,10 +54,23 @@ public class ShiftsController : ControllerBase
                 {
                     operatorName = targetUser.FullName;
                 }
+                else if (targetUser != null && !string.IsNullOrWhiteSpace(targetUser.Username))
+                {
+                    operatorName = targetUser.Username;
+                }
             }
             else if (int.TryParse(_currentUser?.UserId, out int parsedId) && parsedId > 0)
             {
                 userId = parsedId;
+                var currentUsr = await _userRepository.GetByIdAsync(userId, cancellationToken);
+                if (currentUsr != null && !string.IsNullOrWhiteSpace(currentUsr.FullName))
+                {
+                    operatorName = currentUsr.FullName;
+                }
+                else if (currentUsr != null && !string.IsNullOrWhiteSpace(currentUsr.Username))
+                {
+                    operatorName = currentUsr.Username;
+                }
             }
 
             var result = await _shiftService.OpenShiftAsync(userId, operatorName, dto, cancellationToken);

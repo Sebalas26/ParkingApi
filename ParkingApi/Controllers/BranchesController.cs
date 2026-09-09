@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ParkingApi.Domain.Dtos.Branches;
+using ParkingApi.Domain.Dtos.Realtime;
 using ParkingApi.Domain.Interfaces.Services.Branches;
 
 namespace ParkingApi.Controllers;
@@ -235,7 +236,17 @@ public class BranchesController : ControllerBase
         var success = await _branchService.ConfigureOperatingHoursAsync(id, dtos ?? new List<BranchOperatingHourDto>(), cancellationToken);
         if (success)
         {
-            _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(id, "Horarios Actualizados", "Se actualizaron los horarios de atención de la sede.", "OperatingHoursChanged", cancellationToken);
+            var branch = await _branchService.GetByIdAsync(id, cancellationToken);
+            var notification = new ConfigNotificationDto
+            {
+                EventType = "OperatingHoursChanged",
+                BranchId = id,
+                CompanyId = branch?.CompanyId,
+                Title = "Horarios Actualizados",
+                Message = $"Se actualizaron los horarios de atención de la sede '{(branch?.Name ?? id.ToString())}'.",
+                TimestampUtc = DateTime.UtcNow
+            };
+            _ = _realtimeNotifier.NotifyCustomAsync(notification, cancellationToken);
             return Ok(new { message = "Horarios de atención configurados correctamente para la sede." });
         }
         return BadRequest(new { message = "No se pudieron configurar los horarios de la sede." });

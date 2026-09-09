@@ -2,6 +2,31 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 20:50:00] - [FIX / RBAC / SHIFTS / OPERATING-HOURS / REALTIME / NET10] Eliminación de Validación Quemada de Roles en Apertura de Turno y Emisión Dual de SignalR en Configuración de Horarios
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"debes analiza completamente para saber que paso son a seguir... Yo entro al WPF y listo, me sale abrir turno. Él dice que abrió turno, pero NO está guardando en la base de datos. No lo está haciendo. Por ende, en el PWA no registra... Yo puedo abrir una caja a un usuario específico desde la PWA... cuando ingrese en WPF debe saber que ya tiene caja abierta... al cerrar caja en PWA debe devolverlo al módulo de abrir caja... al abrir caja en WPF debe aparecer en tiempo real en PWA... y en PWA en módulo de activos dice que la sede se encuentra configurada como cerrada..."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Eliminación de Roles Hardcoded en Apertura de Turnos (`ShiftService.cs`)**:
+     - Se eliminó la validación que exigía filtrar usuarios de sede con nombres de rol que no contuvieran `"Admin"` o `"Super"`. Esto provocaba que cualquier sede operada por un administrador o sin operadores adicionales configurados arrojara `InvalidOperationException("No es posible abrir caja para esta sede ya que no cuenta con operadores asignados")` (HTTP 400 Bad Request), bloqueando la apertura centralizada.
+     - Ahora cualquier usuario asignado a la sede o con permisos válidos puede abrir su turno de caja sin restricciones arbitrarias de texto de rol.
+  2. **Resolución Enriquecida de Operador (`ShiftsController.cs`)**:
+     - Al procesar `POST /api/shifts/open`, si `dto.UserId` no es enviado explícitamente pero el token cuenta con `_currentUser.UserId`, se consulta el nombre completo del usuario (`FullName`) en `IUserRepository` para asegurar que `OperatorName` coincida con la identidad del operador en garita.
+  3. **Emisión Dual en Actualización de Horarios (`BranchesController.cs`)**:
+     - En `ConfigureOperatingHours`, se incluye `CompanyId` en el payload de `ConfigNotificationDto` ("OperatingHoursChanged"), garantizando que la notificación SignalR se entregue simultáneamente al grupo de la sede (`Branch_{id}`) y al grupo corporativo (`Company_{companyId}`).
+  4. **Verificación y Pruebas Unitarias**:
+     - `dotnet test ParkingApi.slnx`: **476 de 476 pruebas superadas (0 fallos)**.
+     - Nueva prueba unitaria añadida en `ShiftPolicyTests.cs`.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Shifts/ShiftService.cs`
+  - `ParkingApi/Controllers/ShiftsController.cs`
+  - `ParkingApi/Controllers/BranchesController.cs`
+  - `ParkingApi.UnitTests/ShiftPolicyTests.cs`
+
+---
+
 ## 📌 Entrada: [2026-09-08 17:50:00] - [FEATURE / SIGNALR / REALTIME / MULTI-GROUP / NET10] Emisión Dual de Eventos de Turno a Grupo de Sede y Grupo de Empresa (ShiftOpened, ShiftClosed)
 
 - **`💬 Prompt Original del Usuario`**:
