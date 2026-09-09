@@ -2,6 +2,57 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-08 22:30:00] - [TOOL / SEED / SIMULATION / PERFORMANCE / MULTI-TENANT] Generador Automatizado y Script Canónico de Simulación Realista de Producción (> 35 Días, 10 Empresas, 44 Sedes, 3.124 Turnos y 67.240 Tiquetes)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Si yo te pidiera que me hicieras un script con data, con muchísima data, cargada para yo cargarla y para poder probar como si ya si tuviera más de un mes de funcionamiento, ¿es posible que lo crees? Ejemplo, que me crearas unas 10 empresas, cada una con 4, otras con 5, otras con 7, otras con 2 sedes, cada una con sus usuarios, con sus configuraciones de roles, con varios ingresos de vehículos, con tarifas cobradas, todo, como para simular si ya una data vieja de más de un mes de operaciones de varias empresas para uno entrar y ver cómo funcionará el sistema... si dale de una generalo completo."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Herramienta Generadora Automatizada (`generate_realistic_seed.js`)**:
+     - Se construyó un generador determinista en Node.js capaz de calcular la matemática relacional, curvas horarias de tráfico, esquemas tarifarios, consistencia contable de turnos de caja y UUIDs canónicos.
+     - Escribe directamente en disco mediante flujos continuos (`fs.createWriteStream`) para optimizar consumo de memoria.
+  2. **Estructura de Datos Simulada en `13_Seed_Realistic_Production_Simulation.sql`**:
+     - **10 Empresas SaaS con Identidad Realista Colombiana**:
+       1. *Gran Plaza Centro Comercial S.A.S.* (5 sedes, Plan Enterprise)
+       2. *Cadena Park & Go Colombia S.A.S.* (7 sedes, Plan Enterprise)
+       3. *Inversiones Metropolitan Parking Ltda.* (4 sedes, Plan Pro)
+       4. *Clínica & Parking San Rafael S.A.S.* (4 sedes, Plan Pro)
+       5. *Terminal & Aeropark Service S.A.S.* (7 sedes, Plan Enterprise)
+       6. *Hoteles & Estacionamientos del Valle S.A.* (5 sedes, Plan Pro)
+       7. *Smart Parking Solutions S.A.S.* (4 sedes, Plan Pro)
+       8. *Parqueaderos El Centro 24 Horas* (2 sedes, Plan Básico)
+       9. *Logística & Bahías del Norte S.A.S.* (2 sedes, Plan Básico)
+       10. *EcoParking Urbano S.A.S.* (4 sedes, Plan Pro)
+       - **Total: 44 Sedes Operativas** con capacidades realistas (40 a 350 celdas), tiempos de gracia y bases de caja.
+     - **Catálogos por Sede**:
+       - 176 Tarifas vehiculares (`VehicleRates`) para Autos, Motos, Camionetas y Pesados con esquemas de minuto, hora, día completo y nocturno.
+       - 132 Resoluciones DIAN (`BillingResolutions`) con tipos FEV, POS y TIQ con prefijos y vigencias.
+       - 132 Medios de pago activos por sede (`BranchPaymentMethods`) para Efectivo, Tarjetas y Transferencias QR.
+       - 308 Registros de horarios de atención (`BranchOperatingHours`) de lunes a domingo.
+     - **Usuarios y Seguridad RBAC**:
+       - Creados roles de *Administrador Empresa*, *Supervisor de Patio* y *Operador de Garita / Caja* por cada empresa con permisos asignados en `UserRoleModule` y `RoleAction`.
+       - Creados usuarios administradores (`admin.<empresa>`) y operadores (`cajero.<sede>`) con claves predeterminadas (`admin123` / `operador123`), asignados en `UserBranches`.
+     - **Data Operativa (> 35 Días Históricos y Ocupación en Vivo)**:
+       - **3.124 Turnos de Caja (`WorkShifts`)**: Turnos matutinos y vespertinos cerrados históricamente con arqueos y recaudos cuadrados, más **1 turno abierto activo hoy por sede** para operar de inmediato.
+       - **67.240 Tiquetes de Parqueadero (`ParkingTickets`)**: Más de 66.000 tiquetes históricos facturados con curvas de tráfico reales (picos 8:00 AM, 12:30 PM, 6:00 PM), placas colombianas, cálculo de estadía y resolución DIAN. Además, más de 800 vehículos activos actualmente en patio para reflejar ocupación en vivo (30% a 85%) en los Dashboards.
+       - Mensualidades (`MonthlySubscriptions`) e incidentes vehiculares (`VehicleIncidents`).
+  3. **Verificación y Pruebas**:
+     - `dotnet test ParkingApi.slnx`: 483 de 483 pruebas superadas (**0 Fallos**).
+     - `dotnet test ParkingWpf.slnx`: 167 de 167 pruebas superadas (**0 Fallos**).
+     - `npm run build` en `ParkingFlowPWa`: **0 Errores, 0 Advertencias**.
+
+- **`📦 Componentes Modificados y Creados`**:
+  - `ParkingApi/Scripts/generate_realistic_seed.js` [NUEVO]
+  - `ParkingApi/Scripts/13_Seed_Realistic_Production_Simulation.sql` [NUEVO]
+  - `ParkingApi/HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **483/483 Pasadas (0 Fallos)**.
+  - `dotnet test ParkingWpf.slnx` -> **167/167 Pasadas (0 Fallos)**.
+  - `npm run build` -> **0 Errores, 0 Advertencias** (Compilación en 9.6s).
+
+---
+
 ## 📌 Entrada: [2026-09-08 22:00:00] - [FEATURE / DIAN / BILLING / CATALOG / RESILIENCE / NET10] Catálogo Maestro de Tipos de Documentos y Resoluciones DIAN (Entidad, DTOs, Repositorio, Servicio, Controlador, Tests y Sincronización Canónica 01 y 02) y Blindaje de Deserialización en Empresas
 
 - **`💬 Prompt Original del Usuario`**:
