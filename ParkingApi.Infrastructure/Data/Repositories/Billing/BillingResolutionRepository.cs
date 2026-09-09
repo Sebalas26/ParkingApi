@@ -177,4 +177,64 @@ public class BillingResolutionRepository : IBillingResolutionRepository
             return false;
         }
     }
+
+    public async Task<bool> HasAssociatedTicketsAsync(Guid resolutionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.ParkingTickets.AnyAsync(t => t.ResolutionId == resolutionId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al verificar tiquetes asociados a la resolución {Id}", resolutionId);
+            return true;
+        }
+    }
+
+    public async Task<bool> DeleteAsync(Guid resolutionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var existing = await _context.BillingResolutions.FindAsync(new object[] { resolutionId }, cancellationToken);
+            if (existing == null) return false;
+
+            var resIdStr = resolutionId.ToString();
+            var paymentMethods = await _context.PaymentMethod
+                .Where(pm => pm.DefaultResolutionId == resIdStr)
+                .ToListAsync(cancellationToken);
+
+            foreach (var pm in paymentMethods)
+            {
+                pm.DefaultResolutionId = null;
+            }
+
+            _context.BillingResolutions.Remove(existing);
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar resolución {Id}", resolutionId);
+            throw;
+        }
+    }
+
+    public async Task<BillingResolution?> ToggleStatusAsync(Guid resolutionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var existing = await _context.BillingResolutions.FindAsync(new object[] { resolutionId }, cancellationToken);
+            if (existing == null) return null;
+
+            existing.IsActive = !existing.IsActive;
+            existing.UpdatedAtUtc = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+            return existing;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al alternar estado de la resolución {Id}", resolutionId);
+            throw;
+        }
+    }
 }

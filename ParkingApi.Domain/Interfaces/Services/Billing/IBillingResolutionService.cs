@@ -15,4 +15,6 @@ public interface IBillingResolutionService
     Task<BillingResolutionDto> CreateAsync(SaveBillingResolutionDto dto, CancellationToken cancellationToken = default);
     Task<BillingResolutionDto?> UpdateAsync(Guid resolutionId, SaveBillingResolutionDto dto, CancellationToken cancellationToken = default);
     Task<bool> DeactivateAsync(Guid resolutionId, CancellationToken cancellationToken = default);
+    Task<(bool Success, string? ErrorMessage)> DeleteAsync(Guid resolutionId, CancellationToken cancellationToken = default);
+    Task<BillingResolutionDto?> ToggleStatusAsync(Guid resolutionId, CancellationToken cancellationToken = default);
 }

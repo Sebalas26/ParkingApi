@@ -2,6 +2,38 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-09 07:01:00] - [FEATURE / BILLING / RESOLUTIONS / REST / INTEGRITY] Doble Funcionalidad en Resoluciones DIAN: Eliminación Definitiva con Validación de Tiquetes y Toggle de Estado
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"el modulo maestro de resolucion de la dian no permite eliminar, si no ese boton desactiva entonces deberia tener las dos funcionalidades."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Separación de Responsabilidades y Endpoints REST (`ResolutionsController.cs`)**:
+     - `[HttpDelete("{id:guid}")]`: Pasa a ejecutar la **eliminación definitiva/física** (`DeleteAsync`). Si la resolución ya cuenta con facturas o tiquetes asociados, retorna `400 Bad Request` protegiendo la integridad fiscal y contable e invitando a desactivarla. Si no tiene movimientos vinculados, elimina el registro de la base de datos y limpia referencias residuales en `PaymentMethod.DefaultResolutionId`. Notifica en tiempo real (`ResolutionsChanged`) a la sede.
+     - `[HttpPatch("{id:guid}/toggle-status")]`: Nuevo endpoint REST para alternar rápidamente el estado de la resolución (`IsActive` on/off) en 1 clic y emitir notificación en tiempo real.
+     - `[HttpPatch("{id:guid}/deactivate")]` / `[HttpPost("{id:guid}/deactivate")]`: Mantenidos para compatibilidad hacia atrás.
+  2. **Capa de Servicios y Repositorio (`IBillingResolutionService`, `BillingResolutionService`, `IBillingResolutionRepository`, `BillingResolutionRepository`)**:
+     - `HasAssociatedTicketsAsync(resolutionId)`: Verifica si `_context.ParkingTickets.AnyAsync(t => t.ResolutionId == resolutionId)`.
+     - `DeleteAsync(resolutionId)`: Valida la ausencia de tiquetes y procede a eliminar la entidad en `_context.BillingResolutions`, limpiando además cualquier referencia en `PaymentMethod.DefaultResolutionId`.
+     - `ToggleStatusAsync(resolutionId)`: Invierte el estado booleano `IsActive` y actualiza `UpdatedAtUtc`.
+  3. **Pruebas Unitarias Automatizadas (`ResolutionsControllerTests.cs`)**:
+     - Agregadas pruebas unitarias: `Delete_WhenSuccessful_ShouldReturnOkAndNotify`, `Delete_WhenNotFound_ShouldReturn404`, `Delete_WhenHasAssociatedTickets_ShouldReturnBadRequest`, `Delete_WhenExceptionThrown_ShouldReturn500`, `ToggleStatus_WhenSuccessful_ShouldReturnOkAndNotify`, `ToggleStatus_WhenNotFound_ShouldReturn404`, `ToggleStatus_WhenExceptionThrown_ShouldReturn500`.
+     - 100% pruebas superadas: **490 pruebas pasadas (0 fallos)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Interfaces/Repositories/Billing/IBillingResolutionRepository.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Billing/BillingResolutionRepository.cs`
+  - `ParkingApi.Domain/Interfaces/Services/Billing/IBillingResolutionService.cs`
+  - `ParkingApi.Core/Services/Billing/BillingResolutionService.cs`
+  - `ParkingApi/Controllers/ResolutionsController.cs`
+  - `ParkingApi.UnitTests/Controllers/ResolutionsControllerTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **490 Superadas, 0 Fallos, 0 Errores** (100% exitoso).
+  - `dotnet build` -> **0 Errores**.
+
+---
+
 ## 📌 Entrada: [2026-09-09 06:35:00] - [FEATURE / BILLING / PAYMENT-METHODS / RBAC / DB] Soporte de Exigibilidad de Facturación con Resolución DIAN en Medios de Pago (`RequiresResolution` y `DefaultResolutionId`)
 
 - **`💬 Prompt Original del Usuario`**:

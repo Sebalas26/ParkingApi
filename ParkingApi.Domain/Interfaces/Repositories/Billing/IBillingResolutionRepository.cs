@@ -15,4 +15,7 @@ public interface IBillingResolutionRepository
     Task<BillingResolution> AddAsync(BillingResolution resolution, CancellationToken cancellationToken = default);
     Task<BillingResolution?> UpdateAsync(BillingResolution resolution, CancellationToken cancellationToken = default);
     Task<bool> DeactivateAsync(Guid resolutionId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(Guid resolutionId, CancellationToken cancellationToken = default);
+    Task<bool> HasAssociatedTicketsAsync(Guid resolutionId, CancellationToken cancellationToken = default);
+    Task<BillingResolution?> ToggleStatusAsync(Guid resolutionId, CancellationToken cancellationToken = default);
 }

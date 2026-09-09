@@ -94,6 +94,30 @@ public class BillingResolutionService : IBillingResolutionService
         return await _repository.DeactivateAsync(resolutionId, cancellationToken);
     }
 
+    public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(Guid resolutionId, CancellationToken cancellationToken = default)
+    {
+        var existing = await _repository.GetByIdAsync(resolutionId, cancellationToken);
+        if (existing == null)
+        {
+            return (false, "Resolución no encontrada.");
+        }
+
+        var hasTickets = await _repository.HasAssociatedTicketsAsync(resolutionId, cancellationToken);
+        if (hasTickets)
+        {
+            return (false, "No es posible eliminar la resolución porque ya cuenta con facturas o tiquetes emitidos en el sistema. Para suspender su emisión sin comprometer la trazabilidad fiscal, utilice la opción de desactivar.");
+        }
+
+        var deleted = await _repository.DeleteAsync(resolutionId, cancellationToken);
+        return (deleted, deleted ? null : "No se pudo eliminar la resolución.");
+    }
+
+    public async Task<BillingResolutionDto?> ToggleStatusAsync(Guid resolutionId, CancellationToken cancellationToken = default)
+    {
+        var updated = await _repository.ToggleStatusAsync(resolutionId, cancellationToken);
+        return updated != null ? MapToDto(updated) : null;
+    }
+
     private static BillingResolutionDto MapToDto(BillingResolution r)
     {
         return new BillingResolutionDto

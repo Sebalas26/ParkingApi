@@ -452,4 +452,131 @@ public class ResolutionsControllerTests
         result.Should().BeOfType<ObjectResult>()
             .Which.StatusCode.Should().Be(500);
     }
+
+    [Fact]
+    public async Task Delete_WhenSuccessful_ShouldReturnOkAndNotify()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var resolution = new BillingResolutionDto { ResolutionId = id, Name = "DIAN POS", BranchId = 1 };
+        _resolutionServiceMock.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resolution);
+        _resolutionServiceMock.Setup(r => r.DeleteAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, null));
+
+        // Act
+        var result = await _controller.Delete(id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        _notifierMock.Verify(n => n.NotifyBranchConfigChangedAsync(
+            1,
+            "Resolución Eliminada",
+            It.IsAny<string>(),
+            "ResolutionsChanged",
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Delete_WhenNotFound_ShouldReturn404()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _resolutionServiceMock.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BillingResolutionDto?)null);
+
+        // Act
+        var result = await _controller.Delete(id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    [Fact]
+    public async Task Delete_WhenHasAssociatedTickets_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var resolution = new BillingResolutionDto { ResolutionId = id, Name = "DIAN POS", BranchId = 1 };
+        _resolutionServiceMock.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resolution);
+        _resolutionServiceMock.Setup(r => r.DeleteAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((false, "No es posible eliminar la resolución porque ya cuenta con facturas o tiquetes emitidos."));
+
+        // Act
+        var result = await _controller.Delete(id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task Delete_WhenExceptionThrown_ShouldReturn500()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _resolutionServiceMock.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database fault"));
+
+        // Act
+        var result = await _controller.Delete(id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(500);
+    }
+
+    [Fact]
+    public async Task ToggleStatus_WhenSuccessful_ShouldReturnOkAndNotify()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var resolution = new BillingResolutionDto { ResolutionId = id, Name = "DIAN POS", IsActive = false, BranchId = 2 };
+        _resolutionServiceMock.Setup(r => r.ToggleStatusAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resolution);
+
+        // Act
+        var result = await _controller.ToggleStatus(id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().BeEquivalentTo(resolution);
+        _notifierMock.Verify(n => n.NotifyBranchConfigChangedAsync(
+            2,
+            "Resolución desactivada",
+            It.IsAny<string>(),
+            "ResolutionsChanged",
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ToggleStatus_WhenNotFound_ShouldReturn404()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _resolutionServiceMock.Setup(r => r.ToggleStatusAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BillingResolutionDto?)null);
+
+        // Act
+        var result = await _controller.ToggleStatus(id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    [Fact]
+    public async Task ToggleStatus_WhenExceptionThrown_ShouldReturn500()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _resolutionServiceMock.Setup(r => r.ToggleStatusAsync(id, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Toggle fault"));
+
+        // Act
+        var result = await _controller.ToggleStatus(id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(500);
+    }
 }

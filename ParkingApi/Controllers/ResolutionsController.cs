@@ -175,6 +175,74 @@ public class ResolutionsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var existing = await _resolutionService.GetByIdAsync(id, cancellationToken);
+            if (existing == null)
+            {
+                return NotFound(new { message = "Resolución no encontrada para eliminar." });
+            }
+
+            var (success, errorMessage) = await _resolutionService.DeleteAsync(id, cancellationToken);
+            if (!success)
+            {
+                return BadRequest(new { message = errorMessage ?? "No se pudo eliminar la resolución." });
+            }
+
+            if (existing.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
+                    existing.BranchId.Value, 
+                    "Resolución Eliminada", 
+                    $"La resolución '{existing.Name}' fue eliminada permanentemente.", 
+                    "ResolutionsChanged", 
+                    cancellationToken);
+            }
+
+            return Ok(new { message = "Resolución eliminada permanentemente." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar resolución {Id}", id);
+            return StatusCode(500, new { message = "Error interno al eliminar resolución." });
+        }
+    }
+
+    [HttpPatch("{id:guid}/toggle-status")]
+    public async Task<IActionResult> ToggleStatus(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updated = await _resolutionService.ToggleStatusAsync(id, cancellationToken);
+            if (updated == null)
+            {
+                return NotFound(new { message = "Resolución no encontrada para alternar estado." });
+            }
+
+            var statusDesc = updated.IsActive ? "activada" : "desactivada";
+            if (updated.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyBranchConfigChangedAsync(
+                    updated.BranchId.Value, 
+                    $"Resolución {statusDesc}", 
+                    $"La resolución '{updated.Name}' fue {statusDesc}.", 
+                    "ResolutionsChanged", 
+                    cancellationToken);
+            }
+
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al alternar estado de resolución {Id}", id);
+            return StatusCode(500, new { message = "Error interno al alternar estado de la resolución." });
+        }
+    }
+
+    [HttpPatch("{id:guid}/deactivate")]
+    [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         try
