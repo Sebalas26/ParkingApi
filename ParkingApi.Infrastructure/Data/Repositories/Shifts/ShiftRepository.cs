@@ -29,6 +29,7 @@ public class ShiftRepository : IShiftRepository
         try
         {
             var query = _context.WorkShifts
+                .Include(s => s.User)
                 .Where(s => s.UserId == userId && s.Status == ShiftStatus.Open);
 
             if (branchId.HasValue && branchId.Value > 0)
@@ -50,6 +51,7 @@ public class ShiftRepository : IShiftRepository
         try
         {
             var query = _context.WorkShifts
+                .Include(s => s.User)
                 .Where(s => s.UserId == userId && s.Status == ShiftStatus.Open);
 
             if (branchId.HasValue && branchId.Value > 0)
@@ -71,6 +73,7 @@ public class ShiftRepository : IShiftRepository
         try
         {
             var query = _context.WorkShifts
+                .Include(s => s.User)
                 .Where(s => s.Status == ShiftStatus.Open);
 
             if (branchId.HasValue && branchId.Value > 0)
@@ -94,6 +97,7 @@ public class ShiftRepository : IShiftRepository
         try
         {
             return await _context.WorkShifts
+                .Include(s => s.User)
                 .FirstOrDefaultAsync(s => s.ShiftId == shiftId, cancellationToken);
         }
         catch (Exception ex)
@@ -107,7 +111,10 @@ public class ShiftRepository : IShiftRepository
     {
         try
         {
-            var query = _context.WorkShifts.AsNoTracking().AsQueryable();
+            var query = _context.WorkShifts
+                .AsNoTracking()
+                .Include(s => s.User)
+                .AsQueryable();
 
             if (branchId.HasValue && branchId.Value > 0)
             {

@@ -20,4 +20,7 @@ public class FinancialSummaryDto
     public Dictionary<string, int> CountByPaymentMethod { get; set; } = new();
     public Dictionary<string, int> CountByResolution { get; set; } = new();
     public Dictionary<string, decimal> RevenueByResolution { get; set; } = new();
+    public decimal TotalCashSurplus { get; set; }
+    public decimal TotalCashDeficit { get; set; }
+    public decimal NetCashDifference => TotalCashSurplus - TotalCashDeficit;
 }

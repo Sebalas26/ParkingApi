@@ -2,6 +2,64 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-09 15:00:00] - [FEATURE / SHIFTS / ANALYTICS / RBAC / ARQUEO] Nombre Reactivo de Operador en Turnos y Métricas de Arqueo (Sobrantes / Faltantes) en Resumen Financiero
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"En el modulo de activos de la pwa en la tabla el tipo de vehiuclo tiene quemado automovil/sedan eso esta mal no debe haber nada quemado todo debe ser de acuerdo a los tipos de vehiculos creados en el maestro.ñ En el modulo de caja de la pwa cuando cambio de sede me sigue mostrando la información de la otra sede ese filtro no funciona por que cada sede tiene su historico. ese boton de cerrar caja principal deberia quitarse ya en la tabla aparece cerrar caja. al momento de editar el nombre de un usuario no se ve el cambio reflejado en todo lado se supone que en la BD guarda cuando se abre caja es el id del usuario entonces eso deberia hacer cambiar la data automaticamente o estas guardando quemado nombres que no es una buena practica. en las graficas de recaudo pr metodo de pago y facturacion por 4resolucion tambien incluir la cantidad de cada una de las categorias que vayan a existir por el dinamismo manteniendo el porcentaje. cuando se cierra una caja y aparece mas dineor que el que deberia estar es sobrante no deberia mostrarse en el dashboard ? y si falta dinero faltante no deberia haber un kpi en el dashboard que muestre esa informacion o en la misma tabla de historico de caja una columna que diga arqueo / diferencia ? en el modulo de sedes en la tabla ocultar el codigo por que eso es interno tecnico y el de medios de pago en la tabla ocultar el id por que eso es tecnico interno. en el modulo de reportes deberiamos categorizar tambien por estado una pestaña que diga todos otra en patio y otra finalizados y asi se ve mas ordenado por que ahi estan todos combinados y saber la cantidad en patio y finalizados."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Vinculación Reactiva de Nombre de Usuario en Turnos (`ShiftRepository.cs` & `ShiftService.cs`)**:
+     - Se incorporó `.Include(s => s.User)` en todas las consultas de turnos de caja en `ShiftRepository.cs` (`GetActiveShiftByUserIdAsync`, `GetActiveShiftsByUserIdAsync`, `GetActiveShiftAsync`, `GetByIdAsync`, `GetHistoryAsync`).
+     - En `ShiftService.MapToDto`, el nombre del operador se resuelve reactivamente: `OperatorName = s.User?.FullName ?? s.User?.Username ?? s.OperatorName`. Al editar el nombre o usuario en el maestro de usuarios, todos los turnos activos e históricos reflejan el nuevo nombre al instante sin depender de cadenas estáticas obsoletas.
+  2. **Cálculo de Arqueo y Descuadres de Caja en Resumen Financiero (`FinancialSummaryDto.cs` & `AnalyticsService.cs`)**:
+     - En `FinancialSummaryDto.cs`, se agregaron las propiedades: `TotalCashSurplus`, `TotalCashDeficit` y `NetCashDifference`.
+     - En `AnalyticsService.cs`, se inyectó `IShiftRepository?` para calcular sobre los turnos cerrados del período:
+       - Sobrantes: suma acumulada de `cashDifference > 0`.
+       - Faltantes: valor absoluto acumulado de `cashDifference < 0`.
+       - Diferencia neta: `TotalCashSurplus - TotalCashDeficit`.
+  3. **Pruebas y Verificación**:
+     - `dotnet test ParkingApi.slnx` -> **495 superadas, 0 fallos** (100% exitoso).
+     - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Dtos/Analytics/FinancialSummaryDto.cs`
+  - `ParkingApi.Core/Services/Analytics/AnalyticsService.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/Shifts/ShiftRepository.cs`
+  - `ParkingApi.Core/Services/Shifts/ShiftService.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **495 Superadas, 0 Fallos** (100% exitoso).
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+
+---
+
+## 📌 Entrada: [2026-09-09 13:00:00] - [FEATURE / CONCURRENCY / REALTIME / SIGNALR / IDEMPOTENCY / CANONICAL-DATA] Idempotencia en CheckOut, Retorno de Verdad Canónica del Servidor y Prevención de Tormenta de Eventos en Sincronización Offline
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"No paila ya estaba en modo activo bien pero saque un vehiculo desde la pwa y en el wpf que si estaba online no se quito el vehjiculo entonces daria doble salida eso no deberia permitirlo si me explico ... y segundo como sería el caso que el wpf este offline y pues el administrador le de saliida desde la pwa y por error el colaborador vuelva y le de salida al vehiculo como no ha sincronizado se lo va a dejar entonces cuando sincronice que pasaria el sitema esta adaptado para decir no esto no se sincroniza por que en la nube ya esta la data real entonces antes la data se baja desde la nube a tierra diciendole no ese vehjiculo ya tuvo slida esta es la data real. si me explico ? pero bueno analiza y dame el plan ."*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **CheckOut Idempotente en Capa de Negocio (`ParkingTicketService.cs`)**:
+     - Si el tiquete recibido en `CheckOutAsync` ya figura con `Status == TicketStatus.Completed`, el servicio no retorna `null` (lo cual producía un `404 Not Found` en el endpoint y atascaba la cola de pendientes SQLite de terminales offline).
+     - El servicio registra log de advertencia y **retorna el tiquete canónico con la verdad real de la nube** (`Status = Completed`, `ExitTimeUtc`, importes `GrossAmount`, `NetAmount`, `PaymentMethod`, etc.).
+  2. **Control de Emisión de Notificaciones en Controlador (`TicketsController.cs`)**:
+     - En `CheckOut`: Si el tiquete retornado ya estaba liquidado previamente (sincronización idempotente desde una estación offline), el endpoint responde `200 OK` con el tiquete canónico pero **omite re-emitir el evento SignalR `TicketCheckedOut`**, protegiendo la red contra tormentas de eventos repetidos.
+     - Si el tiquete acaba de ser liquidado por primera vez, emite normalmente la notificación SignalR a la sede.
+  3. **Pruebas Unitarias Automatizadas (`TicketsControllerTests.cs`)**:
+     - Agregada prueba: `CheckOut_WhenAlreadyCompleted_ShouldReturnOkWithCanonicalTicketAndNotReemitSignalR`.
+     - 100% de pruebas superadas: **495 pruebas superadas (0 fallos)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Tickets/ParkingTicketService.cs`
+  - `ParkingApi/Controllers/TicketsController.cs`
+  - `ParkingApi.UnitTests/Controllers/TicketsControllerTests.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **495 Superadas, 0 Fallos** (100% exitoso).
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+
+---
+
 ## 📌 Entrada: [2026-09-09 07:23:00] - [FEATURE / BILLING / RESOLUTIONS / INVOICING / VALIDATION] Sincronización, Validación Estricta de Rango en Consecutivo Actual y Asignación de Factura Electrónica
 
 - **`💬 Prompt Original del Usuario`**:
