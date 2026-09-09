@@ -532,6 +532,8 @@ CREATE TABLE IF NOT EXISTS `PaymentMethod` (
     `Name` VARCHAR(50) NOT NULL,
     `Icon` VARCHAR(50) NOT NULL,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+    `RequiresResolution` TINYINT(1) NOT NULL DEFAULT 0,
+    `DefaultResolutionId` VARCHAR(50) NULL,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `UpdatedAt` DATETIME(6) NULL,
     `ResponsibleUserId` INT NULL,

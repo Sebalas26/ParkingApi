@@ -2,6 +2,33 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-09 06:35:00] - [FEATURE / BILLING / PAYMENT-METHODS / RBAC / DB] Soporte de Exigibilidad de Facturación con Resolución DIAN en Medios de Pago (`RequiresResolution` y `DefaultResolutionId`)
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"en esta modal se debería tener un check o no se algo mejor por que me explico de acuerdo a las resoluciones que se creen deberia tener un check para obligar que ese tipo de medio de pago solo funcione si se factura con esa resolución si me explico ? o no se si tengas alguna duda ante eso revisalo para poder tener una mejor vision y dame el plan"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Ampliación de Modelo y Esquema (`PaymentMethod.cs` y `02_Init_RBAC_Seed.sql`)**:
+     - Se incorporaron las propiedades `RequiresResolution` (`bool` / `TINYINT(1) DEFAULT 0`) y `DefaultResolutionId` (`string?` / `VARCHAR(50) NULL`) a la entidad `PaymentMethod`.
+     - Permite que un medio de pago exija formalmente facturación legal bajo resolución DIAN activa (o amarrado a una resolución específica).
+  2. **Contrato de Datos y Capa de Persistencia (`GetPaymentMethodDto.cs`, `PaymentMethodRepository.cs`, `PaymentMethodService.cs`)**:
+     - Mapeo transparente de `RequiresResolution` y `DefaultResolutionId` en `GetAllAsync`, `GetAllActiveAsync`, `GetByIdAsync`, `ValidateExist` y `CreateOrEditPaymentMethod`.
+     - Actualizado script canónico `02_Init_RBAC_Seed.sql` sincronizando la definición de tabla `PaymentMethod`.
+  3. **Verificación y Pruebas Unitarias**:
+     - Ejecución del 100% de la suite de pruebas del backend: `dotnet test ParkingApi.slnx` -> **483 pruebas superadas (100%), 0 fallos**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Domain/Models/PaymentMethod.cs`
+  - `ParkingApi.Domain/Dtos/PaymentMethods/GetPaymentMethodDto.cs`
+  - `ParkingApi.Infrastructure/Data/Repositories/PaymentMethods/PaymentMethodRepository.cs`
+  - `ParkingApi.Core/Services/PaymentMethods/PaymentMethodService.cs`
+  - `Scripts/02_Init_RBAC_Seed.sql`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **483 Superadas, 0 Fallos, 0 Errores** (100% exitoso).
+
+---
+
 ## 📌 Entrada: [2026-09-08 22:30:00] - [TOOL / SEED / SIMULATION / PERFORMANCE / MULTI-TENANT] Generador Automatizado y Script Canónico de Simulación Realista de Producción (> 35 Días, 10 Empresas, 44 Sedes, 3.124 Turnos y 67.240 Tiquetes)
 
 - **`💬 Prompt Original del Usuario`**:

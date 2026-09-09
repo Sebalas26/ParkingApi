@@ -72,7 +72,9 @@ public class PaymentMethodService : IPaymentMethodService
                 CompanyId = paymentMethod.CompanyId,
                 Name = paymentMethod.Name.Trim(),
                 Icon = paymentMethod.Icon.Trim(),
-                IsActive = paymentMethod.IsActive
+                IsActive = paymentMethod.IsActive,
+                RequiresResolution = paymentMethod.RequiresResolution,
+                DefaultResolutionId = paymentMethod.DefaultResolutionId
             };
 
             var existing = await _repository.ValidateExist(paymentMethod.Name, paymentMethod.CompanyId, cancellation);

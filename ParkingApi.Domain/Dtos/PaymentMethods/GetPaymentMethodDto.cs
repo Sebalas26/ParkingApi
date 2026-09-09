@@ -9,6 +9,8 @@ public class GetPaymentMethodDto
     public string Name { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public bool RequiresResolution { get; set; }
+    public string? DefaultResolutionId { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

@@ -7,6 +7,8 @@ public class PaymentMethod : GeneralEntity
     public int? CompanyId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
+    public bool RequiresResolution { get; set; } = false;
+    public string? DefaultResolutionId { get; set; }
 
     public virtual Company? Company { get; set; }
 }

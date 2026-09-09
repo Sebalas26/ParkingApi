@@ -43,6 +43,8 @@ public class PaymentMethodRepository : IPaymentMethodRepository
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,
+                    RequiresResolution = x.RequiresResolution,
+                    DefaultResolutionId = x.DefaultResolutionId,
                     CreatedAt = x.CreatedAt,
                     UpdatedAt = x.UpdatedAt
                 })
@@ -73,6 +75,8 @@ public class PaymentMethodRepository : IPaymentMethodRepository
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,
+                    RequiresResolution = x.RequiresResolution,
+                    DefaultResolutionId = x.DefaultResolutionId,
                     CreatedAt = x.CreatedAt,
                     UpdatedAt = x.UpdatedAt
                 })
@@ -100,6 +104,8 @@ public class PaymentMethodRepository : IPaymentMethodRepository
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,
+                    RequiresResolution = x.RequiresResolution,
+                    DefaultResolutionId = x.DefaultResolutionId,
                     CreatedAt = x.CreatedAt,
                     UpdatedAt = x.UpdatedAt
                 })
@@ -146,6 +152,8 @@ public class PaymentMethodRepository : IPaymentMethodRepository
             existing.Name = paymentMethod.Name;
             existing.Icon = paymentMethod.Icon;
             existing.IsActive = paymentMethod.IsActive;
+            existing.RequiresResolution = paymentMethod.RequiresResolution;
+            existing.DefaultResolutionId = paymentMethod.DefaultResolutionId;
             existing.UpdatedAt = DateTime.UtcNow;
 
             return await _context.SaveChangesAsync(cancellation) > 0;
@@ -201,6 +209,8 @@ public class PaymentMethodRepository : IPaymentMethodRepository
                     Name = x.Name,
                     Icon = x.Icon,
                     IsActive = x.IsActive,
+                    RequiresResolution = x.RequiresResolution,
+                    DefaultResolutionId = x.DefaultResolutionId,
                     CreatedAt = x.CreatedAt,
                     UpdatedAt = x.UpdatedAt
                 })
