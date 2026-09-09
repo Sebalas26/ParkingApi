@@ -2,6 +2,29 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-09 14:15:00] - [BUGFIX / USERS / FULLNAME-CONSISTENCY / MULTI-MODULE] Garantía de Persistencia Consistente de FullName a Partir de Componentes de Nombre
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Valida porque en el pwa cuando hago una modificacion de un usuario desde la configuracion de usuario /editar usuario, se hace el cambio del nombre y en los demas modulos del pwa no se ve el ajuste"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Consistencia de FullName en `UserService.CreateOrEditUser`**:
+     - Se corrigió la asignación de `FullName` tanto en la creación (`newUser`) como en la actualización (`existingUser`) para derivar e integrar de forma canónica `FirstName`, `MiddleName`, `FirstSurname` y `SecondLastName`.
+     - Anteriormente, `existingUser.FullName` priorizaba el valor recibido en `userDto.FullName` sin validar si correspondía a un valor desactualizado o incompleto, y en caso de nulidad solo unía `FirstName` y `FirstSurname` descartando los segundos nombres y apellidos.
+     - Con el nuevo cálculo, `existingDerivedFullName` concatena de manera limpia los 4 componentes y actualiza la columna `FullName` en base de datos.
+  2. **Ejecución y Cobertura de Pruebas Unitarias**:
+     - `dotnet test ParkingApi.slnx` ejecutado con éxito: **492 de 492 pruebas aprobadas (100% superadas, 0 errores, 0 advertencias CS8602)**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Core/Services/Users/UserService.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build`: 0 Errores.
+  - `dotnet test`: 492 Superadas / 0 Fallos.
+
+---
+
 ## 📌 Entrada: [2026-09-09 07:23:00] - [FEATURE / BILLING / RESOLUTIONS / INVOICING / VALIDATION] Sincronización, Validación Estricta de Rango en Consecutivo Actual y Asignación de Factura Electrónica
 
 - **`💬 Prompt Original del Usuario`**:
