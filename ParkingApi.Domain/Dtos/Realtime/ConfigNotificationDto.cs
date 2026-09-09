@@ -11,5 +11,7 @@ public class ConfigNotificationDto
     public string? SessionToken { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public Guid? EntityId { get; set; }
+    public string? EntityIdentifier { get; set; }
     public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;
 }

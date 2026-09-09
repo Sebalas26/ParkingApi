@@ -14,15 +14,18 @@ public class TicketsController : ControllerBase
 {
     private readonly IParkingTicketService _ticketService;
     private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
+    private readonly ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService _realtimeNotifier;
     private readonly ILogger<TicketsController> _logger;
 
     public TicketsController(
         IParkingTicketService ticketService,
         ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
+        ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService realtimeNotifier,
         ILogger<TicketsController> logger)
     {
         _ticketService = ticketService;
         _currentUser = currentUser;
+        _realtimeNotifier = realtimeNotifier;
         _logger = logger;
     }
 
@@ -32,6 +35,20 @@ public class TicketsController : ControllerBase
         try
         {
             var ticket = await _ticketService.CheckInAsync(dto, cancellationToken);
+            if (ticket != null && ticket.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
+                {
+                    EventType = "TicketCheckedIn",
+                    BranchId = ticket.BranchId,
+                    CompanyId = ticket.CompanyId,
+                    EntityId = ticket.TicketId,
+                    EntityIdentifier = ticket.PlateNumber,
+                    Title = "Ingreso de Vehículo",
+                    Message = $"Vehículo con placa {ticket.PlateNumber} ingresado.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellationToken);
+            }
             return Ok(ticket);
         }
         catch (InvalidOperationException ex)
@@ -55,6 +72,22 @@ public class TicketsController : ControllerBase
             {
                 return NotFound(new { message = "Tiquete no encontrado o ya liquidado." });
             }
+
+            if (ticket.BranchId.HasValue)
+            {
+                _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
+                {
+                    EventType = "TicketCheckedOut",
+                    BranchId = ticket.BranchId,
+                    CompanyId = ticket.CompanyId,
+                    EntityId = ticket.TicketId,
+                    EntityIdentifier = ticket.PlateNumber,
+                    Title = "Salida de Vehículo",
+                    Message = $"Vehículo con placa {ticket.PlateNumber} liquidado.",
+                    TimestampUtc = DateTime.UtcNow
+                }, cancellationToken);
+            }
+
             return Ok(ticket);
         }
         catch (Exception ex)

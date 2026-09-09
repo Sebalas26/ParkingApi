@@ -20,6 +20,7 @@ public class TicketsControllerTests
 {
     private readonly Mock<IParkingTicketService> _ticketServiceMock;
     private readonly Mock<ICurrentUserService> _currentUserMock;
+    private readonly Mock<ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService> _realtimeNotifierMock;
     private readonly Mock<ILogger<TicketsController>> _loggerMock;
     private readonly TicketsController _controller;
 
@@ -27,11 +28,13 @@ public class TicketsControllerTests
     {
         _ticketServiceMock = new Mock<IParkingTicketService>();
         _currentUserMock = new Mock<ICurrentUserService>();
+        _realtimeNotifierMock = new Mock<ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService>();
         _loggerMock = new Mock<ILogger<TicketsController>>();
 
         _controller = new TicketsController(
             _ticketServiceMock.Object,
             _currentUserMock.Object,
+            _realtimeNotifierMock.Object,
             _loggerMock.Object);
     }
 
@@ -290,5 +293,52 @@ public class TicketsControllerTests
         // Assert
         result.Should().BeOfType<ObjectResult>()
             .Which.StatusCode.Should().Be(500);
+    }
+
+    [Fact]
+    public async Task CheckIn_WhenSuccessful_ShouldEmitRealtimeNotification()
+    {
+        // Arrange
+        var request = new CheckInRequestDto { PlateNumber = "XYZ789", VehicleType = VehicleType.Car, BranchId = 2 };
+        var ticket = new ParkingTicket { TicketId = Guid.NewGuid(), PlateNumber = "XYZ789", BranchId = 2, Status = TicketStatus.Active };
+        _ticketServiceMock.Setup(s => s.CheckInAsync(request, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ticket);
+
+        // Act
+        var result = await _controller.CheckIn(request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        _realtimeNotifierMock.Verify(n => n.NotifyCustomAsync(
+            It.Is<ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto>(dto =>
+                dto.EventType == "TicketCheckedIn" &&
+                dto.BranchId == 2 &&
+                dto.EntityId == ticket.TicketId &&
+                dto.EntityIdentifier == "XYZ789"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CheckOut_WhenSuccessful_ShouldEmitRealtimeNotification()
+    {
+        // Arrange
+        var ticketId = Guid.NewGuid();
+        var request = new CheckOutRequestDto { TicketId = ticketId };
+        var ticket = new ParkingTicket { TicketId = ticketId, PlateNumber = "XYZ789", BranchId = 2, Status = TicketStatus.Completed };
+        _ticketServiceMock.Setup(s => s.CheckOutAsync(request, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ticket);
+
+        // Act
+        var result = await _controller.CheckOut(request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        _realtimeNotifierMock.Verify(n => n.NotifyCustomAsync(
+            It.Is<ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto>(dto =>
+                dto.EventType == "TicketCheckedOut" &&
+                dto.BranchId == 2 &&
+                dto.EntityId == ticketId &&
+                dto.EntityIdentifier == "XYZ789"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
