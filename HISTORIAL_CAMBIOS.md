@@ -30,6 +30,29 @@ Este archivo registra de forma acumulativa y cronológica todos los requerimient
 - **`✅ Verificación y Compilación`**:
   - `dotnet test ParkingApi.slnx` -> **495 Superadas, 0 Fallos (100% Éxito)**.
   - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+## 📌 Entrada: [2026-09-09 21:20:00] - [FEATURE / SHIFTS / METRICS / BRANCH-PAYMENT-METHODS] Resolución Dinámica de Recaudo por Medios de Pago de la Sede en Arqueo y Cierre de Turno
+
+- **`💬 Prompt Original del Usuario`**:
+  > *"Bien, ahora requiero que en esta pantalla el boton de realizar cierre de caja sea un rojo claro, adicional que los valores que esta en el cuadro rojo arriba, sea coherentes y coincidan con los que tengo en la base de datos para mi sede logeada, estoy notandoq que los medios de pago que veo ahi son mockeados y no los quiero"*
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Resolución Precisa de Medios de Pago por Sede en Métricas de Turno (`ShiftRepository.cs`)**:
+     - En `CalculateShiftMetricsAsync`, se sustituyó la clasificación estricta por enum numérico `ticket.PaymentMethod` (donde valores 1 y 2 causaban que `PaymentMethodId = 1` Efectivo fuera contabilizado erróneamente como tarjeta).
+     - Ahora se consultan los medios de pago activos de la sede (`_context.BranchPaymentMethods` incluyendo `PaymentMethod`).
+     - El recaudo de tickets se desglosa con base en `ticket.PaymentMethodId`:
+       - Métodos que requieren manejo de efectivo (`RequiresCashTender == true` o nombres de tipo efectivo) se consolidan en `CashPayments` y computan en el arqueo esperado de caja (`TotalExpectedCash = BaseAmount + CashPayments`).
+       - Métodos clasificados como tarjeta o transferencia/QR se agregan en `CardPayments` y `TransferPayments` respectivamente, garantizando coherencia total entre la base de datos de la sede y el arqueo.
+  2. **Verificación y Pruebas Unitarias de la Solución**:
+     - Ejecución completa de `dotnet test ParkingApi.slnx`: **494 de 494 pruebas aprobadas (100% superadas, 0 fallos)**.
+     - `dotnet build`: **0 Errores, 0 Advertencias**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Data/Repositories/Shifts/ShiftRepository.cs`
+  - `HISTORIAL_CAMBIOS.md`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+  - `dotnet test ParkingApi.slnx` -> **494 Superadas / 0 Fallos (100% Éxito)**.
 
 ---
 

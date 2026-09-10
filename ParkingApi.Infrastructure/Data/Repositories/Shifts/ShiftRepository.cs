@@ -204,23 +204,49 @@ public class ShiftRepository : IShiftRepository
             decimal transfer = 0m;
             decimal discounts = completedTickets.Sum(t => t.DiscountAmount);
 
+            var branchMethods = branchId.HasValue && branchId.Value > 0
+                ? await _context.BranchPaymentMethods
+                    .Include(b => b.PaymentMethod)
+                    .AsNoTracking()
+                    .Where(bpm => bpm.BranchId == branchId.Value && bpm.IsActive)
+                    .ToListAsync(cancellationToken)
+                : new List<BranchPaymentMethod>();
+
+            var paymentMethodsMap = branchMethods
+                .Where(bm => bm.PaymentMethod != null)
+                .ToDictionary(bm => bm.PaymentMethodId, bm => bm);
+
             foreach (var t in completedTickets)
             {
-                if (!t.PaymentMethod.HasValue || t.PaymentMethod == PaymentMethodEnum.Cash)
+                if (t.PaymentMethodId.HasValue && t.PaymentMethodId.Value > 0 && paymentMethodsMap.TryGetValue(t.PaymentMethodId.Value, out var bpm))
                 {
-                    cash += t.NetAmount;
-                }
-                else if (t.PaymentMethod == PaymentMethodEnum.DebitCard || t.PaymentMethod == PaymentMethodEnum.CreditCard)
-                {
-                    card += t.NetAmount;
-                }
-                else if (t.PaymentMethod == PaymentMethodEnum.Transfer)
-                {
-                    transfer += t.NetAmount;
+                    var isCash = bpm.RequiresCashTender || (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("efectivo") ?? false);
+                    var isCard = (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("tarjeta") ?? false) || (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("card") ?? false) || (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("credito") ?? false) || (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("debito") ?? false);
+                    var isTransfer = (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("nequi") ?? false) || (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("transfer") ?? false) || (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("qr") ?? false) || (bpm.PaymentMethod?.Name?.ToLowerInvariant().Contains("davi") ?? false);
+
+                    if (isCash) cash += t.NetAmount;
+                    else if (isCard) card += t.NetAmount;
+                    else if (isTransfer) transfer += t.NetAmount;
+                    else cash += t.NetAmount;
                 }
                 else
                 {
-                    cash += t.NetAmount;
+                    if (!t.PaymentMethod.HasValue || t.PaymentMethod == PaymentMethodEnum.Cash)
+                    {
+                        cash += t.NetAmount;
+                    }
+                    else if (t.PaymentMethod == PaymentMethodEnum.DebitCard || t.PaymentMethod == PaymentMethodEnum.CreditCard)
+                    {
+                        card += t.NetAmount;
+                    }
+                    else if (t.PaymentMethod == PaymentMethodEnum.Transfer)
+                    {
+                        transfer += t.NetAmount;
+                    }
+                    else
+                    {
+                        cash += t.NetAmount;
+                    }
                 }
             }
 
