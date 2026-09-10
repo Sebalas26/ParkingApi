@@ -13,6 +13,7 @@ use db_acd7d6_parking;
 -- ==================================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_SAFE_UPDATES = 0;
 
 -- 1. Limpieza de notificaciones y sesiones
 DELETE FROM `PushSubscriptions`;
@@ -91,6 +92,7 @@ ALTER TABLE `Plans` AUTO_INCREMENT = 1;
 ALTER TABLE `UserRole` AUTO_INCREMENT = 2;
 ALTER TABLE `User` AUTO_INCREMENT = 2;
 
+SET SQL_SAFE_UPDATES = 1;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ==================================================================================

@@ -32,6 +32,7 @@ write(`-- ======================================================================
 
 write(`USE db_acd7d6_parking;\n`);
 write(`SET FOREIGN_KEY_CHECKS = 0;`);
+write(`SET SQL_SAFE_UPDATES = 0;`);
 write(`SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';`);
 write(`SET time_zone = '+00:00';\n`);
 
@@ -345,11 +346,11 @@ allBranches.forEach(b => {
 });
 write(bpmSql.join(',\n') + ';\n');
 
-write(`INSERT INTO \`BranchOperatingHours\` (\`BranchId\`, \`DayOfWeek\`, \`OpeningTime\`, \`ClosingTime\`, \`IsClosed\`, \`IsActive\`, \`CreatedAt\`) VALUES`);
+write(`INSERT INTO \`BranchOperatingHours\` (\`BranchId\`, \`DayOfWeek\`, \`IsOpen\`, \`OpeningTime\`, \`ClosingTime\`, \`BufferMinutesBefore\`, \`BufferMinutesAfter\`) VALUES`);
 const bohSql = [];
 allBranches.forEach(b => {
   for (let d = 0; d < 7; d++) {
-    bohSql.push(`(${b.globalId}, ${d}, '06:00:00', '22:00:00', 0, 1, NOW())`);
+    bohSql.push(`(${b.globalId}, ${d}, 1, '06:00:00', '22:00:00', 30, 30)`);
   }
 });
 write(bohSql.join(',\n') + ';\n');
@@ -412,15 +413,15 @@ companiesDef.forEach(c => {
 write('');
 
 // Módulos para los roles
-write(`-- Vinculación de Módulos a Roles (1 a 17)`);
-write(`INSERT INTO \`UserRoleModule\` (\`UserRoleId\`, \`ModuleId\`, \`IsActive\`, \`CreatedAt\`) VALUES`);
+write(`-- Vinculación de Módulos a Roles (1 a 18)`);
+write(`INSERT INTO \`UserRoleModule\` (\`UserRoleId\`, \`ModulesRoleId\`, \`IsActive\`, \`CreatedAt\`) VALUES`);
 const urmSql = [];
 companiesDef.forEach(c => {
   const roles = companyRoles[c.id];
-  for (let m = 1; m <= 17; m++) {
+  for (let m = 1; m <= 18; m++) {
     urmSql.push(`(${roles.adminRoleId}, ${m}, 1, NOW())`);
   }
-  [1, 2, 3, 4, 5, 6, 8, 9, 13, 14].forEach(m => {
+  [1, 2, 3, 4, 5, 6, 8, 9, 13, 14, 18].forEach(m => {
     urmSql.push(`(${roles.superRoleId}, ${m}, 1, NOW())`);
   });
   [1, 2, 3, 4, 5, 6].forEach(m => {
@@ -439,8 +440,8 @@ write(`SELECT r.Id, a.Id, 1, NOW() FROM \`UserRole\` r CROSS JOIN \`Action\` a W
 
 // 10. Usuarios por Empresa (Admins, Supervisores y Operadores de Garita)
 write(`-- 10. USUARIOS POR EMPRESA (Credenciales para pruebas)`);
-// Hash para 'admin123' / 'operador123'
-const passwordHash = '$2a$11$qRz49r1k52rZJ0mO4EsuU.M2gq90N2a73B5uC6b7d8e9f0g1h2i3j';
+// Hash BCrypt canónico para 'admin123'
+const passwordHash = '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
 write(`INSERT INTO \`User\` (\`Id\`, \`CompanyId\`, \`UserRoleId\`, \`IdentificationTypeId\`, \`IdentificationNumber\`, \`FirstName\`, \`MiddleName\`, \`FirstSurname\`, \`SecondLastName\`, \`FullName\`, \`Username\`, \`Password\`, \`Email\`, \`IsActive\`, \`MustChangePassword\`, \`CreatedAt\`) VALUES`);
 
@@ -481,16 +482,16 @@ companiesDef.forEach(c => {
     companyUsers[c.id].operators.push(opUser);
     userSql.push(`(${opId}, ${c.id}, ${roles.operatorRoleId}, 1, '100${opId}000', 'Cajero', '', '${b.code}', '', '${opUser.name}', '${opUser.username}', '${passwordHash}', '${opUser.username}@${c.prefix}.com', 1, 0, NOW())`);
 
-    allUserBranches.push(`(${opId}, ${b.globalId}, 1, NOW())`);
-    allUserBranches.push(`(${adminId}, ${b.globalId}, 1, NOW())`); // Admin tiene acceso a todas las sedes de su empresa
-    allUserBranches.push(`(${superId}, ${b.globalId}, 1, NOW())`); // Supervisor también
+    allUserBranches.push(`(${opId}, ${b.globalId}, 1, 1, NOW())`);
+    allUserBranches.push(`(${adminId}, ${b.globalId}, ${idx === 0 ? 1 : 0}, 1, NOW())`); // Admin tiene acceso a todas las sedes de su empresa
+    allUserBranches.push(`(${superId}, ${b.globalId}, ${idx === 0 ? 1 : 0}, 1, NOW())`); // Supervisor también
   });
 });
 
 write(userSql.join(',\n') + ';\n');
 
 write(`-- Asignaciones de Usuarios a Sedes (UserBranches)`);
-write(`INSERT INTO \`UserBranches\` (\`UserId\`, \`BranchId\`, \`IsActive\`, \`CreatedAt\`) VALUES`);
+write(`INSERT INTO \`UserBranches\` (\`UserId\`, \`BranchId\`, \`IsDefault\`, \`IsActive\`, \`CreatedAt\`) VALUES`);
 write(allUserBranches.join(',\n') + ';\n');
 
 // 11. Mensualidades y Abonados
@@ -617,8 +618,14 @@ allBranches.forEach(b => {
       });
     }
 
+    // Simulación de sobrantes / faltantes leves para probar métricas de arqueo
+    let t1Diff = 0;
+    if (!isToday) {
+      if (day % 13 === 0) t1Diff = 2000;
+      else if (day % 19 === 0) t1Diff = -3000;
+    }
     const t1Expected = b.base + t1Cash;
-    const t1Actual = isToday ? 0 : t1Expected; // Cuadrado perfecto
+    const t1Actual = isToday ? 0 : (t1Expected + t1Diff);
     allShifts.push({
       shiftId: shift1Id,
       companyId: b.companyId,
@@ -635,7 +642,7 @@ allBranches.forEach(b => {
       discounts: 0,
       expectedCash: t1Expected,
       actualCash: t1Actual,
-      difference: 0,
+      difference: t1Diff,
       processed: t1Processed,
       entered: numTickets,
       status: shift1Status,
@@ -715,7 +722,11 @@ allBranches.forEach(b => {
         });
       }
 
+      let t2Diff = 0;
+      if (day % 17 === 0) t2Diff = 5000;
+      else if (day % 23 === 0) t2Diff = -4000;
       const t2Expected = b.base + t2Cash;
+      const t2Actual = t2Expected + t2Diff;
       allShifts.push({
         shiftId: shift2Id,
         companyId: b.companyId,
@@ -731,8 +742,8 @@ allBranches.forEach(b => {
         transferCollected: t2Transfer,
         discounts: 0,
         expectedCash: t2Expected,
-        actualCash: t2Expected,
-        difference: 0,
+        actualCash: t2Actual,
+        difference: t2Diff,
         processed: t2Processed,
         entered: numTicketsT2,
         status: 1,
@@ -780,7 +791,8 @@ allBranches.forEach((b, idx) => {
 });
 write(incSql.join(',\n') + ';\n');
 
-// Reactivar claves foráneas y resumen final
+// Reactivar claves foráneas y modo seguro
+write(`SET SQL_SAFE_UPDATES = 1;`);
 write(`SET FOREIGN_KEY_CHECKS = 1;\n`);
 
 write(`-- ==================================================================================`);

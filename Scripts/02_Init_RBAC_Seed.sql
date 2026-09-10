@@ -547,6 +547,7 @@ CREATE TABLE IF NOT EXISTS `BranchPaymentMethods` (
     `Id` INT NOT NULL AUTO_INCREMENT,
     `BranchId` INT NOT NULL,
     `PaymentMethodId` INT NOT NULL,
+    `RequiresCashTender` BOOLEAN NOT NULL DEFAULT 0,
     `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
     `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `UpdatedAt` DATETIME(6) NULL,
@@ -558,6 +559,15 @@ CREATE TABLE IF NOT EXISTS `BranchPaymentMethods` (
     CONSTRAINT `FK_BranchPaymentMethods_Branches_BranchId` FOREIGN KEY (`BranchId`) REFERENCES `Branches` (`Id`) ON DELETE CASCADE,
     CONSTRAINT `FK_BranchPaymentMethods_PaymentMethod_PaymentMethodId` FOREIGN KEY (`PaymentMethodId`) REFERENCES `PaymentMethod` (`Id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Migración Defensiva de Columnas en BranchPaymentMethods para Bases de Datos Existentes
+SET @tableName = "BranchPaymentMethods";
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'RequiresCashTender') > 0,
+  "SELECT 1",
+  "ALTER TABLE `BranchPaymentMethods` ADD COLUMN `RequiresCashTender` BOOLEAN NOT NULL DEFAULT 0 AFTER `PaymentMethodId`;"
+));
+PREPARE stmtBpm1 FROM @sqlCmd; EXECUTE stmtBpm1; DEALLOCATE PREPARE stmtBpm1;
 
 -- 1.13 Asignación de Usuarios a Sedes
 CREATE TABLE IF NOT EXISTS `UserBranches` (
@@ -743,6 +753,7 @@ CREATE TABLE IF NOT EXISTS `ParkingTickets` (
     `AmountPaid` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `ChangeGiven` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `PaymentMethod` INT NULL,
+    `PaymentMethodId` INT NULL,
     `Status` INT NOT NULL,
     `OperatorName` VARCHAR(100) NOT NULL,
     `IsLostTicket` BOOLEAN NOT NULL DEFAULT 0,
@@ -778,6 +789,13 @@ SET @sqlCmd = (SELECT IF(
   "ALTER TABLE `ParkingTickets` ADD COLUMN `LostTicketFee` DECIMAL(18,2) NOT NULL DEFAULT 0.00;"
 ));
 PREPARE stmtPt2 FROM @sqlCmd; EXECUTE stmtPt2; DEALLOCATE PREPARE stmtPt2;
+
+SET @sqlCmd = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tableName AND COLUMN_NAME = 'PaymentMethodId') > 0,
+  "SELECT 1",
+  "ALTER TABLE `ParkingTickets` ADD COLUMN `PaymentMethodId` INT NULL AFTER `PaymentMethod`;"
+));
+PREPARE stmtPt3 FROM @sqlCmd; EXECUTE stmtPt3; DEALLOCATE PREPARE stmtPt3;
 
 -- 1.19 Descuentos de Tiquetes por Convenios Comerciales
 CREATE TABLE IF NOT EXISTS `TicketDiscounts` (
