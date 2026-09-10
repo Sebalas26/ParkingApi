@@ -2,6 +2,37 @@
 
 Este archivo registra de forma acumulativa y cronológica todos los requerimientos, decisiones arquitectónicas, cambios en DTOs/entidades y estado de compilación del ecosistema Parking.
 
+## 📌 Entrada: [2026-09-09 21:40:00] - [SECURITY / HARDENING / MULTI-TENANT / AUTH] Erradicación de Backdoor de Contraseñas, Lectura Híbrida de Secretos con Variables de Entorno, CORS Defensivo y Aislamiento Multi-Empresa
+
+- **`💬 Prompt Original del Usuario`**:
+  > _"El tema de crear como la key y eso que está en el appsettings del API, sí, eso está mal y así no debe ser. El tema de las contraseñas, total, eso se debería también quitar. Esas cosas se pueden hacer de una vez y pues no va a romper el sistema, sí? Vamos a ir mitigando eso. Pero necesito saber qué más cosas podemos hacer tú, qué se puede hacer y qué no, y qué puedo hacer yo, y que no vaya a dañar hasta el sistema como lo tenemos, sí? Y qué cosas pueden esperar para ya producción... Revisemos cómo está el tema del PWA, que no tenga migración, que no puedan sacar información. Esas cosas que quiero revisar."_
+
+- **`🤖 Resumen Técnico para la IA`**:
+  1. **Erradicación Definitiva de Backdoor en `PasswordHasher.cs`**:
+     - Se eliminaron las líneas que permitían inicio de sesión con claves de prueba quemadas (`admin123`, `admin`, `operador123`, `1234`). La autenticación se delega 100% a la verificación criptográfica `BCrypt.Verify(password, hashedPassword)`.
+  2. **Lectura Híbrida de Secretos con Variables de Entorno (`Program.cs`)**:
+     - `Auth:JwtSigningKey` ahora busca prioritariamente la variable de entorno `PARKFLOW_JWT_KEY`. Si no existe, utiliza la clave de desarrollo de `appsettings.json` como fallback seguro.
+     - `ConnectionStrings:DefaultConnection` ahora busca prioritariamente la variable de entorno `PARKFLOW_DB_CONNECTION`.
+  3. **CORS Defensivo (`Program.cs`)**:
+     - Se restringió la política de CORS: permite `localhost` y `127.0.0.1` para entornos locales de desarrollo, y dominios oficiales `*.parking-flow.com` para producción, bloqueando orígenes maliciosos arbitrarios.
+  4. **Aislamiento Multi-Empresa en `CompaniesController.cs`**:
+     - `GetAll` y `GetActive`: Si el usuario autenticado no es `SuperAdmin`, las consultas se filtran automáticamente por su `CompanyId`, impidiendo que un usuario estándar descubra los nombres o datos de otras empresas registradas.
+     - `GetById`: Valida `_currentUser.CanAccessCompany(id)`, retornando `403 Forbidden` si un usuario intenta consultar una empresa que no le pertenece.
+  5. **Pruebas y Verificación**:
+     - `dotnet test ParkingApi.slnx` -> **495/495 Superadas, 0 Fallos (100% Éxito)**.
+     - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+
+- **`📦 Componentes Modificados`**:
+  - `ParkingApi.Infrastructure/Security/PasswordHasher.cs`
+  - `ParkingApi/Program.cs`
+  - `ParkingApi/Controllers/CompaniesController.cs`
+
+- **`✅ Verificación y Compilación`**:
+  - `dotnet test ParkingApi.slnx` -> **495 Superadas, 0 Fallos (100% Éxito)**.
+  - `dotnet build ParkingApi.slnx` -> **0 Errores, 0 Advertencias**.
+
+---
+
 ## 📌 Entrada: [2026-09-09 15:00:00] - [FEATURE / SHIFTS / ANALYTICS / RBAC / ARQUEO] Nombre Reactivo de Operador en Turnos y Métricas de Arqueo (Sobrantes / Faltantes) en Resumen Financiero
 
 - **`💬 Prompt Original del Usuario`**:

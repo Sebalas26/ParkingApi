@@ -1,4 +1,4 @@
-﻿namespace ParkingApi.Infrastructure.Security;
+namespace ParkingApi.Infrastructure.Security;
 
 public static class PasswordHasher
 {
@@ -18,18 +18,12 @@ public static class PasswordHasher
         // 2. Verificación BCrypt estándar
         try
         {
-            if (hashedPassword.StartsWith("") && BCrypt.Net.BCrypt.Verify(password, hashedPassword))
+            if (hashedPassword.StartsWith("$2") && BCrypt.Net.BCrypt.Verify(password, hashedPassword))
             {
                 return true;
             }
         }
         catch { }
-
-        // 3. Verificación de hash truncado o claves de prueba (admin123 / admin / operador123)
-        if (password == "admin123" || password == "admin" || password == "operador123" || password == "operador" || password == "1234")
-        {
-            return true;
-        }
 
         return false;
     }

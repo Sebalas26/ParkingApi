@@ -36,6 +36,18 @@ public class CompaniesController : ControllerBase
     {
         try
         {
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                var userCompanyId = _currentUser.CompanyId;
+                if (!userCompanyId.HasValue || userCompanyId.Value <= 0)
+                {
+                    return Ok(new List<CompanyDto>());
+                }
+
+                var singleCompany = await _companyService.GetCompanyByIdAsync(userCompanyId.Value, cancellationToken);
+                return Ok(singleCompany != null ? new List<CompanyDto> { singleCompany } : new List<CompanyDto>());
+            }
+
             var companies = await _companyService.GetAllCompaniesAsync(cancellationToken);
             return Ok(companies);
         }
@@ -51,6 +63,18 @@ public class CompaniesController : ControllerBase
     {
         try
         {
+            if (_currentUser != null && !_currentUser.IsSuperAdmin)
+            {
+                var userCompanyId = _currentUser.CompanyId;
+                if (!userCompanyId.HasValue || userCompanyId.Value <= 0)
+                {
+                    return Ok(new List<CompanyDto>());
+                }
+
+                var singleCompany = await _companyService.GetCompanyByIdAsync(userCompanyId.Value, cancellationToken);
+                return Ok(singleCompany != null && singleCompany.IsActive ? new List<CompanyDto> { singleCompany } : new List<CompanyDto>());
+            }
+
             var companies = await _companyService.GetActiveCompaniesAsync(cancellationToken);
             return Ok(companies);
         }
@@ -66,6 +90,11 @@ public class CompaniesController : ControllerBase
     {
         try
         {
+            if (_currentUser != null && !_currentUser.IsSuperAdmin && !_currentUser.CanAccessCompany(id))
+            {
+                return Forbid();
+            }
+
             var company = await _companyService.GetCompanyByIdAsync(id, cancellationToken);
             if (company == null)
             {

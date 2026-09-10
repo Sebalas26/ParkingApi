@@ -20,10 +20,16 @@ using ParkingApi.Domain.Interfaces.Repositories.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Opciones JWT
+// 1. Opciones JWT (Soporte híbrido con Variables de Entorno y Fallback de Desarrollo)
 var jwtSection = builder.Configuration.GetSection("Auth");
 builder.Services.Configure<JwtOptions>(jwtSection);
 var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
+
+var envJwtKey = builder.Configuration["PARKFLOW_JWT_KEY"] ?? Environment.GetEnvironmentVariable("PARKFLOW_JWT_KEY");
+if (!string.IsNullOrWhiteSpace(envJwtKey))
+{
+    jwtOptions.JwtSigningKey = envJwtKey;
+}
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.JwtSigningKey);
 
 // 2. Autenticación JWT Bearer con Control de Sesión Única Concurrente
@@ -78,8 +84,10 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// 3. MySQL DataContext con versión explícita
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+// 3. MySQL DataContext con versión explícita y soporte híbrido de variables de entorno
+var connectionString = builder.Configuration["PARKFLOW_DB_CONNECTION"]
+    ?? Environment.GetEnvironmentVariable("PARKFLOW_DB_CONNECTION")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Data Source=parkflow.db";
 
 builder.Services.AddDbContext<DataContext>(options =>
@@ -96,15 +104,34 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ParkingApi.Domain.Interfaces.Services.Realtime.IRealtimeNotificationService, ParkingApi.Services.Realtime.RealtimeNotificationService>();
 
-// 5. CORS
+// 5. CORS Defensivo (Localhost para desarrollo + Dominios oficiales de ParkFlow)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrWhiteSpace(origin)) return false;
+            try
+            {
+                var uri = new Uri(origin);
+                // Permitir desarrollo local
+                if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                // Permitir dominios de producción y subdominios oficiales
+                if (uri.Host.EndsWith("parking-flow.com", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("parking-flow.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            catch { }
+            return false;
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
