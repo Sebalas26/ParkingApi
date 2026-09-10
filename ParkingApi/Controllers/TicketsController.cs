@@ -67,13 +67,18 @@ public class TicketsController : ControllerBase
     {
         try
         {
+            var existingTicket = await _ticketService.GetByIdAsync(dto.TicketId, cancellationToken);
+            bool wasAlreadyCompleted = existingTicket != null && existingTicket.Status == ParkingApi.Domain.Common.Enums.TicketStatus.Completed;
+
             var ticket = await _ticketService.CheckOutAsync(dto, cancellationToken);
             if (ticket == null)
             {
-                return NotFound(new { message = "Tiquete no encontrado o ya liquidado." });
+                return NotFound(new { message = "Tiquete no encontrado." });
             }
 
-            if (ticket.BranchId.HasValue)
+            // Solo emitir notificación SignalR si el tiquete acaba de ser liquidado en esta transacción
+            // (evita tormentas de notificaciones durante la sincronización de colas de terminales offline)
+            if (!wasAlreadyCompleted && ticket.BranchId.HasValue)
             {
                 _ = _realtimeNotifier.NotifyCustomAsync(new ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto
                 {

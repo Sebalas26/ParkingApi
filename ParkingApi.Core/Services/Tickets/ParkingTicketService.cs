@@ -257,7 +257,20 @@ public class ParkingTicketService : IParkingTicketService
         try
         {
             var ticket = await _ticketRepository.GetByIdAsync(dto.TicketId, cancellationToken);
-            if (ticket == null || ticket.Status != TicketStatus.Active)
+            if (ticket == null)
+            {
+                return null;
+            }
+
+            // Idempotencia Canónica: Si el tiquete ya fue liquidado en la nube (PWA o terminal central),
+            // se retorna el estado canónico real del servidor para que el cliente sincronice la data de la nube a tierra.
+            if (ticket.Status == TicketStatus.Completed)
+            {
+                _logger.LogInformation("[CheckOut Idempotente] El tiquete {TicketId} (Placa: {Plate}) ya se encuentra liquidado en la nube. Retornando verdad canónica del servidor.", ticket.TicketId, ticket.PlateNumber);
+                return ticket;
+            }
+
+            if (ticket.Status != TicketStatus.Active)
             {
                 return null;
             }

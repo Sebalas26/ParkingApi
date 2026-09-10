@@ -282,7 +282,9 @@ public class ShiftService : IShiftService
             CompanyId = s.CompanyId,
             BranchId = s.BranchId,
             UserId = s.UserId,
-            OperatorName = s.OperatorName,
+            OperatorName = !string.IsNullOrWhiteSpace(s.User?.FullName)
+                ? s.User.FullName
+                : (!string.IsNullOrWhiteSpace(s.User?.Username) ? s.User.Username : s.OperatorName),
             CashRegisterName = s.CashRegisterName ?? "Caja Principal",
             StartTimeUtc = s.StartTimeUtc,
             EndTimeUtc = s.EndTimeUtc,

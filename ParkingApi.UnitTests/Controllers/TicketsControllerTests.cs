@@ -103,6 +103,40 @@ public class TicketsControllerTests
     }
 
     [Fact]
+    public async Task CheckOut_WhenAlreadyCompleted_ShouldReturnOkWithCanonicalTicketAndNotReemitSignalR()
+    {
+        // Arrange
+        var ticketId = Guid.NewGuid();
+        var request = new CheckOutRequestDto { TicketId = ticketId, AmountPaid = 5000 };
+        var existingCompletedTicket = new ParkingTicket
+        {
+            TicketId = ticketId,
+            PlateNumber = "XYZ999",
+            Status = TicketStatus.Completed,
+            BranchId = 1,
+            GrossAmount = 5000,
+            NetAmount = 5000
+        };
+
+        _ticketServiceMock.Setup(s => s.GetByIdAsync(ticketId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingCompletedTicket);
+
+        _ticketServiceMock.Setup(s => s.CheckOutAsync(request, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingCompletedTicket);
+
+        // Act
+        var result = await _controller.CheckOut(request, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().BeEquivalentTo(existingCompletedTicket);
+
+        _realtimeNotifierMock.Verify(
+            r => r.NotifyCustomAsync(It.IsAny<ParkingApi.Domain.Dtos.Realtime.ConfigNotificationDto>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CheckOut_WhenNotFound_ShouldReturn404()
     {
         // Arrange

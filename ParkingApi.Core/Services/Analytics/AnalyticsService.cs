@@ -10,6 +10,7 @@ using ParkingApi.Domain.Dtos.Analytics;
 using ParkingApi.Domain.Interfaces.Repositories.Billing;
 using ParkingApi.Domain.Interfaces.Repositories.Branches;
 using ParkingApi.Domain.Interfaces.Repositories.PaymentMethods;
+using ParkingApi.Domain.Interfaces.Repositories.Shifts;
 using ParkingApi.Domain.Interfaces.Repositories.Tickets;
 using ParkingApi.Domain.Interfaces.Services.Analytics;
 
@@ -21,6 +22,7 @@ public class AnalyticsService : IAnalyticsService
     private readonly IBranchRepository _branchRepository;
     private readonly IPaymentMethodRepository _paymentMethodRepository;
     private readonly IBillingResolutionRepository _resolutionRepository;
+    private readonly IShiftRepository? _shiftRepository;
     private readonly IConfiguration _configuration;
     private readonly ParkingApi.Domain.Interfaces.Services.ICurrentUserService _currentUser;
     private readonly ILogger<AnalyticsService> _logger;
@@ -32,7 +34,8 @@ public class AnalyticsService : IAnalyticsService
         IBillingResolutionRepository resolutionRepository,
         IConfiguration configuration,
         ParkingApi.Domain.Interfaces.Services.ICurrentUserService currentUser,
-        ILogger<AnalyticsService> logger)
+        ILogger<AnalyticsService> logger,
+        IShiftRepository? shiftRepository = null)
     {
         _ticketRepository = ticketRepository;
         _branchRepository = branchRepository;
@@ -41,6 +44,7 @@ public class AnalyticsService : IAnalyticsService
         _configuration = configuration;
         _currentUser = currentUser;
         _logger = logger;
+        _shiftRepository = shiftRepository;
     }
 
     public static (DateTime fromUtc, DateTime toUtc, string normalizedPeriod) GetPeriodUtcRange(string? period, int offsetMinutes)
@@ -185,6 +189,37 @@ public class AnalyticsService : IAnalyticsService
                 }
             }
 
+            decimal totalSurplus = 0m;
+            decimal totalDeficit = 0m;
+
+            if (_shiftRepository != null)
+            {
+                try
+                {
+                    var shifts = await _shiftRepository.GetHistoryAsync(fromUtc, toUtc, branchId, cancellationToken);
+                    if (effectiveCompanyId.HasValue && effectiveCompanyId.Value > 0)
+                    {
+                        shifts = shifts.Where(s => !s.CompanyId.HasValue || s.CompanyId.Value == effectiveCompanyId.Value).ToList();
+                    }
+
+                    foreach (var shift in shifts)
+                    {
+                        if (shift.CashDifference > 0)
+                        {
+                            totalSurplus += shift.CashDifference;
+                        }
+                        else if (shift.CashDifference < 0)
+                        {
+                            totalDeficit += Math.Abs(shift.CashDifference);
+                        }
+                    }
+                }
+                catch (Exception shiftEx)
+                {
+                    _logger.LogWarning(shiftEx, "Error al calcular arqueos de caja para analíticas");
+                }
+            }
+
             return new FinancialSummaryDto
             {
                 Period = normalizedPeriod,
@@ -197,7 +232,9 @@ public class AnalyticsService : IAnalyticsService
                 RevenueByPaymentMethod = revenueByPayment,
                 CountByPaymentMethod = countByPayment,
                 CountByResolution = countByResolution,
-                RevenueByResolution = revenueByResolution
+                RevenueByResolution = revenueByResolution,
+                TotalCashSurplus = totalSurplus,
+                TotalCashDeficit = totalDeficit
             };
         }
         catch (Exception ex)
